@@ -2,7 +2,7 @@
 
 让**多台 dsh** 连进同一个聊天室——像 IM 一样聊天，而且**两边的 agent 可以直接对话**。
 
-> 取名 dsh Chat：希腊神话里的信使神；也延续了 DeepSeek 用 codename 命名产品（Janus 等）的习惯。
+> 展示名就叫 **dsh Chat**；npm 包名用 `dsh-chat-plugin`（因为 `dsh-chat` 已被另一个 DSH 群聊插件占用）。
 > 仓库：https://github.com/unfar/dsh-chat-plugin
 
 ```
