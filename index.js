@@ -1,0 +1,55 @@
+/**
+ * dsh-hermes — Host 入口。
+ *
+ * 一个插件行同时提供：
+ *  - 传输与房间状态（lib/peerchat.js）
+ *  - Web GUI 的 HTTP API（lib/routes.js，挂 /dsh-hermes/api）
+ *  - agent 工具 hermes_send / hermes_read / hermes_ask / hermes_status（lib/tools.js）
+ *  - agent 自动回复（lib/agent-reply.js）：房间里有人 @hermes 时，本机 agent 自动回应
+ * 浏览器那一半在 client.js，通过同样的 API 渲染 IM 式聊天面板。
+ *
+ * 配置来自 cordis.patch.yml 的行 config（见 README）；UI 保存的设置会写到
+ * $DSH_HOME/dsh-hermes/config.json，并在下次启动时优先于行 config。
+ */
+import { AgentReplier } from './lib/agent-reply.js'
+import { PeerChat } from './lib/peerchat.js'
+import { registerRoutes } from './lib/routes.js'
+import { registerTools } from './lib/tools.js'
+
+// 只硬性依赖 tools；webServer 是可选服务（无 Web GUI 的 profile 里插件仍可提供工具）。
+export const inject = ['tools']
+
+/**
+ * @param {import('@deepseek-ai/cordis').Context} ctx
+ * @param {Record<string, unknown>} [config]
+ */
+export function apply(ctx, config) {
+  const app = new PeerChat({ ctx, config })
+  const replier = new AgentReplier({ ctx, app })
+
+  ctx.effect(() => app.start())
+  ctx.effect(() => replier.start())
+
+  const disposeRoutes = registerRoutes(ctx, app)
+  if (disposeRoutes) ctx.effect(() => disposeRoutes)
+
+  ctx.effect(() => registerTools(ctx, app))
+
+  // 让 agent 知道有未读消息：注册一个动态 system prompt 片段，没有未读时为空。
+  const systemPrompt = ctx.get?.('systemPrompt')
+  if (systemPrompt && typeof systemPrompt.section === 'function') {
+    try {
+      ctx.effect(() => systemPrompt.section({
+        name: 'dsh-hermes',
+        order: 850,
+        text: () => app.promptText(),
+      }))
+    } catch (error) {
+      ctx.logger?.warn?.('dsh-hermes: 注册 system prompt 片段失败', error)
+    }
+  }
+
+  ctx.effect(() => () => app.cancelWaiters())
+
+  ctx.logger?.info?.('dsh-hermes: 已启用（面板见侧边栏「Hermes」，工具见 hermes_*，自动回复见设置）')
+}

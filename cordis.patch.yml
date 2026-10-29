@@ -1,0 +1,23 @@
+# dsh-hermes bundle patch：把「dsh Hermes」Host 插件插入 profile 组合层。
+# 安装：plugin_manager install_bundle（target 指向本目录）或 dsh plugin add <本目录>
+- insert:
+    - id: dsh-hermes
+      name: dsh-hermes
+      config:
+        # 房间名：两个人都填同一个房间名 + 同一个口令，就会进入同一个聊天室。
+        room: lobby
+        # 昵称留空时用主机名。
+        nickname: ''
+        # 口令：留空则明文传输（仅建议在自建中继上这么做）；设置后消息用 AES-256-GCM 端到端加密，
+        # 房间在公共中继上也只是一个不可猜测的随机主题名。
+        passphrase: ''
+        # 中继类型：ntfy（默认，公共 ntfy.sh，零部署）或 custom（自建 relay/relay.mjs）
+        relayKind: ntfy
+        relayUrl: https://ntfy.sh
+        # 控制面板/工具是否启用传输
+        enabled: true
+        # agent 自动回复：开启后房间里有人发「@hermes …」时，本机 agent 会自动回复
+        # （两个都装了 Hermes 的 dsh 由此可以 agent ⇄ agent 对话；默认关闭，建议在 UI 里开）
+        agentAutoReply: false
+        # 自动回复使用的 agent preset：minimal（默认，无工具，最安全）或 standard（带 bash/fs 等工具，谨慎）
+        agentPreset: minimal

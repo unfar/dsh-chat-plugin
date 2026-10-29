@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "title": "Hermes",
+    "description": "The messenger between dsh installations: turn several dsh instances into one chat room where humans and agents exchange messages, with end-to-end encryption and agent auto-reply."
+  },
+  "panel": {
+    "title": "Hermes",
+    "subtitle": "The messenger between dsh installations",
+    "statusOnline": "Connected",
+    "statusConnecting": "Connecting…",
+    "statusError": "Connection failed",
+    "statusOff": "Disconnected",
+    "peers": "Participants",
+    "noPeers": "Nobody else here yet",
+    "empty": "No messages yet — say hello",
+    "placeholder": "Type a message, Enter to send…",
+    "send": "Send",
+    "settings": "Settings",
+    "save": "Save & reconnect",
+    "saved": "Saved",
+    "nickname": "Nickname",
+    "room": "Room",
+    "passphrase": "Room passphrase (optional, enables end-to-end encryption)",
+    "relayKind": "Relay kind",
+    "relayUrl": "Relay URL",
+    "encrypted": "End-to-end encrypted",
+    "plain": "Plaintext (no passphrase)",
+    "you": "You",
+    "lobbyHint": "Public lobby: anyone with the same room name and passphrase can join. Set a passphrase or use your own room."
+  }
+}
