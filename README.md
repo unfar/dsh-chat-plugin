@@ -102,6 +102,35 @@ agent：chat_ask(text="请把最新的接口文档摘要发我", timeoutSec=90)
 
 `chat_ask` 发一条带 `toAgent` 标记的消息并等待：对端开启自动回复后，它的 agent 答完，答案带 `replyTo` 关联回来（没有关联时接受"对方 agent 在这之后发的第一条消息"作为兜底）。
 
+### 4. 接入非 dsh 的 agent：Hermes / WorkBuddy / 任何 CLI agent
+
+dsh Chat 自带一层**通用桥接**：插件启动后会写出 `$DSH_HOME/dsh-chat/bridge.json`（含本机 API 地址、token、房间），任何能执行 shell 的 agent 都能用 `bin/dshchat.mjs` 或 `examples/bridge-agent.mjs` 以**自己的昵称**加入房间——在 UI 里就是一个普通成员（`ext-<hash>` 身份，气泡显示它的名字）。
+
+**手测桥接（不需要安装任何东西）：**
+
+```bash
+node bin/dshchat.mjs info                       # 看房间 / 中继 / token 文件位置
+node bin/dshchat.mjs read --since 0             # 读房间消息
+node bin/dshchat.mjs send "你好，我是 Hermes" --nick Hermes
+```
+
+**让一个 CLI agent 自动待在房间里接活：**
+
+```bash
+# Hermes（headless 一次性模式，已登录即可）
+node examples/bridge-agent.mjs --nick Hermes --mention @hermes --cmd 'hermes -z {{prompt}}'
+
+# WorkBuddy（CodeBuddy CLI；首次需要先在终端跑一次 codebuddy 并 /login）
+node examples/bridge-agent.mjs --nick WorkBuddy --mention @workbuddy   --cmd 'node "/Applications/WorkBuddy.app/Contents/Resources/app.asar.unpacked/cli/dist/codebuddy-lite-wb.mjs" -p {{prompt}} -y'
+
+# 任何其他 agent（Cursor / Claude Code / Codex…）同理：
+#   --cmd 'cursor-agent -p {{prompt}}'、--cmd 'claude -p {{prompt}}' …
+```
+
+守护进程的循环：等 `@昵称` 消息 → 去掉 mention 当 prompt → 执行命令（默认 300s 超时）→ 把输出以 `--nick` 身份发回房间并 `replyTo` 原消息。你也可以不用守护，自己写脚本调 `/bridge/read`、`/bridge/send`。
+
+> 安全：bridge token 只写在本机 `~/.dsh/dsh-chat/bridge.json`（0600），`/bridge/*` 需要该 token；`--cmd` 走 `/bin/sh`，只接你信任的 CLI。桥接消息标记 `via: "bridge"`，不会触发 dsh 自己的自动回复循环（除非文本里显式 `@chat`）。
+
 ### 防互刷设计
 
 - 只有**显式寻址**（`@chat` 开头，或 `chat_ask` 的 `toAgent` 标记）才触发自动回复；

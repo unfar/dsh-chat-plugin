@@ -19,6 +19,7 @@ const { registerRoutes } = await import('../lib/routes.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
 const { seal, open, deriveTopic } = await import('../lib/crypto.js')
 const { encodeInvite, decodeInvite } = await import('../lib/invite.js')
+const { externalPeerId } = await import('../lib/bridge.js')
 const { ChatStore } = await import('../lib/store.js')
 
 const logger = { info() {}, warn() {}, error() {}, debug() {} }
@@ -44,6 +45,11 @@ const decodedInvite = decodeInvite(invite)
 check(decodedInvite.room === 'team' && decodedInvite.passphrase === 'pw', 'invite code round-trips room + passphrase')
 assert.throws(() => decodeInvite('dshchat1:not-base64!!!'), /邀请码/)
 check(true, 'malformed invite code is rejected')
+
+// ---------- external agent bridge ----------
+check(externalPeerId('Hermes') === externalPeerId(' hermes '), 'external peer id is stable and case-insensitive')
+check(externalPeerId('Hermes') !== externalPeerId('WorkBuddy'), 'different external agents get different ids')
+check(externalPeerId('Hermes').startsWith('ext-'), 'external peer id has ext- prefix')
 
 // ---------- store ----------
 const store = new ChatStore()
