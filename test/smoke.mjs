@@ -18,6 +18,7 @@ const { registerTools } = await import('../lib/tools.js')
 const { registerRoutes } = await import('../lib/routes.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
 const { seal, open, deriveTopic } = await import('../lib/crypto.js')
+const { encodeInvite, decodeInvite } = await import('../lib/invite.js')
 const { ChatStore } = await import('../lib/store.js')
 
 const logger = { info() {}, warn() {}, error() {}, debug() {} }
@@ -35,6 +36,14 @@ check(sealed.startsWith('dshpc1:'), 'seal() produces v1 ciphertext envelope')
 check(open(sealed, key).text === '你好 dsh Chat', 'open() round-trips payload')
 check(deriveTopic('room', 'pw') === deriveTopic('room', 'pw'), 'topic derivation is deterministic')
 check(deriveTopic('room', 'pw') !== deriveTopic('room', 'other'), 'different passphrase → different topic')
+
+// ---------- invite code ----------
+const invite = encodeInvite({ room: 'team', passphrase: 'pw', relayKind: 'ntfy', relayUrl: 'https://ntfy.sh' })
+check(invite.startsWith('dshchat1:'), 'invite code carries dshchat1: prefix')
+const decodedInvite = decodeInvite(invite)
+check(decodedInvite.room === 'team' && decodedInvite.passphrase === 'pw', 'invite code round-trips room + passphrase')
+assert.throws(() => decodeInvite('dshchat1:not-base64!!!'), /邀请码/)
+check(true, 'malformed invite code is rejected')
 
 // ---------- store ----------
 const store = new ChatStore()
@@ -66,6 +75,17 @@ check(app.countUnread('human') === 1, 'unread counter increments')
 app.markRead(app.seq, 'human')
 check(app.countUnread('human') === 0, 'human read cursor advances')
 check(app.countUnread('agent') === 1, 'agent read cursor is independent')
+
+// typing 是瞬时状态：不产生消息、不进未读
+const typingBody = seal({ v: 1, id: 'typing-1', from: 'peer-a', nick: 'Peer A', ts: Date.now(), kind: 'typing' }, app.key)
+const beforeCount = app.messages.length
+app.onInbound({ body: typingBody })
+const typingState = app.getState()
+check(app.messages.length === beforeCount, 'typing event does not create a message')
+check(typingState.typing.length === 1 && typingState.typing[0].nick === 'Peer A', 'typing state is exposed to the UI')
+
+// 邀请码来自当前房间
+check(decodeInvite(app.inviteCode()).room === app.room, 'inviteCode() encodes the current room')
 
 // ---------- tools ----------
 const tools = []

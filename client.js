@@ -94,6 +94,24 @@ window.__ModuleLoader__.load({
       anonymous: "匿名",
       messagesAria: "聊天消息",
       composerAria: "消息输入框",
+      invite: "邀请",
+      inviteTitle: "邀请对方加入",
+      inviteHint:
+        "把这段邀请码发给对方，让对方粘贴到「加入房间」里即可。邀请码包含房间口令，只发给信得过的人。",
+      inviteCopy: "复制邀请码",
+      inviteCopied: "已复制",
+      inviteClose: "关闭",
+      inviteLoading: "生成邀请码…",
+      joinTitle: "加入别人的房间",
+      joinPlaceholder: "粘贴邀请码，例如 dshchat1:…",
+      joinButton: "加入",
+      joining: "加入中…",
+      joinFailed: "加入失败",
+      onboardingTitle: "开始和另一台 dsh 聊天",
+      onboardingText:
+        "你们需要先进入同一个房间：把邀请码发给对方，或粘贴对方发来的邀请码。",
+      onboardingOr: "或者",
+      typing: "正在输入…",
     };
 
     /** 取中文文案；未知 key 原样返回，永不抛错。 */
@@ -256,6 +274,7 @@ window.__ModuleLoader__.load({
         unread: Number(raw.unread) || 0,
         agentUnread: Number(raw.agentUnread) || 0,
         lastReadSeq: Number(raw.lastReadSeq) || 0,
+        typing: safeArray(raw.typing).filter((peer) => peer && typeof peer === "object"),
         agent:
           raw.agent && typeof raw.agent === "object"
             ? {
@@ -860,6 +879,102 @@ window.__ModuleLoader__.load({
   font-size: 10px;
   opacity: 0.8;
 }
+/* 空态引导：邀请 / 加入房间 */
+.dchat-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dchat-label);
+}
+.dchat-empty-hint-sm {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+.dchat-empty-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.dchat-empty-or {
+  font-size: 11px;
+  opacity: 0.65;
+}
+.dchat-empty-error {
+  font-size: 11.5px;
+  color: var(--dchat-err);
+}
+.dchat-join {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 380px;
+}
+.dchat-join .dchat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 邀请码弹层 */
+.dchat-invite {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.dchat-invite-card {
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--dchat-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-overlay, var(--dsw-alias-bg-layer-1, #fff));
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
+}
+.dchat-invite-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dchat-invite-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dchat-label);
+}
+.dchat-invite-code {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-all;
+  resize: none;
+}
+.dchat-invite-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.dchat-invite-error {
+  font-size: 11.5px;
+  color: var(--dchat-err);
+}
+.dchat-typing {
+  font-size: 11px;
+  color: var(--dchat-brand);
+}
+.dchat-row.grouped {
+  margin-top: 1px;
+}
+
 .dchat-empty {
   display: flex;
   flex-direction: column;
@@ -1095,6 +1210,27 @@ window.__ModuleLoader__.load({
       );
     }
 
+    const INVITE_ICON = h(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 16,
+        height: 16,
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.6,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": "true",
+        focusable: "false",
+        style: { display: "block" },
+      },
+      h("circle", { key: "a", cx: 9, cy: 8, r: 3 }),
+      h("circle", { key: "b", cx: 17, cy: 10, r: 2.4 }),
+      h("path", { key: "c", d: "M3.5 19c.6-3.2 2.9-5 5.5-5s4.9 1.8 5.5 5" }),
+      h("path", { key: "d", d: "M15.5 14.6c2-.4 3.8.8 4.3 3.4" }),
+    );
+
     const SETTINGS_ICON = h(
       "svg",
       {
@@ -1140,16 +1276,17 @@ window.__ModuleLoader__.load({
     function MessageRow(props) {
       const message = props.message || {};
       const mine = props.mine === true;
+      const grouped = props.grouped === true;
       const text = message.text == null ? "" : String(message.text);
       const nick = String(message.nick || shortId(message.from) || t("anonymous"));
       const color = avatarColor(message.from == null ? nick : message.from);
       return h(
         "div",
-        { className: "dchat-row " + (mine ? "mine" : "theirs") },
+        { className: "dchat-row " + (mine ? "mine" : "theirs") + (grouped ? " grouped" : "") },
         h(
           "div",
           { className: "dchat-stack" },
-          mine
+          mine || grouped
             ? null
             : h(
                 "div",
@@ -1168,7 +1305,8 @@ window.__ModuleLoader__.load({
     }
 
     /** 空消息列表的占位。 */
-    function ChatEmpty() {
+    function ChatEmpty(props) {
+      const options = props || {};
       return h(
         "div",
         { className: "dchat-empty" },
@@ -1190,7 +1328,47 @@ window.__ModuleLoader__.load({
           h("rect", { key: "bubble", x: 3, y: 4.5, width: 18, height: 12.5, rx: 3 }),
           h("path", { key: "tail", d: "M8 17v3.4l3.6-3.4" }),
         ),
-        h("div", null, t("empty")),
+        h("div", { className: "dchat-empty-title" }, t("onboardingTitle")),
+        h("div", { className: "dchat-empty-hint" }, t("onboardingText")),
+        h(
+          "div",
+          { className: "dchat-empty-actions" },
+          h(
+            "button",
+            { type: "button", className: "dchat-btn", onClick: options.onInvite },
+            "🔗 " + t("invite"),
+          ),
+        ),
+        h("div", { className: "dchat-empty-or" }, t("onboardingOr")),
+        h(
+          "div",
+          { className: "dchat-join" },
+          h("input", {
+            className: "dchat-input",
+            type: "text",
+            value: options.joinCode || "",
+            placeholder: t("joinPlaceholder"),
+            "aria-label": t("joinTitle"),
+            onChange: (event) => options.onJoinCode && options.onJoinCode(event.target.value),
+            onKeyDown: (event) => {
+              if (event.key === "Enter" && options.onJoin) options.onJoin();
+            },
+          }),
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-btn",
+              disabled: options.joining === true || !options.joinCode,
+              onClick: options.onJoin,
+            },
+            options.joining ? t("joining") : t("joinButton"),
+          ),
+        ),
+        options.joinError
+          ? h("div", { className: "dchat-empty-error" }, "⚠️ " + options.joinError)
+          : null,
+        h("div", { className: "dchat-empty-hint dchat-empty-hint-sm" }, t("empty")),
       );
     }
 
@@ -1255,6 +1433,14 @@ window.__ModuleLoader__.load({
       const [saving, setSaving] = useState(false);
       const [saveNotice, setSaveNotice] = useState(null);
       const [showJump, setShowJump] = useState(false);
+      const [inviteOpen, setInviteOpen] = useState(false);
+      const [invite, setInvite] = useState("");
+      const [inviteLoading, setInviteLoading] = useState(false);
+      const [inviteError, setInviteError] = useState("");
+      const [copied, setCopied] = useState(false);
+      const [joinCode, setJoinCode] = useState("");
+      const [joining, setJoining] = useState(false);
+      const [joinError, setJoinError] = useState("");
 
       const mountedRef = useRef(true);
       const pollingRef = useRef(false);
@@ -1267,6 +1453,7 @@ window.__ModuleLoader__.load({
       const didScrollRef = useRef(false);
       const lastSeqRef = useRef(0);
       const lastReadSentRef = useRef(0);
+      const typingSentRef = useRef(0);
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
 
@@ -1460,11 +1647,108 @@ window.__ModuleLoader__.load({
 
       const handleDraftChange = useCallback(
         (event) => {
-          setDraft(event.target.value);
+          const value = event.target.value;
+          setDraft(value);
           if (sendError) setSendError("");
+          const now = Date.now();
+          if (value.trim() && now - typingSentRef.current > 2500) {
+            typingSentRef.current = now;
+            void request("/typing", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: "{}",
+            }).catch(() => {
+              /* 输入状态失败无所谓 */
+            });
+          }
         },
         [sendError],
       );
+
+      /** 打开邀请面板：按需拉取当前房间的邀请码。 */
+      const openInvite = useCallback(async () => {
+        setInviteOpen(true);
+        setCopied(false);
+        setInviteError("");
+        if (invite) return;
+        setInviteLoading(true);
+        try {
+          const data = await request("/invite", {
+            method: "GET",
+            headers: { accept: "application/json" },
+            cache: "no-store",
+          });
+          if (mountedRef.current) setInvite(data && data.code ? String(data.code) : "");
+        } catch (error) {
+          if (mountedRef.current) {
+            setInviteError(error && error.message ? error.message : t("unreachable"));
+          }
+        } finally {
+          if (mountedRef.current) setInviteLoading(false);
+        }
+      }, [invite]);
+
+      const copyInvite = useCallback(async () => {
+        if (!invite) return;
+        try {
+          if (
+            typeof navigator !== "undefined" &&
+            navigator.clipboard &&
+            typeof navigator.clipboard.writeText === "function"
+          ) {
+            await navigator.clipboard.writeText(invite);
+          } else if (typeof document !== "undefined") {
+            const area = document.createElement("textarea");
+            area.value = invite;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            try {
+              document.execCommand("copy");
+            } finally {
+              area.remove();
+            }
+          }
+          setCopied(true);
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          toastTimerRef.current = setTimeout(() => {
+            toastTimerRef.current = null;
+            if (mountedRef.current) setCopied(false);
+          }, 2500);
+        } catch (error) {
+          setInviteError(error && error.message ? error.message : t("joinFailed"));
+        }
+      }, [invite]);
+
+      /** 粘贴邀请码加入房间：切房间/口令/中继，成功立即刷新。 */
+      const joinByCode = useCallback(async () => {
+        const code = joinCode.trim();
+        if (!code || joining) return;
+        setJoining(true);
+        setJoinError("");
+        try {
+          const data = await request("/join", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ code }),
+          });
+          if (!mountedRef.current) return;
+          setJoinCode("");
+          forceScrollRef.current = true;
+          if (data && data.state) {
+            const next = normalizeSnapshot(data.state);
+            if (next) setSnapshot(next);
+          }
+          void refresh();
+        } catch (error) {
+          if (mountedRef.current) {
+            setJoinError(error && error.message ? error.message : t("joinFailed"));
+          }
+        } finally {
+          if (mountedRef.current) setJoining(false);
+        }
+      }, [joinCode, joining, refresh]);
 
       /** 发送消息：Enter 或按钮触发；失败保留输入并显示服务端错误。 */
       const submit = useCallback(async () => {
@@ -1811,7 +2095,15 @@ window.__ModuleLoader__.load({
             seq == null
               ? "msg-i-" + index
               : "msg-s-" + String(seq) + (message.id ? "-" + String(message.id) : "");
-          messageChildren.push(h(MessageRow, { key, message, mine }));
+          const previous = index > 0 ? messages[index - 1] : null;
+          const grouped =
+            Boolean(previous) &&
+            (previous.mine === true) === (message.mine === true) &&
+            String(previous.nick || previous.from || "") === String(message.nick || message.from || "") &&
+            new Date(Number(previous.ts) || 0).toDateString() ===
+              new Date(Number(message.ts) || 0).toDateString() &&
+            Math.abs((Number(message.ts) || 0) - (Number(previous.ts) || 0)) < 5 * 60 * 1000;
+          messageChildren.push(h(MessageRow, { key, message, mine, grouped }));
         });
       }
 
@@ -1828,7 +2120,16 @@ window.__ModuleLoader__.load({
                 role: "log",
                 "aria-label": t("messagesAria"),
               },
-              messages.length === 0 ? h(ChatEmpty, null) : messageChildren,
+              messages.length === 0
+                ? h(ChatEmpty, {
+                    onInvite: openInvite,
+                    joinCode,
+                    onJoinCode: setJoinCode,
+                    onJoin: joinByCode,
+                    joining,
+                    joinError,
+                  })
+                : messageChildren,
             ),
             showJump
               ? h(
@@ -1846,6 +2147,70 @@ window.__ModuleLoader__.load({
               h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
               t("loading"),
             );
+
+      const inviteView = inviteOpen
+        ? h(
+            "div",
+            { className: "dchat-invite", role: "dialog", "aria-label": t("inviteTitle") },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("inviteTitle")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("inviteClose"),
+                    title: t("inviteClose"),
+                    onClick: () => setInviteOpen(false),
+                  },
+                  COLLAPSE_ICON,
+                ),
+              ),
+              inviteError
+                ? h("div", { className: "dchat-invite-error" }, "⚠️ " + inviteError)
+                : null,
+              inviteLoading
+                ? h("div", { className: "dchat-hint" }, t("inviteLoading"))
+                : h("textarea", {
+                    className: "dchat-input dchat-invite-code",
+                    readOnly: true,
+                    rows: 3,
+                    value: invite,
+                    "aria-label": t("inviteTitle"),
+                    onFocus: (event) => event.target.select(),
+                  }),
+              h(
+                "div",
+                { className: "dchat-invite-actions" },
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-btn",
+                    disabled: !invite,
+                    onClick: copyInvite,
+                  },
+                  copied ? "✓ " + t("inviteCopied") : t("inviteCopy"),
+                ),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-btn ghost",
+                    onClick: () => setInviteOpen(false),
+                  },
+                  t("inviteClose"),
+                ),
+              ),
+              h("div", { className: "dchat-hint" }, t("inviteHint")),
+            ),
+          )
+        : null;
 
       const composer = h(
         "div",
@@ -1893,6 +2258,17 @@ window.__ModuleLoader__.load({
                 {
                   type: "button",
                   className: "dchat-icon-btn",
+                  "aria-label": t("invite"),
+                  title: t("invite"),
+                  onClick: openInvite,
+                },
+                INVITE_ICON,
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-icon-btn",
                   "aria-expanded": settingsOpen ? "true" : "false",
                   "aria-label": t("settings"),
                   title: t("settings"),
@@ -1935,10 +2311,23 @@ window.__ModuleLoader__.load({
                     (peersOnline > 0 ? " · " + t("online") + " " + peersOnline : ""),
                 )
               : null,
+            snapshot && Array.isArray(snapshot.typing) && snapshot.typing.length > 0
+              ? h(
+                  "span",
+                  { className: "dchat-typing", "aria-live": "polite" },
+                  snapshot.typing
+                    .slice(0, 2)
+                    .map((peer) => (peer && peer.nick ? peer.nick : t("anonymous")))
+                    .join("、") +
+                    " " +
+                    t("typing"),
+                )
+              : null,
           ),
         ),
         banner,
         settingsView,
+        inviteView,
         snapshot ? peersView : null,
         bodyView,
         sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,
