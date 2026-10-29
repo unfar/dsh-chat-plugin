@@ -1,19 +1,19 @@
 /**
- * dsh-hermes — 浏览器端（client.js）。
+ * dsh-chat-plugin — 浏览器端（client.js）。
  *
  * 一个自包含的 IM 式聊天面板，同时挂到三个位置：
- *   1. sidebar.panellist  — 左侧栏「Hermes」面板图标（keyed by id: hermes）
- *   2. main               — 点击左侧栏后打开的整页聊天（keyed panel: hermes）
- *   3. settings.section   — 设置里同样可找到「Hermes」
+ *   1. sidebar.panellist  — 左侧栏「dsh Chat」面板图标（keyed by id: chat）
+ *   2. main               — 点击左侧栏后打开的整页聊天（keyed panel: chat）
+ *   3. settings.section   — 设置里同样可找到「dsh Chat」
  *
- * 所有数据都来自 Host 的 HTTP API（/dsh-hermes/api），不依赖任何注入的
+ * 所有数据都来自 Host 的 HTTP API（/dsh-chat-plugin/api），不依赖任何注入的
  * slot props；因此面板在主界面和设置里行为一致。
  *
  * Plain JavaScript, no JSX, no imports — 用 React.createElement 构建元素。
  */
 
 window.__ModuleLoader__.load({
-  id: "dsh-hermes",
+  id: "dsh-chat-plugin",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
@@ -23,7 +23,7 @@ window.__ModuleLoader__.load({
     const { useState, useEffect, useRef, useCallback } = React;
 
     // ── 常量 ──────────────────────────────────────────────────────────────
-    const API_BASE = "/dsh-hermes/api";
+    const API_BASE = "/dsh-chat-plugin/api";
     const POLL_INTERVAL_MS = 1500;
     const MAX_TEXT_LENGTH = 800;
     const MAX_WINDOW = 200;
@@ -31,7 +31,7 @@ window.__ModuleLoader__.load({
 
     // ── 文案（Simplified Chinese；集中在这里，方便以后接 i18n）─────────────
     const STRINGS = {
-      title: "Hermes",
+      title: "dsh Chat",
       subtitle: "dsh 之间的信使，人与 agent 都能收发消息",
       statusOnline: "已连接",
       statusConnecting: "连接中…",
@@ -60,7 +60,7 @@ window.__ModuleLoader__.load({
       retrying: "正在重试…",
       unreachable: "无法连接 Host 端",
       hostMissing:
-        "Host 端未加载：请确认 dsh-hermes 插件已在当前 profile 中启用（会自动重试）。",
+        "Host 端未加载：请确认 dsh-chat-plugin 插件已在当前 profile 中启用（会自动重试）。",
       offlineTitle: "无法连接 Host 端",
       offlineHint: "插件启用后会自动恢复；也可以点右上角设置检查房间配置。",
       hostMissingSend: "Host 端未加载，消息未发送。",
@@ -84,9 +84,9 @@ window.__ModuleLoader__.load({
       collapse: "收起",
       lobbyHint:
         "公共大厅：房间名和口令相同的 dsh 会进入同一个房间，建议设置口令。",
-      agentAutoReply: "启用 agent 自动回复（@hermes 触发）",
+      agentAutoReply: "启用 agent 自动回复（@chat 触发）",
       agentAutoReplyHint:
-        "开启后，房间里有人发「@hermes …」时，本机会用一个后台 agent 会话自动回复；默认关闭。",
+        "开启后，房间里有人发「@chat …」时，本机会用一个后台 agent 会话自动回复；默认关闭。",
       agentOn: "自动回复",
       agentBusy: "agent 正在回复…",
       today: "今天",
@@ -339,21 +339,21 @@ window.__ModuleLoader__.load({
 
     // ── 样式 ──────────────────────────────────────────────────────────────
     const CSS = `
-.dpc-root {
-  --dpc-border-l1: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.18));
-  --dpc-border-l2: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.32));
-  --dpc-layer-1: var(--dsw-alias-bg-layer-1, transparent);
-  --dpc-layer-2: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12));
-  --dpc-hover: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.13));
-  --dpc-label: var(--dsw-alias-label-primary, currentColor);
-  --dpc-label-2: var(--dsw-alias-label-secondary, rgba(127, 127, 127, 0.92));
-  --dpc-brand: var(--dsw-alias-brand-primary, #3b6ef5);
+.dchat-root {
+  --dchat-border-l1: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.18));
+  --dchat-border-l2: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.32));
+  --dchat-layer-1: var(--dsw-alias-bg-layer-1, transparent);
+  --dchat-layer-2: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12));
+  --dchat-hover: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.13));
+  --dchat-label: var(--dsw-alias-label-primary, currentColor);
+  --dchat-label-2: var(--dsw-alias-label-secondary, rgba(127, 127, 127, 0.92));
+  --dchat-brand: var(--dsw-alias-brand-primary, #3b6ef5);
   /* 品牌色上的文字：用页面底色当反色，浅色主题下是白字、深色主题下是深字，
      两种主题都能和 brand 拉开对比（不依赖不存在的 foreground token）。 */
-  --dpc-brand-fg: var(--dsw-alias-bg-base, #ffffff);
-  --dpc-ok: var(--dsw-alias-state-success-primary, #2ea043);
-  --dpc-err: var(--dsw-alias-state-error-primary, #d1242f);
-  --dpc-warn: var(--dsw-alias-state-warn-primary, #bf8700);
+  --dchat-brand-fg: var(--dsw-alias-bg-base, #ffffff);
+  --dchat-ok: var(--dsw-alias-state-success-primary, #2ea043);
+  --dchat-err: var(--dsw-alias-state-error-primary, #d1242f);
+  --dchat-warn: var(--dsw-alias-state-warn-primary, #bf8700);
   position: relative;
   display: flex;
   flex: 1 1 auto;
@@ -362,46 +362,46 @@ window.__ModuleLoader__.load({
   min-height: 0;
   box-sizing: border-box;
   overflow: hidden;
-  color: var(--dpc-label);
+  color: var(--dchat-label);
   background: var(--dsw-alias-bg-base, transparent);
   font-family: inherit;
   font-size: 13px;
   line-height: 1.6;
 }
-.dpc-root *,
-.dpc-root *::before,
-.dpc-root *::after {
+.dchat-root *,
+.dchat-root *::before,
+.dchat-root *::after {
   box-sizing: border-box;
 }
-.dpc-root.dpc-in-settings {
+.dchat-root.dchat-in-settings {
   min-height: 420px;
-  border: 1px solid var(--dpc-border-l2);
+  border: 1px solid var(--dchat-border-l2);
   border-radius: var(--dsw-radius-lg, 16px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* 头部 */
-.dpc-header {
+.dchat-header {
   flex: none;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--dpc-border-l1);
-  background: var(--dpc-layer-1);
+  border-bottom: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-layer-1);
 }
-.dpc-head-main {
+.dchat-head-main {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
-.dpc-logo {
+.dchat-logo {
   display: inline-flex;
   flex: none;
-  color: var(--dpc-brand);
+  color: var(--dchat-brand);
 }
-.dpc-title {
+.dchat-title {
   margin: 0;
   min-width: 0;
   overflow: hidden;
@@ -411,88 +411,88 @@ window.__ModuleLoader__.load({
   font-weight: 600;
   letter-spacing: 0.2px;
 }
-.dpc-title-sub {
+.dchat-title-sub {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 11px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
 }
-.dpc-head-tools {
+.dchat-head-tools {
   display: flex;
   align-items: center;
   gap: 6px;
   flex: none;
   margin-left: auto;
 }
-.dpc-meta {
+.dchat-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   min-width: 0;
 }
-.dpc-status {
+.dchat-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex: none;
   font-size: 12px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   white-space: nowrap;
 }
-.dpc-dot {
+.dchat-dot {
   width: 8px;
   height: 8px;
   flex: none;
   border-radius: 50%;
-  background: var(--dpc-label-2);
+  background: var(--dchat-label-2);
 }
-.dpc-dot.on {
-  background: var(--dpc-ok);
+.dchat-dot.on {
+  background: var(--dchat-ok);
   box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.16);
 }
-.dpc-dot.wait {
-  background: var(--dpc-warn);
-  animation: dpc-pulse 1.4s ease-in-out infinite;
+.dchat-dot.wait {
+  background: var(--dchat-warn);
+  animation: dchat-pulse 1.4s ease-in-out infinite;
 }
-.dpc-dot.err {
-  background: var(--dpc-err);
+.dchat-dot.err {
+  background: var(--dchat-err);
 }
-.dpc-dot.off {
-  background: var(--dpc-label-2);
+.dchat-dot.off {
+  background: var(--dchat-label-2);
   opacity: 0.6;
 }
-.dpc-pill {
+.dchat-pill {
   display: inline-flex;
   align-items: center;
   max-width: 220px;
   overflow: hidden;
   padding: 1px 8px;
-  border: 1px solid var(--dpc-border-l1);
+  border: 1px solid var(--dchat-border-l1);
   border-radius: 999px;
-  background: var(--dpc-layer-2);
-  color: var(--dpc-label-2);
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label-2);
   font-size: 11px;
   line-height: 18px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.dpc-pill.enc {
-  color: var(--dpc-ok);
+.dchat-pill.enc {
+  color: var(--dchat-ok);
 }
-.dpc-pill.plain {
-  color: var(--dpc-warn);
+.dchat-pill.plain {
+  color: var(--dchat-warn);
 }
 /* 侧边栏图标上的未读角标 */
-.dpc-icon-wrap {
+.dchat-icon-wrap {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.dpc-icon-badge {
+.dchat-icon-badge {
   position: absolute;
   top: -5px;
   right: -7px;
@@ -510,20 +510,20 @@ window.__ModuleLoader__.load({
   box-shadow: 0 0 0 2px var(--dsw-specific-sidebar-fill, transparent);
   pointer-events: none;
 }
-.dpc-agent-badge {
+.dchat-agent-badge {
   font-size: 11px;
   padding: 1px 8px;
   border-radius: 10px;
   background: rgba(56, 139, 253, 0.14);
-  color: var(--dpc-label-2);
-  border: 1px solid var(--dpc-border-l1);
+  color: var(--dchat-label-2);
+  border: 1px solid var(--dchat-border-l1);
   white-space: nowrap;
 }
-.dpc-hint-inline {
+.dchat-hint-inline {
   margin: 2px 0 0 22px;
   font-size: 11px;
 }
-.dpc-icon-btn {
+.dchat-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -533,26 +533,26 @@ window.__ModuleLoader__.load({
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   font-family: inherit;
   cursor: pointer;
 }
-.dpc-icon-btn:hover {
-  background: var(--dpc-hover);
-  color: var(--dpc-label);
+.dchat-icon-btn:hover {
+  background: var(--dchat-hover);
+  color: var(--dchat-label);
 }
-.dpc-icon-btn[aria-expanded="true"] {
-  border-color: var(--dpc-border-l1);
-  background: var(--dpc-layer-2);
-  color: var(--dpc-label);
+.dchat-icon-btn[aria-expanded="true"] {
+  border-color: var(--dchat-border-l1);
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label);
 }
-.dpc-icon-btn:focus-visible {
-  outline: 2px solid var(--dpc-brand);
+.dchat-icon-btn:focus-visible {
+  outline: 2px solid var(--dchat-brand);
   outline-offset: 1px;
 }
 
 /* 成员条 */
-.dpc-peers {
+.dchat-peers {
   flex: none;
   display: flex;
   align-items: center;
@@ -561,20 +561,20 @@ window.__ModuleLoader__.load({
   max-height: 74px;
   overflow-y: auto;
   padding: 7px 16px;
-  border-bottom: 1px solid var(--dpc-border-l1);
+  border-bottom: 1px solid var(--dchat-border-l1);
 }
-.dpc-peer {
+.dchat-peer {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   max-width: 220px;
   padding: 2px 9px 2px 3px;
   border-radius: 999px;
-  background: var(--dpc-layer-2);
-  color: var(--dpc-label-2);
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label-2);
   font-size: 12px;
 }
-.dpc-avatar {
+.dchat-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -588,58 +588,58 @@ window.__ModuleLoader__.load({
   line-height: 1;
   text-transform: uppercase;
 }
-.dpc-peer-nick {
+.dchat-peer-nick {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.dpc-peer-state {
+.dchat-peer-state {
   width: 6px;
   height: 6px;
   flex: none;
   border-radius: 50%;
-  background: var(--dpc-label-2);
+  background: var(--dchat-label-2);
   opacity: 0.45;
 }
-.dpc-peer-state.online {
-  background: var(--dpc-ok);
+.dchat-peer-state.online {
+  background: var(--dchat-ok);
   opacity: 1;
 }
-.dpc-peers-empty {
-  color: var(--dpc-label-2);
+.dchat-peers-empty {
+  color: var(--dchat-label-2);
   font-size: 12px;
   opacity: 0.85;
 }
-.dpc-me {
+.dchat-me {
   margin-left: auto;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   font-size: 11px;
   opacity: 0.9;
 }
 
 /* 连接提示条 */
-.dpc-banner {
+.dchat-banner {
   flex: none;
   display: flex;
   align-items: flex-start;
   padding: 6px 16px;
-  border-bottom: 1px solid var(--dpc-border-l1);
+  border-bottom: 1px solid var(--dchat-border-l1);
   background: rgba(191, 135, 0, 0.08);
-  color: var(--dpc-warn);
+  color: var(--dchat-warn);
   font-size: 12px;
   line-height: 1.5;
 }
-.dpc-banner.error {
+.dchat-banner.error {
   background: rgba(209, 36, 47, 0.08);
-  color: var(--dpc-err);
+  color: var(--dchat-err);
 }
 
 /* 设置表单 */
-.dpc-settings {
+.dchat-settings {
   flex: none;
   display: flex;
   flex-direction: column;
@@ -647,136 +647,136 @@ window.__ModuleLoader__.load({
   max-height: 46%;
   overflow-y: auto;
   padding: 10px 16px 12px;
-  border-bottom: 1px solid var(--dpc-border-l1);
-  background: var(--dpc-layer-1);
+  border-bottom: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-layer-1);
 }
-.dpc-settings-head {
+.dchat-settings-head {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.dpc-settings-title {
+.dchat-settings-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--dpc-label);
+  color: var(--dchat-label);
 }
-.dpc-settings-grid {
+.dchat-settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 8px 10px;
 }
-.dpc-field {
+.dchat-field {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
   font-size: 11px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
 }
-.dpc-field.dpc-field-full {
+.dchat-field.dchat-field-full {
   grid-column: 1 / -1;
 }
-.dpc-input,
-.dpc-select {
+.dchat-input,
+.dchat-select {
   width: 100%;
   height: 30px;
   min-width: 0;
   padding: 0 9px;
-  border: 1px solid var(--dpc-border-l2);
+  border: 1px solid var(--dchat-border-l2);
   border-radius: 8px;
   outline: none;
   background: var(--dsw-alias-bg-base, transparent);
-  color: var(--dpc-label);
+  color: var(--dchat-label);
   font-family: inherit;
   font-size: 12px;
 }
-.dpc-input::placeholder {
-  color: var(--dpc-label-2);
+.dchat-input::placeholder {
+  color: var(--dchat-label-2);
   opacity: 0.7;
 }
-.dpc-input:focus,
-.dpc-select:focus {
-  border-color: var(--dpc-brand);
+.dchat-input:focus,
+.dchat-select:focus {
+  border-color: var(--dchat-brand);
 }
-.dpc-input:disabled {
+.dchat-input:disabled {
   opacity: 0.55;
 }
-.dpc-select {
+.dchat-select {
   cursor: pointer;
 }
-.dpc-check {
+.dchat-check {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   cursor: pointer;
 }
-.dpc-check input {
+.dchat-check input {
   margin: 0;
-  accent-color: var(--dpc-brand);
+  accent-color: var(--dchat-brand);
 }
-.dpc-settings-actions {
+.dchat-settings-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
-.dpc-btn {
+.dchat-btn {
   height: 30px;
   padding: 0 14px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: var(--dpc-brand);
-  color: var(--dpc-brand-fg);
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
 }
-.dpc-btn:hover:not(:disabled) {
+.dchat-btn:hover:not(:disabled) {
   filter: brightness(1.05);
 }
-.dpc-btn:disabled {
+.dchat-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.dpc-btn.ghost {
-  border-color: var(--dpc-border-l2);
+.dchat-btn.ghost {
+  border-color: var(--dchat-border-l2);
   background: transparent;
-  color: var(--dpc-label);
+  color: var(--dchat-label);
 }
-.dpc-btn.ghost:hover:not(:disabled) {
-  background: var(--dpc-hover);
+.dchat-btn.ghost:hover:not(:disabled) {
+  background: var(--dchat-hover);
   filter: none;
 }
-.dpc-btn:focus-visible {
-  outline: 2px solid var(--dpc-brand);
+.dchat-btn:focus-visible {
+  outline: 2px solid var(--dchat-brand);
   outline-offset: 1px;
 }
-.dpc-hint {
-  color: var(--dpc-label-2);
+.dchat-hint {
+  color: var(--dchat-label-2);
   font-size: 11px;
   line-height: 1.55;
 }
-.dpc-notice {
+.dchat-notice {
   font-size: 12px;
 }
-.dpc-notice.ok {
-  color: var(--dpc-ok);
+.dchat-notice.ok {
+  color: var(--dchat-ok);
 }
-.dpc-notice.err {
-  color: var(--dpc-err);
+.dchat-notice.err {
+  color: var(--dchat-err);
 }
 
 /* 消息区 */
-.dpc-body {
+.dchat-body {
   position: relative;
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
 }
-.dpc-list {
+.dchat-list {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
@@ -784,55 +784,55 @@ window.__ModuleLoader__.load({
   overflow-y: auto;
   padding: 12px 16px 16px;
 }
-.dpc-day {
+.dchat-day {
   align-self: center;
   margin: 10px 0 8px;
   padding: 1px 10px;
   border-radius: 999px;
-  background: var(--dpc-layer-2);
-  color: var(--dpc-label-2);
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label-2);
   font-size: 11px;
 }
-.dpc-row {
+.dchat-row {
   display: flex;
   min-width: 0;
   margin: 2px 0;
 }
-.dpc-row.mine {
+.dchat-row.mine {
   justify-content: flex-end;
 }
-.dpc-stack {
+.dchat-stack {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   min-width: 0;
   max-width: min(80%, 520px);
 }
-.dpc-row.mine .dpc-stack {
+.dchat-row.mine .dchat-stack {
   align-items: flex-end;
 }
-.dpc-meta-nick {
+.dchat-meta-nick {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   max-width: 100%;
   margin: 2px 0 3px 2px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   font-size: 11px;
 }
-.dpc-meta-dot {
+.dchat-meta-dot {
   width: 6px;
   height: 6px;
   flex: none;
   border-radius: 50%;
 }
-.dpc-nick {
+.dchat-nick {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.dpc-bubble {
+.dchat-bubble {
   max-width: 100%;
   padding: 7px 12px;
   border-radius: 14px;
@@ -842,25 +842,25 @@ window.__ModuleLoader__.load({
   word-break: break-word;
   overflow-wrap: anywhere;
 }
-.dpc-row.theirs .dpc-bubble {
-  border: 1px solid var(--dpc-border-l2);
+.dchat-row.theirs .dchat-bubble {
+  border: 1px solid var(--dchat-border-l2);
   border-top-left-radius: 5px;
-  background: var(--dpc-layer-2);
-  color: var(--dpc-label);
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label);
 }
-.dpc-row.mine .dpc-bubble {
+.dchat-row.mine .dchat-bubble {
   border: 1px solid transparent;
   border-top-right-radius: 5px;
-  background: var(--dpc-brand);
-  color: var(--dpc-brand-fg);
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
 }
-.dpc-time {
+.dchat-time {
   margin: 3px 2px 1px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   font-size: 10px;
   opacity: 0.8;
 }
-.dpc-empty {
+.dchat-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -868,35 +868,35 @@ window.__ModuleLoader__.load({
   gap: 10px;
   margin: auto;
   padding: 32px 16px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   font-size: 12.5px;
   text-align: center;
 }
-.dpc-empty-hint {
+.dchat-empty-hint {
   max-width: 320px;
   font-size: 11px;
   line-height: 1.55;
   opacity: 0.8;
 }
-.dpc-loading {
+.dchat-loading {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--dpc-label-2);
+  color: var(--dchat-label-2);
   font-size: 12.5px;
 }
-.dpc-spinner {
+.dchat-spinner {
   width: 14px;
   height: 14px;
   flex: none;
-  border: 2px solid var(--dpc-border-l2);
-  border-top-color: var(--dpc-brand);
+  border: 2px solid var(--dchat-border-l2);
+  border-top-color: var(--dchat-brand);
   border-radius: 50%;
-  animation: dpc-spin 0.9s linear infinite;
+  animation: dchat-spin 0.9s linear infinite;
 }
-.dpc-jump {
+.dchat-jump {
   position: absolute;
   left: 50%;
   bottom: 12px;
@@ -906,42 +906,42 @@ window.__ModuleLoader__.load({
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-  border: 1px solid var(--dpc-border-l2);
+  border: 1px solid var(--dchat-border-l2);
   border-radius: 999px;
-  background: var(--dpc-layer-2);
-  color: var(--dpc-label);
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label);
   font-family: inherit;
   font-size: 11px;
   white-space: nowrap;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
 }
-.dpc-jump:hover {
-  background: var(--dpc-hover);
+.dchat-jump:hover {
+  background: var(--dchat-hover);
 }
-.dpc-jump:focus-visible {
-  outline: 2px solid var(--dpc-brand);
+.dchat-jump:focus-visible {
+  outline: 2px solid var(--dchat-brand);
   outline-offset: 2px;
 }
 
 /* 输入区 */
-.dpc-send-error {
+.dchat-send-error {
   flex: none;
   padding: 0 16px 8px;
-  color: var(--dpc-err);
+  color: var(--dchat-err);
   font-size: 12px;
   line-height: 1.5;
 }
-.dpc-composer {
+.dchat-composer {
   flex: none;
   display: flex;
   align-items: flex-end;
   gap: 8px;
   padding: 10px 16px 12px;
-  border-top: 1px solid var(--dpc-border-l1);
-  background: var(--dpc-layer-1);
+  border-top: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-layer-1);
 }
-.dpc-composer textarea.dpc-input {
+.dchat-composer textarea.dchat-input {
   flex: 1 1 auto;
   height: 38px;
   min-height: 38px;
@@ -952,38 +952,38 @@ window.__ModuleLoader__.load({
   resize: none;
   overflow-y: auto;
 }
-.dpc-send {
+.dchat-send {
   flex: none;
   height: 38px;
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: var(--dpc-brand);
-  color: var(--dpc-brand-fg);
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
 }
-.dpc-send:hover:not(:disabled) {
+.dchat-send:hover:not(:disabled) {
   filter: brightness(1.05);
 }
-.dpc-send:disabled {
+.dchat-send:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.dpc-send:focus-visible {
-  outline: 2px solid var(--dpc-brand);
+.dchat-send:focus-visible {
+  outline: 2px solid var(--dchat-brand);
   outline-offset: 2px;
 }
 
-@keyframes dpc-spin {
+@keyframes dchat-spin {
   to {
     transform: rotate(360deg);
   }
 }
-@keyframes dpc-pulse {
+@keyframes dchat-pulse {
   0%,
   100% {
     opacity: 1;
@@ -993,36 +993,36 @@ window.__ModuleLoader__.load({
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dpc-spinner {
+  .dchat-spinner {
     animation: none;
   }
-  .dpc-dot.wait {
+  .dchat-dot.wait {
     animation: none;
   }
 }
 @media (max-width: 560px) {
-  .dpc-header {
+  .dchat-header {
     padding: 10px 12px 8px;
   }
-  .dpc-peers {
+  .dchat-peers {
     padding: 6px 12px;
   }
-  .dpc-list {
+  .dchat-list {
     padding: 10px 12px 12px;
   }
-  .dpc-settings {
+  .dchat-settings {
     padding: 8px 12px 10px;
   }
-  .dpc-banner {
+  .dchat-banner {
     padding: 6px 12px;
   }
-  .dpc-send-error {
+  .dchat-send-error {
     padding: 0 12px 8px;
   }
-  .dpc-composer {
+  .dchat-composer {
     padding: 8px 12px 10px;
   }
-  .dpc-title-sub {
+  .dchat-title-sub {
     display: none;
   }
 }
@@ -1061,7 +1061,7 @@ window.__ModuleLoader__.load({
       }, []);
       return h(
         "span",
-        { className: "dpc-icon-wrap", style: { position: "relative", display: "inline-flex" } },
+        { className: "dchat-icon-wrap", style: { position: "relative", display: "inline-flex" } },
         h(
           "svg",
           {
@@ -1085,7 +1085,7 @@ window.__ModuleLoader__.load({
           ? h(
               "span",
               {
-                className: "dpc-icon-badge",
+                className: "dchat-icon-badge",
                 "aria-label": unread + " 条未读消息",
                 title: unread + " 条未读消息",
               },
@@ -1145,24 +1145,24 @@ window.__ModuleLoader__.load({
       const color = avatarColor(message.from == null ? nick : message.from);
       return h(
         "div",
-        { className: "dpc-row " + (mine ? "mine" : "theirs") },
+        { className: "dchat-row " + (mine ? "mine" : "theirs") },
         h(
           "div",
-          { className: "dpc-stack" },
+          { className: "dchat-stack" },
           mine
             ? null
             : h(
                 "div",
-                { className: "dpc-meta-nick" },
+                { className: "dchat-meta-nick" },
                 h("span", {
-                  className: "dpc-meta-dot",
+                  className: "dchat-meta-dot",
                   style: { background: color },
                   "aria-hidden": "true",
                 }),
-                h("span", { className: "dpc-nick" }, nick),
+                h("span", { className: "dchat-nick" }, nick),
               ),
-          h("div", { className: "dpc-bubble", title: fullTimeTitle(message.ts) }, text),
-          h("div", { className: "dpc-time" }, formatTime(message.ts)),
+          h("div", { className: "dchat-bubble", title: fullTimeTitle(message.ts) }, text),
+          h("div", { className: "dchat-time" }, formatTime(message.ts)),
         ),
       );
     }
@@ -1171,7 +1171,7 @@ window.__ModuleLoader__.load({
     function ChatEmpty() {
       return h(
         "div",
-        { className: "dpc-empty" },
+        { className: "dchat-empty" },
         h(
           "svg",
           {
@@ -1198,7 +1198,7 @@ window.__ModuleLoader__.load({
     function OfflinePlaceholder() {
       return h(
         "div",
-        { className: "dpc-empty" },
+        { className: "dchat-empty" },
         h(
           "svg",
           {
@@ -1219,7 +1219,7 @@ window.__ModuleLoader__.load({
           h("path", { key: "slash", d: "M4 20L20 4" }),
         ),
         h("div", null, t("offlineTitle")),
-        h("div", { className: "dpc-empty-hint" }, t("offlineHint")),
+        h("div", { className: "dchat-empty-hint" }, t("offlineHint")),
       );
     }
 
@@ -1570,17 +1570,17 @@ window.__ModuleLoader__.load({
       // ── 渲染片段 ────────────────────────────────────────────────────────
       const status = statusOf(snapshot, hostMissing, loadError);
       const banner = hostMissing
-        ? h("div", { className: "dpc-banner" }, "⚠️ " + t("hostMissing"))
+        ? h("div", { className: "dchat-banner" }, "⚠️ " + t("hostMissing"))
         : loadError
-          ? h("div", { className: "dpc-banner" }, "⚠️ " + loadError + "，" + t("retrying"))
+          ? h("div", { className: "dchat-banner" }, "⚠️ " + loadError + "，" + t("retrying"))
           : snapshot && !snapshot.connected && snapshot.lastError
             ? h(
                 "div",
-                { className: "dpc-banner" },
+                { className: "dchat-banner" },
                 "⚠️ " + t("relayError") + "：" + snapshot.lastError,
               )
             : snapshot && snapshot.agent && snapshot.agent.lastError
-              ? h("div", { className: "dpc-banner" }, "⚠️ " + snapshot.agent.lastError)
+              ? h("div", { className: "dchat-banner" }, "⚠️ " + snapshot.agent.lastError)
               : null;
 
       const peerChips = peers.map((peer, index) => {
@@ -1596,19 +1596,19 @@ window.__ModuleLoader__.load({
               : "");
         return h(
           "span",
-          { key: "peer-" + id, className: "dpc-peer", title: titleText },
+          { key: "peer-" + id, className: "dchat-peer", title: titleText },
           h(
             "span",
             {
-              className: "dpc-avatar",
+              className: "dchat-avatar",
               style: { background: avatarColor(rawId || nick) },
               "aria-hidden": "true",
             },
             initialsOf(nick),
           ),
-          h("span", { className: "dpc-peer-nick" }, nick),
+          h("span", { className: "dchat-peer-nick" }, nick),
           h("span", {
-            className: "dpc-peer-state" + (online ? " online" : ""),
+            className: "dchat-peer-state" + (online ? " online" : ""),
             title: online ? t("online") : t("offline"),
           }),
         );
@@ -1616,16 +1616,16 @@ window.__ModuleLoader__.load({
 
       const peersView = h(
         "div",
-        { className: "dpc-peers" },
+        { className: "dchat-peers" },
         peers.length === 0
-          ? h("span", { className: "dpc-peers-empty" }, t("noPeers"))
+          ? h("span", { className: "dchat-peers-empty" }, t("noPeers"))
           : peerChips,
-        me && me.nick ? h("span", { className: "dpc-me" }, t("you") + " · " + me.nick) : null,
+        me && me.nick ? h("span", { className: "dchat-me" }, t("you") + " · " + me.nick) : null,
         snapshot && snapshot.agent && snapshot.agent.autoReply
           ? h(
               "span",
               {
-                className: "dpc-agent-badge",
+                className: "dchat-agent-badge",
                 title: t("agentAutoReplyHint"),
               },
               "🤖 " + t("agentOn") + (snapshot.agent.busy ? " · " + t("agentBusy") : ""),
@@ -1637,16 +1637,16 @@ window.__ModuleLoader__.load({
         settingsOpen && form
           ? h(
               "div",
-              { className: "dpc-settings" },
+              { className: "dchat-settings" },
               h(
                 "div",
-                { className: "dpc-settings-head" },
-                h("span", { className: "dpc-settings-title" }, t("settingsTitle")),
+                { className: "dchat-settings-head" },
+                h("span", { className: "dchat-settings-title" }, t("settingsTitle")),
                 h(
                   "button",
                   {
                     type: "button",
-                    className: "dpc-icon-btn",
+                    className: "dchat-icon-btn",
                     "aria-label": t("collapse"),
                     title: t("collapse"),
                     onClick: toggleSettings,
@@ -1657,13 +1657,13 @@ window.__ModuleLoader__.load({
               ),
               h(
                 "div",
-                { className: "dpc-settings-grid" },
+                { className: "dchat-settings-grid" },
                 h(
                   "div",
-                  { className: "dpc-field" },
+                  { className: "dchat-field" },
                   h("span", null, t("nickname")),
                   h("input", {
-                    className: "dpc-input",
+                    className: "dchat-input",
                     type: "text",
                     value: form.nickname,
                     placeholder: t("nicknameHint"),
@@ -1674,10 +1674,10 @@ window.__ModuleLoader__.load({
                 ),
                 h(
                   "div",
-                  { className: "dpc-field" },
+                  { className: "dchat-field" },
                   h("span", null, t("roomName")),
                   h("input", {
-                    className: "dpc-input",
+                    className: "dchat-input",
                     type: "text",
                     value: form.room,
                     placeholder: t("roomPlaceholder"),
@@ -1688,10 +1688,10 @@ window.__ModuleLoader__.load({
                 ),
                 h(
                   "div",
-                  { className: "dpc-field dpc-field-full" },
+                  { className: "dchat-field dchat-field-full" },
                   h("span", null, t("passphrase")),
                   h("input", {
-                    className: "dpc-input",
+                    className: "dchat-input",
                     type: "password",
                     autoComplete: "new-password",
                     value: form.passphrase,
@@ -1704,7 +1704,7 @@ window.__ModuleLoader__.load({
                   form.passphraseSet
                     ? h(
                         "label",
-                        { className: "dpc-check" },
+                        { className: "dchat-check" },
                         h("input", {
                           type: "checkbox",
                           checked: form.clearPassphrase === true,
@@ -1717,12 +1717,12 @@ window.__ModuleLoader__.load({
                 ),
                 h(
                   "div",
-                  { className: "dpc-field" },
+                  { className: "dchat-field" },
                   h("span", null, t("relayKind")),
                   h(
                     "select",
                     {
-                      className: "dpc-select",
+                      className: "dchat-select",
                       value: form.relayKind,
                       "aria-label": t("relayKind"),
                       onChange: (event) => updateForm({ relayKind: event.target.value }),
@@ -1733,10 +1733,10 @@ window.__ModuleLoader__.load({
                 ),
                 h(
                   "div",
-                  { className: "dpc-field" },
+                  { className: "dchat-field" },
                   h("span", null, t("relayUrl")),
                   h("input", {
-                    className: "dpc-input",
+                    className: "dchat-input",
                     type: "text",
                     value: form.relayUrl,
                     placeholder: t("relayUrlPlaceholder"),
@@ -1747,10 +1747,10 @@ window.__ModuleLoader__.load({
               ),
                 h(
                   "div",
-                  { className: "dpc-field dpc-field-full" },
+                  { className: "dchat-field dchat-field-full" },
                   h(
                     "label",
-                    { className: "dpc-check" },
+                    { className: "dchat-check" },
                     h("input", {
                       type: "checkbox",
                       checked: form.agentAutoReply === true,
@@ -1758,21 +1758,21 @@ window.__ModuleLoader__.load({
                     }),
                     t("agentAutoReply"),
                   ),
-                  h("div", { className: "dpc-hint dpc-hint-inline" }, t("agentAutoReplyHint")),
+                  h("div", { className: "dchat-hint dchat-hint-inline" }, t("agentAutoReplyHint")),
                 ),
               h(
                 "div",
-                { className: "dpc-hint" },
+                { className: "dchat-hint" },
                 t("lobbyHint"),
               ),
               h(
                 "div",
-                { className: "dpc-settings-actions" },
+                { className: "dchat-settings-actions" },
                 h(
                   "button",
                   {
                     type: "button",
-                    className: "dpc-btn",
+                    className: "dchat-btn",
                     disabled: saving,
                     onClick: saveConfig,
                   },
@@ -1782,7 +1782,7 @@ window.__ModuleLoader__.load({
                   ? h(
                       "span",
                       {
-                        className: "dpc-notice " + (saveNotice.kind === "ok" ? "ok" : "err"),
+                        className: "dchat-notice " + (saveNotice.kind === "ok" ? "ok" : "err"),
                       },
                       saveNotice.text,
                     )
@@ -1800,7 +1800,7 @@ window.__ModuleLoader__.load({
           const day = dayLabel(message.ts);
           if (day && day !== lastDay) {
             messageChildren.push(
-              h("div", { key: "day-" + day + "-" + index, className: "dpc-day" }, day),
+              h("div", { key: "day-" + day + "-" + index, className: "dchat-day" }, day),
             );
             lastDay = day;
           }
@@ -1818,11 +1818,11 @@ window.__ModuleLoader__.load({
       const bodyView = snapshot
         ? h(
             "div",
-            { className: "dpc-body" },
+            { className: "dchat-body" },
             h(
               "div",
               {
-                className: "dpc-list",
+                className: "dchat-list",
                 ref: listRef,
                 onScroll: handleScroll,
                 role: "log",
@@ -1833,7 +1833,7 @@ window.__ModuleLoader__.load({
             showJump
               ? h(
                   "button",
-                  { type: "button", className: "dpc-jump", onClick: jumpToBottom },
+                  { type: "button", className: "dchat-jump", onClick: jumpToBottom },
                   "↓ " + t("jumpToBottom"),
                 )
               : null,
@@ -1842,17 +1842,17 @@ window.__ModuleLoader__.load({
           ? h(OfflinePlaceholder, null)
           : h(
               "div",
-              { className: "dpc-loading" },
-              h("span", { className: "dpc-spinner", "aria-hidden": "true" }),
+              { className: "dchat-loading" },
+              h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
               t("loading"),
             );
 
       const composer = h(
         "div",
-        { className: "dpc-composer" },
+        { className: "dchat-composer" },
         h("textarea", {
           ref: textareaRef,
-          className: "dpc-input",
+          className: "dchat-input",
           value: draft,
           rows: 1,
           maxLength: MAX_TEXT_LENGTH,
@@ -1865,7 +1865,7 @@ window.__ModuleLoader__.load({
           "button",
           {
             type: "button",
-            className: "dpc-send",
+            className: "dchat-send",
             disabled: sending || draft.trim() === "",
             onClick: submit,
           },
@@ -1875,24 +1875,24 @@ window.__ModuleLoader__.load({
 
       return h(
         "div",
-        { className: "dpc-root" + (inSettings ? " dpc-in-settings" : "") },
+        { className: "dchat-root" + (inSettings ? " dchat-in-settings" : "") },
         h(
           "div",
-          { className: "dpc-header" },
+          { className: "dchat-header" },
           h(
             "div",
-            { className: "dpc-head-main" },
-            h("span", { className: "dpc-logo", "aria-hidden": "true" }, h(PanelIcon, { size: 16, active: true })),
-            h("h2", { className: "dpc-title", title: t("subtitle") }, t("title")),
-            h("span", { className: "dpc-title-sub" }, t("subtitle")),
+            { className: "dchat-head-main" },
+            h("span", { className: "dchat-logo", "aria-hidden": "true" }, h(PanelIcon, { size: 16, active: true })),
+            h("h2", { className: "dchat-title", title: t("subtitle") }, t("title")),
+            h("span", { className: "dchat-title-sub" }, t("subtitle")),
             h(
               "div",
-              { className: "dpc-head-tools" },
+              { className: "dchat-head-tools" },
               h(
                 "button",
                 {
                   type: "button",
-                  className: "dpc-icon-btn",
+                  className: "dchat-icon-btn",
                   "aria-expanded": settingsOpen ? "true" : "false",
                   "aria-label": t("settings"),
                   title: t("settings"),
@@ -1904,31 +1904,31 @@ window.__ModuleLoader__.load({
           ),
           h(
             "div",
-            { className: "dpc-meta" },
+            { className: "dchat-meta" },
             h(
               "span",
-              { className: "dpc-status", "aria-live": "polite" },
-              h("span", { className: "dpc-dot " + status.className }),
+              { className: "dchat-status", "aria-live": "polite" },
+              h("span", { className: "dchat-dot " + status.className }),
               status.text,
             ),
             snapshot && snapshot.room
               ? h(
                   "span",
-                  { className: "dpc-pill", title: t("room") + " " + snapshot.room },
+                  { className: "dchat-pill", title: t("room") + " " + snapshot.room },
                   t("room") + " " + snapshot.room,
                 )
               : null,
             relay
               ? h(
                   "span",
-                  { className: "dpc-pill " + (relay.encrypted ? "enc" : "plain") },
+                  { className: "dchat-pill " + (relay.encrypted ? "enc" : "plain") },
                   relay.encrypted ? t("encrypted") : t("plain"),
                 )
               : null,
             snapshot
               ? h(
                   "span",
-                  { className: "dpc-pill" },
+                  { className: "dchat-pill" },
                   t("peers") +
                     " " +
                     peers.length +
@@ -1941,7 +1941,7 @@ window.__ModuleLoader__.load({
         settingsView,
         snapshot ? peersView : null,
         bodyView,
-        sendError ? h("div", { className: "dpc-send-error" }, "⚠️ " + sendError) : null,
+        sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,
         composer,
       );
     }
@@ -1951,11 +1951,11 @@ window.__ModuleLoader__.load({
       const appendStyle = () => {
         if (typeof document === "undefined" || !document.head) return () => {};
         const existing = document.querySelector
-          ? document.querySelector('style[data-dsh-hermes="1"]')
+          ? document.querySelector('style[data-dsh-chat-plugin="1"]')
           : null;
         if (existing) return () => {};
         const element = document.createElement("style");
-        element.setAttribute("data-dsh-hermes", "1");
+        element.setAttribute("data-dsh-chat-plugin", "1");
         element.textContent = CSS;
         document.head.appendChild(element);
         return () => {
@@ -1969,18 +1969,18 @@ window.__ModuleLoader__.load({
 
       try {
         if (ctx && typeof ctx.effect === "function") {
-          ctx.effect(appendStyle, "dsh-hermes: styles");
+          ctx.effect(appendStyle, "dsh-chat: styles");
           return;
         }
       } catch (error) {
-        console.warn("[dsh-hermes] 注入样式失败，改用兜底方式：", error);
+        console.warn("[dsh-chat-plugin] 注入样式失败，改用兜底方式：", error);
       }
       appendStyle();
     }
 
     // ── 挂载 ──────────────────────────────────────────────────────────────
     function warnRegistration(slotName, error) {
-      console.warn("[dsh-hermes] 注册 slot " + slotName + " 失败：", error);
+      console.warn("[dsh-chat-plugin] 注册 slot " + slotName + " 失败：", error);
     }
 
     function apply(ctx) {
@@ -1994,9 +1994,9 @@ window.__ModuleLoader__.load({
             dispose = ctx.slots.register(
               {
                 name: "sidebar.panellist",
-                id: "hermes",
+                id: "chat",
                 order: 20,
-                label: "Hermes",
+                label: "dsh Chat",
               },
               PanelIcon,
             );
@@ -2022,7 +2022,7 @@ window.__ModuleLoader__.load({
           let dispose;
           try {
             dispose = ctx.slots.register(
-              { name: "main", key: "hermes" },
+              { name: "main", key: "chat" },
               ChatPanel,
             );
           } catch (error) {
@@ -2049,9 +2049,9 @@ window.__ModuleLoader__.load({
             dispose = ctx.slots.register(
               {
                 name: "settings.section",
-                id: "hermes",
+                id: "chat",
                 order: 45,
-                label: "Hermes",
+                label: "dsh Chat",
               },
               ChatPanel,
             );

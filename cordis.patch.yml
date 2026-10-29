@@ -1,8 +1,8 @@
-# dsh-hermes bundle patch：把「dsh Hermes」Host 插件插入 profile 组合层。
+# dsh-chat-plugin bundle patch：把「dsh dsh Chat」Host 插件插入 profile 组合层。
 # 安装：plugin_manager install_bundle（target 指向本目录）或 dsh plugin add <本目录>
 - insert:
-    - id: dsh-hermes
-      name: dsh-hermes
+    - id: dsh-chat-plugin
+      name: dsh-chat-plugin
       config:
         # 房间名：两个人都填同一个房间名 + 同一个口令，就会进入同一个聊天室。
         room: lobby
@@ -16,8 +16,8 @@
         relayUrl: https://ntfy.sh
         # 控制面板/工具是否启用传输
         enabled: true
-        # agent 自动回复：开启后房间里有人发「@hermes …」时，本机 agent 会自动回复
-        # （两个都装了 Hermes 的 dsh 由此可以 agent ⇄ agent 对话；默认关闭，建议在 UI 里开）
+        # agent 自动回复：开启后房间里有人发「@chat …」时，本机 agent 会自动回复
+        # （两个都装了 dsh Chat 的 dsh 由此可以 agent ⇄ agent 对话；默认关闭，建议在 UI 里开）
         agentAutoReply: false
         # 自动回复使用的 agent preset：minimal（默认，无工具，最安全）或 standard（带 bash/fs 等工具，谨慎）
         agentPreset: minimal

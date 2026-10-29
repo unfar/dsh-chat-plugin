@@ -1,8 +1,8 @@
 {
-  "name": "dsh-hermes",
-  "version": "0.3.0",
+  "name": "dsh-chat-plugin",
+  "version": "0.4.0",
   "type": "module",
-  "description": "Hermes：dsh 之间的信使。把多台 dsh 连成聊天室，人和 agent 都能收发消息，支持端到端加密、agent 自动回复与 hermes_ask 同步问答。",
+  "description": "dsh Chat：dsh 之间的信使。把多台 dsh 连成聊天室，人和 agent 都能收发消息，支持端到端加密、agent 自动回复与 chat_ask 同步问答。",
   "keywords": [
     "deepseek",
     "deepseek-harness",
@@ -23,11 +23,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/unfar/dsh-hermes.git"
+    "url": "git+https://github.com/unfar/dsh-chat-plugin.git"
   },
-  "homepage": "https://github.com/unfar/dsh-hermes#readme",
+  "homepage": "https://github.com/unfar/dsh-chat-plugin#readme",
   "bugs": {
-    "url": "https://github.com/unfar/dsh-hermes/issues"
+    "url": "https://github.com/unfar/dsh-chat-plugin/issues"
   },
   "engines": {
     "node": ">=20"

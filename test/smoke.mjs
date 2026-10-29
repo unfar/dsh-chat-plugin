@@ -1,5 +1,5 @@
 /**
- * Hermes — 离线冒烟测试（不联网、不需要 dsh 运行时）。
+ * dsh Chat — 离线冒烟测试（不联网、不需要 dsh 运行时）。
  *
  * 覆盖：房间状态机、AES-256-GCM 加解密、ask 等待者、工具 schema、HTTP 路由、
  * agent 自动回复的门控（mention / via=agent 防互刷）与回复回填。
@@ -11,7 +11,7 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-process.env.DSH_HOME = mkdtempSync(join(tmpdir(), 'dsh-hermes-smoke-'))
+process.env.DSH_HOME = mkdtempSync(join(tmpdir(), 'dsh-chat-plugin-smoke-'))
 
 const { PeerChat } = await import('../lib/peerchat.js')
 const { registerTools } = await import('../lib/tools.js')
@@ -30,9 +30,9 @@ const check = (condition, label) => {
 
 // ---------- crypto ----------
 const key = Buffer.alloc(32, 7)
-const sealed = seal({ v: 1, text: '你好 Hermes' }, key)
+const sealed = seal({ v: 1, text: '你好 dsh Chat' }, key)
 check(sealed.startsWith('dshpc1:'), 'seal() produces v1 ciphertext envelope')
-check(open(sealed, key).text === '你好 Hermes', 'open() round-trips payload')
+check(open(sealed, key).text === '你好 dsh Chat', 'open() round-trips payload')
 check(deriveTopic('room', 'pw') === deriveTopic('room', 'pw'), 'topic derivation is deterministic')
 check(deriveTopic('room', 'pw') !== deriveTopic('room', 'other'), 'different passphrase → different topic')
 
@@ -71,8 +71,8 @@ check(app.countUnread('agent') === 1, 'agent read cursor is independent')
 const tools = []
 registerTools({ logger, tools: { register: (definition) => { tools.push(definition); return () => {} } } }, app)
 check(
-  tools.map((tool) => tool.name).join(',') === 'hermes_send,hermes_read,hermes_ask,hermes_status',
-  'four hermes_* tools register',
+  tools.map((tool) => tool.name).join(',') === 'chat_send,chat_read,chat_ask,chat_status',
+  'four chat_* tools register',
 )
 for (const tool of tools) {
   assert.equal(tool.parameters.type, 'object')
@@ -87,7 +87,7 @@ const ctx = {
   get: (name) => (name === 'webServer' ? { register: (registered) => { route = registered; return () => {} } } : undefined),
 }
 registerRoutes(ctx, app)
-check(route?.kind === 'prefix' && route?.path === '/dsh-hermes/api', 'HTTP API route registered')
+check(route?.kind === 'prefix' && route?.path === '/dsh-chat-plugin/api', 'HTTP API route registered')
 
 // ---------- agent auto-reply gating ----------
 const fakeApp = {
@@ -103,16 +103,16 @@ const replier = new AgentReplier({ ctx: { logger, get: () => undefined, on: () =
 replier.start()
 await replier.onPeerMessage({ id: 'm1', nick: 'B', text: 'no mention', mine: false, via: 'human' })
 check(replier.pending === null && replier.lastReplyAt === 0, 'non-mention message does not trigger a reply')
-replier.sessionId = 'hermes:smoke'
+replier.sessionId = 'chat:smoke'
 replier.pending = { msgId: 'm2', nick: 'B', since: Date.now(), texts: [] }
-replier.onSessionEvent({ id: 'hermes:smoke' }, {
+replier.onSessionEvent({ id: 'chat:smoke' }, {
   type: 'assistant/message',
   data: { message: { content: [{ type: 'text', text: 'pong' }] } },
 })
-replier.onSessionEvent({ id: 'hermes:smoke' }, { type: 'turn/end', data: { reason: { kind: 'completed' } } })
+replier.onSessionEvent({ id: 'chat:smoke' }, { type: 'turn/end', data: { reason: { kind: 'completed' } } })
 await new Promise((resolve) => setTimeout(resolve, 20))
 check(fakeApp.sent.length === 1 && fakeApp.sent[0].text === 'pong', 'agent reply is posted back to the room')
 check(fakeApp.sent[0].options.via === 'agent' && fakeApp.sent[0].options.replyTo === 'm2', 'reply marked via=agent with replyTo')
 
 app.dispose()
-console.log(`\n${passed} checks passed — Hermes smoke test OK`)
+console.log(`\n${passed} checks passed — dsh Chat smoke test OK`)

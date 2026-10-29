@@ -1,15 +1,15 @@
 /**
- * dsh-hermes — Host 入口。
+ * dsh-chat-plugin — Host 入口。
  *
  * 一个插件行同时提供：
  *  - 传输与房间状态（lib/peerchat.js）
- *  - Web GUI 的 HTTP API（lib/routes.js，挂 /dsh-hermes/api）
- *  - agent 工具 hermes_send / hermes_read / hermes_ask / hermes_status（lib/tools.js）
- *  - agent 自动回复（lib/agent-reply.js）：房间里有人 @hermes 时，本机 agent 自动回应
+ *  - Web GUI 的 HTTP API（lib/routes.js，挂 /dsh-chat-plugin/api）
+ *  - agent 工具 chat_send / chat_read / chat_ask / chat_status（lib/tools.js）
+ *  - agent 自动回复（lib/agent-reply.js）：房间里有人 @chat 时，本机 agent 自动回应
  * 浏览器那一半在 client.js，通过同样的 API 渲染 IM 式聊天面板。
  *
  * 配置来自 cordis.patch.yml 的行 config（见 README）；UI 保存的设置会写到
- * $DSH_HOME/dsh-hermes/config.json，并在下次启动时优先于行 config。
+ * $DSH_HOME/dsh-chat/config.json，并在下次启动时优先于行 config。
  */
 import { AgentReplier } from './lib/agent-reply.js'
 import { PeerChat } from './lib/peerchat.js'
@@ -40,16 +40,16 @@ export function apply(ctx, config) {
   if (systemPrompt && typeof systemPrompt.section === 'function') {
     try {
       ctx.effect(() => systemPrompt.section({
-        name: 'dsh-hermes',
+        name: 'dsh-chat-plugin',
         order: 850,
         text: () => app.promptText(),
       }))
     } catch (error) {
-      ctx.logger?.warn?.('dsh-hermes: 注册 system prompt 片段失败', error)
+      ctx.logger?.warn?.('dsh-chat: 注册 system prompt 片段失败', error)
     }
   }
 
   ctx.effect(() => () => app.cancelWaiters())
 
-  ctx.logger?.info?.('dsh-hermes: 已启用（面板见侧边栏「Hermes」，工具见 hermes_*，自动回复见设置）')
+  ctx.logger?.info?.('dsh-chat: 已启用（面板见侧边栏「dsh Chat」，工具见 chat_*，自动回复见设置）')
 }

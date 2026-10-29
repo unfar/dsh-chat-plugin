@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * dsh-hermes 极简自建中继（可选）。
+ * dsh-chat-plugin 极简自建中继（可选）。
  *
  * 不开源服务也能用公共 ntfy.sh；想要不依赖第三方、长期稳定地给团队用，
  * 就把这个文件丢到任意一台有 Node 的机器上跑起来：
@@ -149,6 +149,6 @@ setInterval(() => {
 }, 60 * 1000).unref?.()
 
 server.listen(PORT, HOST, () => {
-  console.log(`[dsh-hermes] relay listening on http://${HOST}:${PORT}`)
-  console.log('[dsh-hermes] plugin setting: relayKind=custom, relayUrl=http://<host>:' + PORT)
+  console.log(`[dsh-chat-plugin] relay listening on http://${HOST}:${PORT}`)
+  console.log('[dsh-chat-plugin] plugin setting: relayKind=custom, relayUrl=http://<host>:' + PORT)
 })
