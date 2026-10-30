@@ -52,6 +52,7 @@ window.__ModuleLoader__.load({
       noPeers: "还没有发现其他人",
       empty: "还没有消息，发送第一条吧",
       placeholder: "输入消息，Enter 发送，Shift+Enter 换行",
+      placeholderShort: "输入消息…",
       send: "发送",
       sending: "发送中…",
       sendingFailed: "发送失败",
@@ -380,202 +381,259 @@ window.__ModuleLoader__.load({
 
     // ── 样式 ──────────────────────────────────────────────────────────────
     const CSS = `
+
 .dchat-root {
-  --dchat-border-l1: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.18));
-  --dchat-border-l2: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.32));
-  --dchat-layer-1: var(--dsw-alias-bg-layer-1, transparent);
+  --dchat-bg: var(--dsw-alias-bg-base, #ffffff);
+  --dchat-layer-1: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.06));
   --dchat-layer-2: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12));
-  --dchat-hover: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.13));
-  --dchat-label: var(--dsw-alias-label-primary, currentColor);
-  --dchat-label-2: var(--dsw-alias-label-secondary, rgba(127, 127, 127, 0.92));
+  --dchat-overlay: var(--dsw-alias-bg-overlay, #ffffff);
+  --dchat-border-l1: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.16));
+  --dchat-border-l2: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
   --dchat-brand: var(--dsw-alias-brand-primary, #3b6ef5);
-  /* 品牌色上的文字：用页面底色当反色，浅色主题下是白字、深色主题下是深字，
-     两种主题都能和 brand 拉开对比（不依赖不存在的 foreground token）。 */
   --dchat-brand-fg: var(--dsw-alias-bg-base, #ffffff);
+  --dchat-label: var(--dsw-alias-label-primary, currentColor);
+  --dchat-label-2: var(--dsw-alias-label-secondary, rgba(127, 127, 127, 0.95));
   --dchat-ok: var(--dsw-alias-state-success-primary, #2ea043);
   --dchat-err: var(--dsw-alias-state-error-primary, #d1242f);
   --dchat-warn: var(--dsw-alias-state-warn-primary, #bf8700);
+  --dchat-hover: rgba(127, 127, 127, 0.12);
   position: relative;
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
+  width: 100%;
   height: 100%;
   min-height: 0;
-  box-sizing: border-box;
-  overflow: hidden;
   color: var(--dchat-label);
-  background: var(--dsw-alias-bg-base, transparent);
-  font-family: inherit;
+  background: var(--dchat-bg);
   font-size: 13px;
-  line-height: 1.6;
-}
-.dchat-root *,
-.dchat-root *::before,
-.dchat-root *::after {
-  box-sizing: border-box;
-}
-.dchat-root.dchat-in-settings {
-  min-height: 420px;
-  border: 1px solid var(--dchat-border-l2);
-  border-radius: var(--dsw-radius-lg, 16px);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  line-height: 1.45;
+  overflow: hidden;
 }
 
-/* 头部 */
-.dchat-header {
+/* ── Telegram 式双栏骨架 ─────────────────────────────────────────── */
+.dchat-layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+.dchat-side {
+  width: 268px;
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--dchat-border-l1);
+  min-height: 0;
+  border-right: 1px solid var(--dchat-border-l1);
   background: var(--dchat-layer-1);
 }
-.dchat-head-main {
+.dchat-in-settings .dchat-side {
+  display: none;
+}
+.dchat-side-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--dchat-border-l1);
 }
 .dchat-logo {
   display: inline-flex;
-  flex: none;
+  align-items: center;
+  justify-content: center;
   color: var(--dchat-brand);
+  flex: none;
 }
-.dchat-title {
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 15px;
+.dchat-side-title {
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.dchat-side-search {
+  padding: 8px 10px 6px;
+}
+.dchat-side-search .dchat-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--dchat-layer-2);
+  border: 1px solid transparent;
+  padding: 0 10px;
+}
+.dchat-side-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 6px 8px;
+}
+.dchat-side-empty {
+  padding: 18px 10px;
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  text-align: center;
+}
+.dchat-chat-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-chat-row:hover {
+  background: var(--dchat-hover);
+}
+.dchat-chat-row.active {
+  background: color-mix(in srgb, var(--dchat-brand) 14%, transparent);
+}
+.dchat-chat-avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.02em;
 }
-.dchat-title-sub {
+.dchat-chat-avatar.is-room {
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label-2);
+}
+.dchat-chat-body {
+  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dchat-chat-name {
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
+}
+.dchat-chat-preview {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-chat-time {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+}
+.dchat-side-foot {
+  border-top: 1px solid var(--dchat-border-l1);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dchat-discover-btn {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--dchat-border-l2);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dchat-label);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dchat-discover-btn:hover {
+  background: var(--dchat-hover);
+}
+.dchat-side-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   color: var(--dchat-label-2);
+}
+.dchat-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 顶部：头像 + 名称 + 在线状态 ────────────────────────────────── */
+.dchat-main-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-bg);
+}
+.dchat-head-avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dchat-head-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dchat-head-name {
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-head-agent {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.dchat-head-sub {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .dchat-head-tools {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   flex: none;
-  margin-left: auto;
 }
-.dchat-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-.dchat-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: none;
-  font-size: 12px;
-  color: var(--dchat-label-2);
-  white-space: nowrap;
-}
-.dchat-dot {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--dchat-label-2);
-}
-.dchat-dot.on {
-  background: var(--dchat-ok);
-  box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.16);
-}
-.dchat-dot.wait {
-  background: var(--dchat-warn);
-  animation: dchat-pulse 1.4s ease-in-out infinite;
-}
-.dchat-dot.err {
-  background: var(--dchat-err);
-}
-.dchat-dot.off {
-  background: var(--dchat-label-2);
-  opacity: 0.6;
-}
-.dchat-pill {
-  display: inline-flex;
-  align-items: center;
-  max-width: 220px;
-  overflow: hidden;
-  padding: 1px 8px;
-  border: 1px solid var(--dchat-border-l1);
-  border-radius: 999px;
-  background: var(--dchat-layer-2);
-  color: var(--dchat-label-2);
-  font-size: 11px;
-  line-height: 18px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.dchat-pill.enc {
-  color: var(--dchat-ok);
-}
-.dchat-pill.plain {
-  color: var(--dchat-warn);
-}
-/* 侧边栏图标上的未读角标 */
-.dchat-icon-wrap {
+.dchat-icon-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-.dchat-icon-badge {
-  position: absolute;
-  top: -5px;
-  right: -7px;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 4px;
-  box-sizing: border-box;
-  border-radius: 8px;
-  background: var(--dsw-alias-state-error-primary, #d1242f);
-  color: #fff;
-  font-size: 9px;
-  line-height: 15px;
-  font-weight: 600;
-  text-align: center;
-  box-shadow: 0 0 0 2px var(--dsw-specific-sidebar-fill, transparent);
-  pointer-events: none;
-}
-.dchat-agent-badge {
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: rgba(56, 139, 253, 0.14);
-  color: var(--dchat-label-2);
-  border: 1px solid var(--dchat-border-l1);
-  white-space: nowrap;
-}
-.dchat-hint-inline {
-  margin: 2px 0 0 22px;
-  font-size: 11px;
-}
-.dchat-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  border: 0;
+  border-radius: 9px;
   background: transparent;
   color: var(--dchat-label-2);
-  font-family: inherit;
   cursor: pointer;
 }
 .dchat-icon-btn:hover {
@@ -583,261 +641,142 @@ window.__ModuleLoader__.load({
   color: var(--dchat-label);
 }
 .dchat-icon-btn[aria-expanded="true"] {
-  border-color: var(--dchat-border-l1);
-  background: var(--dchat-layer-2);
-  color: var(--dchat-label);
+  color: var(--dchat-brand);
 }
-.dchat-icon-btn:focus-visible {
-  outline: 2px solid var(--dchat-brand);
-  outline-offset: 1px;
+.dchat-icon-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--dchat-err);
+  color: #fff;
+  font-size: 9px;
+  line-height: 15px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--dchat-bg);
+}
+.dchat-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 成员条 */
+/* ── 成员条（群聊时显示） ─────────────────────────────────────── */
 .dchat-peers {
-  flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  max-height: 74px;
-  overflow-y: auto;
-  padding: 7px 16px;
+  gap: 8px;
+  padding: 6px 14px;
   border-bottom: 1px solid var(--dchat-border-l1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dchat-peers::-webkit-scrollbar {
+  display: none;
 }
 .dchat-peer {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  max-width: 220px;
-  padding: 2px 9px 2px 3px;
-  border-radius: 999px;
-  background: var(--dchat-layer-2);
-  color: var(--dchat-label-2);
-  font-size: 12px;
-}
-.dchat-avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
+  gap: 5px;
   flex: none;
-  border-radius: 50%;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  text-transform: uppercase;
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
 }
 .dchat-peer-nick {
-  min-width: 0;
+  max-width: 120px;
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dchat-peer-state {
   width: 6px;
   height: 6px;
-  flex: none;
   border-radius: 50%;
-  background: var(--dchat-label-2);
-  opacity: 0.45;
+  background: var(--dchat-border-l2);
 }
 .dchat-peer-state.online {
   background: var(--dchat-ok);
-  opacity: 1;
 }
-.dchat-peers-empty {
-  color: var(--dchat-label-2);
-  font-size: 12px;
-  opacity: 0.85;
+.dchat-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 600;
+  flex: none;
 }
 .dchat-me {
   margin-left: auto;
-  overflow: hidden;
+  flex: none;
+  font-size: 11px;
+  color: var(--dchat-label-2);
+}
+.dchat-peers-empty {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+}
+.dchat-agent-badge {
+  flex: none;
+  font-size: 10.5px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dchat-brand) 14%, transparent);
+  border: 1px solid var(--dchat-border-l1);
+  color: var(--dchat-label-2);
   white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--dchat-label-2);
-  font-size: 11px;
-  opacity: 0.9;
 }
 
-/* 连接提示条 */
-.dchat-banner {
-  flex: none;
-  display: flex;
-  align-items: flex-start;
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--dchat-border-l1);
-  background: rgba(191, 135, 0, 0.08);
-  color: var(--dchat-warn);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.dchat-banner.error {
-  background: rgba(209, 36, 47, 0.08);
-  color: var(--dchat-err);
-}
-
-/* 设置表单 */
-.dchat-settings {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 46%;
-  overflow-y: auto;
-  padding: 10px 16px 12px;
-  border-bottom: 1px solid var(--dchat-border-l1);
-  background: var(--dchat-layer-1);
-}
-.dchat-settings-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.dchat-settings-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--dchat-label);
-}
-.dchat-settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 8px 10px;
-}
-.dchat-field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  font-size: 11px;
-  color: var(--dchat-label-2);
-}
-.dchat-field.dchat-field-full {
-  grid-column: 1 / -1;
-}
-.dchat-input,
-.dchat-select {
-  width: 100%;
-  height: 30px;
-  min-width: 0;
-  padding: 0 9px;
-  border: 1px solid var(--dchat-border-l2);
-  border-radius: 8px;
-  outline: none;
-  background: var(--dsw-alias-bg-base, transparent);
-  color: var(--dchat-label);
-  font-family: inherit;
-  font-size: 12px;
-}
-.dchat-input::placeholder {
-  color: var(--dchat-label-2);
-  opacity: 0.7;
-}
-.dchat-input:focus,
-.dchat-select:focus {
-  border-color: var(--dchat-brand);
-}
-.dchat-input:disabled {
-  opacity: 0.55;
-}
-.dchat-select {
-  cursor: pointer;
-}
-.dchat-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--dchat-label-2);
-  cursor: pointer;
-}
-.dchat-check input {
-  margin: 0;
-  accent-color: var(--dchat-brand);
-}
-.dchat-settings-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.dchat-btn {
-  height: 30px;
-  padding: 0 14px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--dchat-brand);
-  color: var(--dchat-brand-fg);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.dchat-btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-.dchat-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.dchat-btn.ghost {
-  border-color: var(--dchat-border-l2);
-  background: transparent;
-  color: var(--dchat-label);
-}
-.dchat-btn.ghost:hover:not(:disabled) {
-  background: var(--dchat-hover);
-  filter: none;
-}
-.dchat-btn:focus-visible {
-  outline: 2px solid var(--dchat-brand);
-  outline-offset: 1px;
-}
-.dchat-hint {
-  color: var(--dchat-label-2);
-  font-size: 11px;
-  line-height: 1.55;
-}
-.dchat-notice {
-  font-size: 12px;
-}
-.dchat-notice.ok {
-  color: var(--dchat-ok);
-}
-.dchat-notice.err {
-  color: var(--dchat-err);
-}
-
-/* 消息区 */
+/* ── 消息区 ──────────────────────────────────────────────────── */
 .dchat-body {
-  position: relative;
-  display: flex;
   flex: 1 1 auto;
+  position: relative;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .dchat-list {
   flex: 1 1 auto;
-  min-width: 0;
   min-height: 0;
-  overflow-x: hidden;
   overflow-y: auto;
-  padding: 12px 16px 16px;
+  padding: 14px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scroll-behavior: smooth;
+}
+.dchat-list::-webkit-scrollbar {
+  width: 8px;
+}
+.dchat-list::-webkit-scrollbar-thumb {
+  background: var(--dchat-border-l2);
+  border-radius: 8px;
 }
 .dchat-day {
   align-self: center;
-  margin: 10px 0 8px;
-  padding: 1px 10px;
-  border-radius: 999px;
+  margin: 8px 0 10px;
+  padding: 3px 10px;
+  border-radius: 12px;
   background: var(--dchat-layer-2);
+  font-size: 10.5px;
   color: var(--dchat-label-2);
-  font-size: 11px;
 }
 .dchat-row {
   display: flex;
   min-width: 0;
-  margin: 2px 0;
+  margin: 1px 0;
+}
+.dchat-row.theirs {
+  justify-content: flex-start;
 }
 .dchat-row.mine {
   justify-content: flex-end;
@@ -845,9 +784,7 @@ window.__ModuleLoader__.load({
 .dchat-stack {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  min-width: 0;
-  max-width: min(80%, 520px);
+  max-width: min(74%, 560px);
 }
 .dchat-row.mine .dchat-stack {
   align-items: flex-end;
@@ -856,66 +793,338 @@ window.__ModuleLoader__.load({
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  max-width: 100%;
-  margin: 2px 0 3px 2px;
-  color: var(--dchat-label-2);
-  font-size: 11px;
+  margin: 0 0 2px 2px;
 }
 .dchat-meta-dot {
   width: 6px;
   height: 6px;
-  flex: none;
   border-radius: 50%;
 }
 .dchat-nick {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dchat-label-2);
 }
 .dchat-bubble {
-  max-width: 100%;
-  padding: 7px 12px;
+  padding: 7px 11px 6px;
   border-radius: 14px;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
-  overflow-wrap: anywhere;
-}
-.dchat-row.theirs .dchat-bubble {
-  border: 1px solid var(--dchat-border-l2);
-  border-top-left-radius: 5px;
   background: var(--dchat-layer-2);
   color: var(--dchat-label);
+  width: fit-content;
+}
+.dchat-row.theirs .dchat-bubble {
+  border-bottom-left-radius: 5px;
 }
 .dchat-row.mine .dchat-bubble {
-  border: 1px solid transparent;
-  border-top-right-radius: 5px;
   background: var(--dchat-brand);
   color: var(--dchat-brand-fg);
+  border-bottom-right-radius: 5px;
+}
+.dchat-row.grouped .dchat-bubble {
+  border-top-left-radius: 14px;
+}
+.dchat-row.theirs.grouped .dchat-bubble {
+  border-top-left-radius: 6px;
+}
+.dchat-row.mine.grouped .dchat-bubble {
+  border-top-right-radius: 6px;
 }
 .dchat-time {
-  margin: 3px 2px 1px;
-  color: var(--dchat-label-2);
   font-size: 10px;
-  opacity: 0.8;
+  color: var(--dchat-label-2);
+  opacity: 0.75;
+  margin: 2px 4px 0;
 }
-/* 空态引导：邀请 / 加入房间 */
+.dchat-row.mine .dchat-time {
+  text-align: right;
+}
+.dchat-jump {
+  position: absolute;
+  right: 16px;
+  bottom: 10px;
+  border: 1px solid var(--dchat-border-l2);
+  background: var(--dchat-overlay);
+  color: var(--dchat-label);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* ── 输入区 ──────────────────────────────────────────────────── */
+.dchat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-bg);
+}
+.dchat-input {
+  font-family: inherit;
+  color: var(--dchat-label);
+  background: var(--dchat-layer-1);
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 18px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+}
+.dchat-input:focus {
+  border-color: color-mix(in srgb, var(--dchat-brand) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dchat-brand) 14%, transparent);
+}
+.dchat-input::placeholder {
+  color: var(--dchat-label-2);
+}
+.dchat-composer textarea.dchat-input {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  height: 36px;
+  min-height: 36px;
+  max-height: 132px;
+  resize: none;
+  overflow-y: auto;
+  border-radius: 18px;
+}
+.dchat-logo svg {
+  flex: none;
+}
+.dchat-send {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.dchat-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.dchat-send svg {
+  margin: 0 auto;
+}
+.dchat-send-text {
+  font-size: 15px;
+  line-height: 1;
+}
+.dchat-send-error {
+  padding: 0 16px 6px;
+  font-size: 11.5px;
+  color: var(--dchat-err);
+}
+
+/* ── 状态 / 横幅 ─────────────────────────────────────────────── */
+.dchat-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dchat-border-l2);
+}
+.dchat-dot.on {
+  background: var(--dchat-ok);
+}
+.dchat-dot.wait {
+  background: var(--dchat-warn);
+}
+.dchat-dot.err {
+  background: var(--dchat-err);
+}
+.dchat-dot.off {
+  background: var(--dchat-border-l2);
+}
+.dchat-banner {
+  margin: 6px 14px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 9px;
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  background: var(--dchat-layer-1);
+}
+.dchat-request {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 14px 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--dchat-brand) 30%, var(--dchat-border-l1));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dchat-brand) 8%, transparent);
+}
+.dchat-request-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-request-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.dchat-typing {
+  color: var(--dchat-brand);
+}
+
+/* ── 通用按钮 ───────────────────────────────────────────────── */
+.dchat-btn {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dchat-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dchat-btn.ghost {
+  background: transparent;
+  border: 1px solid var(--dchat-border-l2);
+  color: var(--dchat-label);
+}
+.dchat-small-btn {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.dchat-small-btn.ghost {
+  background: transparent;
+  border-color: var(--dchat-border-l2);
+  color: var(--dchat-label-2);
+}
+.dchat-small-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── 设置面板 ───────────────────────────────────────────────── */
+.dchat-settings {
+  margin: 6px 14px 0;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 12px;
+  background: var(--dchat-layer-1);
+  padding: 12px;
+}
+.dchat-settings-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.dchat-settings-title {
+  font-size: 13px;
+  font-weight: 650;
+}
+.dchat-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 12px;
+}
+.dchat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+}
+.dchat-field-full {
+  grid-column: 1 / -1;
+}
+.dchat-field .dchat-input {
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+.dchat-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--dchat-label);
+}
+.dchat-check input {
+  accent-color: var(--dchat-brand);
+}
+.dchat-hint {
+  font-size: 11px;
+  color: var(--dchat-label-2);
+  padding: 2px 0 0;
+}
+.dchat-hint-inline {
+  margin: 2px 0 0 22px;
+}
+.dchat-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.dchat-notice {
+  font-size: 11.5px;
+}
+.dchat-notice.ok {
+  color: var(--dchat-ok);
+}
+.dchat-notice.err {
+  color: var(--dchat-err);
+}
+
+/* ── 空态 / 离线 / 加载 ─────────────────────────────────────── */
+.dchat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: auto;
+  padding: 32px 16px;
+  color: var(--dchat-label-2);
+  font-size: 12.5px;
+  text-align: center;
+}
 .dchat-empty-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--dchat-label);
+}
+.dchat-empty-hint {
+  font-size: 11.5px;
+  max-width: 320px;
 }
 .dchat-empty-hint-sm {
   font-size: 11px;
   opacity: 0.75;
-  margin-top: 2px;
 }
 .dchat-empty-actions {
   display: flex;
   gap: 8px;
-  margin-top: 2px;
 }
 .dchat-empty-or {
   font-size: 11px;
@@ -934,10 +1143,34 @@ window.__ModuleLoader__.load({
 .dchat-join .dchat-input {
   flex: 1 1 auto;
   min-width: 0;
+  border-radius: 10px;
+}
+.dchat-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  color: var(--dchat-label-2);
+  font-size: 12px;
+}
+.dchat-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--dchat-border-l2);
+  border-top-color: var(--dchat-brand);
+  animation: dchat-spin 0.8s linear infinite;
+}
+@keyframes dchat-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* 邀请码弹层 */
-.dchat-invite {
+/* ── 弹层：邀请 / 发现 ─────────────────────────────────────── */
+.dchat-invite,
+.dchat-friends {
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -947,18 +1180,28 @@ window.__ModuleLoader__.load({
   padding: 16px;
   background: rgba(0, 0, 0, 0.35);
 }
-.dchat-invite-card {
+.dchat-friends {
+  justify-content: center;
+}
+.dchat-invite-card,
+.dchat-friends-card {
   width: min(460px, 100%);
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--dchat-border-l2);
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-overlay, var(--dsw-alias-bg-layer-1, #fff));
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
+  border-radius: 14px;
+  background: var(--dchat-overlay);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
 }
-.dchat-invite-head {
+.dchat-friends-card {
+  width: min(420px, 100%);
+}
+.dchat-invite-head,
+.dchat-friends-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -966,19 +1209,18 @@ window.__ModuleLoader__.load({
 }
 .dchat-invite-title {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--dchat-label);
+  font-weight: 650;
 }
 .dchat-invite-code {
   width: 100%;
   box-sizing: border-box;
-  padding: 9px 10px;
-  border-radius: 8px;
+  border-radius: 9px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 1.5;
   word-break: break-all;
   resize: none;
+  padding: 9px 10px;
 }
 .dchat-invite-actions {
   display: flex;
@@ -989,75 +1231,42 @@ window.__ModuleLoader__.load({
   font-size: 11.5px;
   color: var(--dchat-err);
 }
-.dchat-typing {
-  font-size: 11px;
-  color: var(--dchat-brand);
-}
-.dchat-row.grouped {
-  margin-top: 1px;
-}
-
-/* 好友与发现 */
-.dchat-friends {
-  position: absolute;
-  inset: 0;
-  z-index: 21;
-  display: flex;
-  align-items: stretch;
-  justify-content: flex-start;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.32);
-}
-.dchat-friends-card {
-  width: min(380px, 100%);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--dchat-border-l2);
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-overlay, var(--dsw-alias-bg-layer-1, #fff));
-  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
-  overflow-y: auto;
-}
-.dchat-friends-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
 .dchat-friends-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 2px;
+  margin-top: 4px;
 }
 .dchat-friends-title {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  opacity: 0.7;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  color: var(--dchat-label-2);
+  opacity: 0.8;
 }
 .dchat-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--dchat-label);
   cursor: pointer;
+}
+.dchat-toggle input {
+  accent-color: var(--dchat-brand);
 }
 .dchat-search {
   width: 100%;
   box-sizing: border-box;
+  border-radius: 10px;
+  padding: 7px 10px;
 }
 .dchat-dir-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 6px;
-  border-radius: 8px;
+  padding: 6px;
+  border-radius: 9px;
 }
 .dchat-dir-row:hover {
   background: var(--dchat-hover);
@@ -1068,7 +1277,7 @@ window.__ModuleLoader__.load({
 }
 .dchat-dir-nick {
   font-size: 12.5px;
-  color: var(--dchat-label);
+  font-weight: 550;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1079,223 +1288,20 @@ window.__ModuleLoader__.load({
 }
 .dchat-dir-meta {
   font-size: 10.5px;
-  opacity: 0.6;
-}
-.dchat-small-btn {
-  flex: none;
-  height: 26px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: var(--dchat-brand);
-  color: var(--dchat-brand-fg);
-  font-family: inherit;
-  font-size: 11.5px;
-  cursor: pointer;
-}
-.dchat-small-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.dchat-small-btn.ghost {
-  background: transparent;
-  border-color: var(--dchat-border-l2);
-  color: var(--dchat-label-2);
-}
-.dchat-request {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 12px 0;
-  padding: 8px 10px;
-  border: 1px solid var(--dchat-border-l2);
-  border-radius: 10px;
-  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12));
-}
-.dchat-request-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--dchat-label);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.dchat-request-actions {
-  display: flex;
-  gap: 6px;
-  flex: none;
-}
-.dchat-icon-btn {
-  position: relative;
+  opacity: 0.65;
 }
 
-.dchat-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: auto;
-  padding: 32px 16px;
-  color: var(--dchat-label-2);
-  font-size: 12.5px;
-  text-align: center;
-}
-.dchat-empty-hint {
-  max-width: 320px;
-  font-size: 11px;
-  line-height: 1.55;
-  opacity: 0.8;
-}
-.dchat-loading {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--dchat-label-2);
-  font-size: 12.5px;
-}
-.dchat-spinner {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  border: 2px solid var(--dchat-border-l2);
-  border-top-color: var(--dchat-brand);
-  border-radius: 50%;
-  animation: dchat-spin 0.9s linear infinite;
-}
-.dchat-jump {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  z-index: 2;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  border: 1px solid var(--dchat-border-l2);
-  border-radius: 999px;
-  background: var(--dchat-layer-2);
-  color: var(--dchat-label);
-  font-family: inherit;
-  font-size: 11px;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
-}
-.dchat-jump:hover {
-  background: var(--dchat-hover);
-}
-.dchat-jump:focus-visible {
-  outline: 2px solid var(--dchat-brand);
-  outline-offset: 2px;
-}
-
-/* 输入区 */
-.dchat-send-error {
-  flex: none;
-  padding: 0 16px 8px;
-  color: var(--dchat-err);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.dchat-composer {
-  flex: none;
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 10px 16px 12px;
-  border-top: 1px solid var(--dchat-border-l1);
-  background: var(--dchat-layer-1);
-}
-.dchat-composer textarea.dchat-input {
-  flex: 1 1 auto;
-  height: 38px;
-  min-height: 38px;
-  max-height: 132px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  line-height: 1.45;
-  resize: none;
-  overflow-y: auto;
-}
-.dchat-send {
-  flex: none;
-  height: 38px;
-  padding: 0 18px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: var(--dchat-brand);
-  color: var(--dchat-brand-fg);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.dchat-send:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-.dchat-send:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.dchat-send:focus-visible {
-  outline: 2px solid var(--dchat-brand);
-  outline-offset: 2px;
-}
-
-@keyframes dchat-spin {
-  to {
-    transform: rotate(360deg);
+/* ── 窄屏 ───────────────────────────────────────────────────── */
+@media (max-width: 620px) {
+  .dchat-side {
+    width: 200px;
   }
-}
-@keyframes dchat-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .dchat-spinner {
-    animation: none;
-  }
-  .dchat-dot.wait {
-    animation: none;
-  }
-}
-@media (max-width: 560px) {
-  .dchat-header {
-    padding: 10px 12px 8px;
-  }
-  .dchat-peers {
-    padding: 6px 12px;
-  }
-  .dchat-list {
-    padding: 10px 12px 12px;
-  }
-  .dchat-settings {
-    padding: 8px 12px 10px;
-  }
-  .dchat-banner {
-    padding: 6px 12px;
-  }
-  .dchat-send-error {
-    padding: 0 12px 8px;
-  }
-  .dchat-composer {
-    padding: 8px 12px 10px;
-  }
-  .dchat-title-sub {
+  .dchat-side-search,
+  .dchat-side-foot {
     display: none;
   }
 }
+
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -1365,6 +1371,25 @@ window.__ModuleLoader__.load({
       );
     }
 
+    const SEND_ICON = h(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 16,
+        height: 16,
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.9,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": "true",
+        focusable: "false",
+        style: { display: "block" },
+      },
+      h("path", { key: "up", d: "M12 19V5" }),
+      h("path", { key: "arrow", d: "M6 11l6-6 6 6" }),
+    );
+
     const PEOPLE_ICON = h(
       "svg",
       {
@@ -1385,6 +1410,30 @@ window.__ModuleLoader__.load({
       h("path", { key: "c", d: "M15.6 5.2a2.9 2.9 0 0 1 0 5.6" }),
       h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
     );
+
+    /** 面板内的品牌小图标（带 unread 角标的 PanelIcon 只给侧边栏 slot 用）。 */
+    function BrandMark(props) {
+      const size = Number(props && props.size) || 18;
+      return h(
+        "svg",
+        {
+          viewBox: "0 0 24 24",
+          width: size,
+          height: size,
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: 1.7,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          "aria-hidden": "true",
+          focusable: "false",
+          style: { display: "block" },
+        },
+        h("rect", { key: "back", x: 13, y: 3.4, width: 7.4, height: 6.2, rx: 2.1 }),
+        h("rect", { key: "front", x: 3.6, y: 8.8, width: 10.6, height: 7.6, rx: 2.4 }),
+        h("path", { key: "tail", d: "M7.4 16.4v3.2l3.3-3.2" }),
+      );
+    }
 
     const INVITE_ICON = h(
       "svg",
@@ -1453,6 +1502,7 @@ window.__ModuleLoader__.load({
       const message = props.message || {};
       const mine = props.mine === true;
       const grouped = props.grouped === true;
+      const showTime = props.showTime !== false;
       const text = message.text == null ? "" : String(message.text);
       const nick = String(message.nick || shortId(message.from) || t("anonymous"));
       const color = avatarColor(message.from == null ? nick : message.from);
@@ -1475,7 +1525,7 @@ window.__ModuleLoader__.load({
                 h("span", { className: "dchat-nick" }, nick),
               ),
           h("div", { className: "dchat-bubble", title: fullTimeTitle(message.ts) }, text),
-          h("div", { className: "dchat-time" }, formatTime(message.ts)),
+          showTime ? h("div", { className: "dchat-time" }, formatTime(message.ts)) : null,
         ),
       );
     }
@@ -2398,7 +2448,15 @@ window.__ModuleLoader__.load({
             new Date(Number(previous.ts) || 0).toDateString() ===
               new Date(Number(message.ts) || 0).toDateString() &&
             Math.abs((Number(message.ts) || 0) - (Number(previous.ts) || 0)) < 5 * 60 * 1000;
-          messageChildren.push(h(MessageRow, { key, message, mine, grouped }));
+          const next = index + 1 < messages.length ? messages[index + 1] : null;
+          const nextGrouped =
+            Boolean(next) &&
+            (next.mine === true) === (message.mine === true) &&
+            String(next.nick || next.from || "") === String(message.nick || message.from || "") &&
+            new Date(Number(next.ts) || 0).toDateString() ===
+              new Date(Number(message.ts) || 0).toDateString() &&
+            Math.abs((Number(next.ts) || 0) - (Number(message.ts) || 0)) < 5 * 60 * 1000;
+          messageChildren.push(h(MessageRow, { key, message, mine, grouped, showTime: !nextGrouped }));
         });
       }
 
@@ -2656,7 +2714,8 @@ window.__ModuleLoader__.load({
           value: draft,
           rows: 1,
           maxLength: MAX_TEXT_LENGTH,
-          placeholder: t("placeholder"),
+          placeholder: t("placeholderShort"),
+          title: t("placeholder"),
           "aria-label": t("composerAria"),
           onChange: handleDraftChange,
           onKeyDown: handleKeyDown,
@@ -2666,10 +2725,274 @@ window.__ModuleLoader__.load({
           {
             type: "button",
             className: "dchat-send",
+            "aria-label": t("send"),
+            title: t("send"),
             disabled: sending || draft.trim() === "",
             onClick: submit,
           },
-          sending ? t("sending") : t("send"),
+          sending ? h("span", { className: "dchat-send-text" }, "…") : SEND_ICON,
+        ),
+      );
+
+      const displayPeer = peers.length === 1 ? peers[0] : null;
+      const sideContacts = social && Array.isArray(social.contacts) ? social.contacts : [];
+      const sideQuery = discoverQuery.trim().toLowerCase();
+      const visibleContacts = sideContacts.filter(
+        (contact) =>
+          !sideQuery ||
+          String(contact.nick || "").toLowerCase().includes(sideQuery) ||
+          String(contact.room || "").toLowerCase().includes(sideQuery),
+      );
+      const contactIds = new Set(sideContacts.map((contact) => contact.id));
+      const directoryMatches = sideQuery
+        ? (social && Array.isArray(social.directory) ? social.directory : [])
+            .filter(
+              (peer) =>
+                !contactIds.has(peer.id) &&
+                (String(peer.nick || "").toLowerCase().includes(sideQuery) ||
+                  String(peer.id || "").includes(sideQuery)),
+            )
+            .slice(0, 6)
+        : [];
+      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+      const typingText =
+        snapshot && Array.isArray(snapshot.typing) && snapshot.typing.length > 0
+          ? snapshot.typing
+              .slice(0, 2)
+              .map((peer) => (peer && peer.nick ? peer.nick : t("anonymous")))
+              .join("、") + " " + t("typing")
+          : "";
+      const headName = displayPeer
+        ? String(displayPeer.label || displayPeer.nick || t("anonymous"))
+        : snapshot && snapshot.room
+          ? "# " + snapshot.room
+          : t("title");
+      const lockBadge = relay
+        ? relay.encrypted
+          ? "🔒 " + t("encrypted")
+          : "🔓 " + t("plain")
+        : "";
+      const headSub =
+        typingText ||
+        [
+          status.text,
+          lockBadge,
+          snapshot ? t("peers") + " " + peers.length + (peersOnline > 0 ? " · " + t("online") + " " + peersOnline : "") : "",
+          snapshot && snapshot.room ? "# " + snapshot.room : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+      const contactRows = visibleContacts.map((contact) => {
+        const active = Boolean(snapshot && snapshot.room === contact.room);
+        return h(
+          "button",
+          {
+            key: "contact-" + contact.id,
+            type: "button",
+            className: "dchat-chat-row" + (active ? " active" : ""),
+            title: "房间 " + contact.room,
+            onClick: () => joinContact(contact.id),
+          },
+          h(
+            "span",
+            { className: "dchat-chat-avatar", style: { background: avatarColor(contact.id) }, "aria-hidden": "true" },
+            initialsOf(contact.nick),
+          ),
+          h(
+            "span",
+            { className: "dchat-chat-body" },
+            h("span", { className: "dchat-chat-name" }, String(contact.nick || t("anonymous"))),
+            h("span", { className: "dchat-chat-preview" }, "房间 " + contact.room),
+          ),
+          active ? h("span", { className: "dchat-chat-time" }, t("you")) : null,
+        );
+      });
+
+      const currentRow = snapshot
+        ? h(
+            "button",
+            {
+              type: "button",
+              className:
+                "dchat-chat-row" +
+                (sideContacts.some((contact) => contact.room === snapshot.room) ? "" : " active"),
+              title: snapshot.room,
+              onClick: () => setFriendsOpen(true),
+            },
+            h("span", { className: "dchat-chat-avatar is-room", "aria-hidden": "true" }, "#"),
+            h(
+              "span",
+              { className: "dchat-chat-body" },
+              h("span", { className: "dchat-chat-name" }, "# " + snapshot.room),
+              h(
+                "span",
+                { className: "dchat-chat-preview" },
+                lastMessage
+                  ? (lastMessage.mine ? t("you") + ": " : "") + String(lastMessage.text || "").slice(0, 42)
+                  : t("empty"),
+              ),
+            ),
+            h("span", { className: "dchat-chat-time" }, lastMessage ? formatTime(lastMessage.ts) : ""),
+          )
+        : null;
+
+      const sideView = h(
+        "aside",
+        { className: "dchat-side", "aria-label": t("contacts") },
+        h(
+          "div",
+          { className: "dchat-side-head" },
+          h("span", { className: "dchat-logo", "aria-hidden": "true" }, h(BrandMark, { size: 18 })),
+          h("span", { className: "dchat-side-title" }, t("title")),
+          h(
+            "button",
+            { type: "button", className: "dchat-icon-btn", "aria-label": t("invite"), title: t("invite"), onClick: openInvite },
+            INVITE_ICON,
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-icon-btn",
+              "aria-expanded": settingsOpen ? "true" : "false",
+              "aria-label": t("settings"),
+              title: t("settings"),
+              onClick: toggleSettings,
+            },
+            SETTINGS_ICON,
+          ),
+        ),
+        h(
+          "div",
+          { className: "dchat-side-search" },
+          h("input", {
+            className: "dchat-input",
+            type: "search",
+            value: discoverQuery,
+            placeholder: t("discoverSearch"),
+            "aria-label": t("discoverSearch"),
+            onChange: (event) => setDiscoverQuery(event.target.value),
+          }),
+        ),
+        h(
+          "div",
+          { className: "dchat-side-list" },
+          currentRow,
+          ...contactRows,
+          ...directoryMatches.map((peer) =>
+            h(
+              "div",
+              { key: "found-" + peer.id, className: "dchat-chat-row" },
+              h(
+                "span",
+                { className: "dchat-chat-avatar", style: { background: avatarColor(peer.id) }, "aria-hidden": "true" },
+                initialsOf(peer.nick),
+              ),
+              h(
+                "span",
+                { className: "dchat-chat-body" },
+                h("span", { className: "dchat-chat-name" }, String(peer.nick || t("anonymous"))),
+                h("span", { className: "dchat-chat-preview" }, t("discover") + " · " + String(peer.id || "").slice(0, 6)),
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-small-btn",
+                  disabled: connectingId === peer.id,
+                  onClick: () => connectTo(peer.id),
+                },
+                connectingId === peer.id ? t("connecting") : t("connect"),
+              ),
+            ),
+          ),
+          contactRows.length === 0 && directoryMatches.length === 0
+            ? h("div", { className: "dchat-side-empty" }, sideQuery ? t("discoverEmpty") : t("contactsEmpty"))
+            : null,
+        ),
+        h(
+          "div",
+          { className: "dchat-side-foot" },
+          h(
+            "button",
+            { type: "button", className: "dchat-discover-btn", onClick: () => setFriendsOpen(true) },
+            "🧭 " + t("findFriends") + (pendingList.length > 0 ? " · " + pendingList.length : ""),
+          ),
+          h(
+            "span",
+            { className: "dchat-side-status", "aria-live": "polite" },
+            h("span", { className: "dchat-dot " + status.className }),
+            status.text,
+          ),
+        ),
+      );
+
+      const mainHead = h(
+        "header",
+        { className: "dchat-main-head" },
+        h(
+          "span",
+          {
+            className: "dchat-head-avatar",
+            style: displayPeer
+              ? { background: avatarColor(displayPeer.id) }
+              : { background: "var(--dchat-brand)", color: "var(--dchat-brand-fg)" },
+            "aria-hidden": "true",
+          },
+          displayPeer ? initialsOf(displayPeer.nick) : "#",
+        ),
+        h(
+          "div",
+          { className: "dchat-head-text" },
+          h(
+            "div",
+            { className: "dchat-head-name", title: headName },
+            headName,
+            snapshot && snapshot.agent && snapshot.agent.autoReply
+              ? h("span", { className: "dchat-head-agent", title: t("agentOn") }, " 🤖")
+              : null,
+          ),
+          h("div", { className: "dchat-head-sub" }, headSub),
+        ),
+        h(
+          "div",
+          { className: "dchat-head-tools" },
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-icon-btn",
+              "aria-label": t("friends"),
+              title: t("friendsTitle"),
+              onClick: () => setFriendsOpen(true),
+            },
+            PEOPLE_ICON,
+            pendingList.length > 0
+              ? h(
+                  "span",
+                  { className: "dchat-icon-badge" },
+                  pendingList.length > 9 ? "9+" : String(pendingList.length),
+                )
+              : null,
+          ),
+          h(
+            "button",
+            { type: "button", className: "dchat-icon-btn", "aria-label": t("invite"), title: t("invite"), onClick: openInvite },
+            INVITE_ICON,
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-icon-btn",
+              "aria-expanded": settingsOpen ? "true" : "false",
+              "aria-label": t("settings"),
+              title: t("settings"),
+              onClick: toggleSettings,
+            },
+            SETTINGS_ICON,
+          ),
         ),
       );
 
@@ -2678,115 +3001,23 @@ window.__ModuleLoader__.load({
         { className: "dchat-root" + (inSettings ? " dchat-in-settings" : "") },
         h(
           "div",
-          { className: "dchat-header" },
+          { className: "dchat-layout" },
+          sideView,
           h(
-            "div",
-            { className: "dchat-head-main" },
-            h("span", { className: "dchat-logo", "aria-hidden": "true" }, h(PanelIcon, { size: 16, active: true })),
-            h("h2", { className: "dchat-title", title: t("subtitle") }, t("title")),
-            h("span", { className: "dchat-title-sub" }, t("subtitle")),
-            h(
-              "div",
-              { className: "dchat-head-tools" },
-              h(
-                "button",
-                {
-                  type: "button",
-                  className: "dchat-icon-btn",
-                  "aria-label": t("friends"),
-                  title: t("friends"),
-                  onClick: () => setFriendsOpen(true),
-                },
-                PEOPLE_ICON,
-                pendingList.length > 0
-                  ? h(
-                      "span",
-                      { className: "dchat-icon-badge" },
-                      pendingList.length > 9 ? "9+" : String(pendingList.length),
-                    )
-                  : null,
-              ),
-              h(
-                "button",
-                {
-                  type: "button",
-                  className: "dchat-icon-btn",
-                  "aria-label": t("invite"),
-                  title: t("invite"),
-                  onClick: openInvite,
-                },
-                INVITE_ICON,
-              ),
-              h(
-                "button",
-                {
-                  type: "button",
-                  className: "dchat-icon-btn",
-                  "aria-expanded": settingsOpen ? "true" : "false",
-                  "aria-label": t("settings"),
-                  title: t("settings"),
-                  onClick: toggleSettings,
-                },
-                SETTINGS_ICON,
-              ),
-            ),
-          ),
-          h(
-            "div",
-            { className: "dchat-meta" },
-            h(
-              "span",
-              { className: "dchat-status", "aria-live": "polite" },
-              h("span", { className: "dchat-dot " + status.className }),
-              status.text,
-            ),
-            snapshot && snapshot.room
-              ? h(
-                  "span",
-                  { className: "dchat-pill", title: t("room") + " " + snapshot.room },
-                  t("room") + " " + snapshot.room,
-                )
-              : null,
-            relay
-              ? h(
-                  "span",
-                  { className: "dchat-pill " + (relay.encrypted ? "enc" : "plain") },
-                  relay.encrypted ? t("encrypted") : t("plain"),
-                )
-              : null,
-            snapshot
-              ? h(
-                  "span",
-                  { className: "dchat-pill" },
-                  t("peers") +
-                    " " +
-                    peers.length +
-                    (peersOnline > 0 ? " · " + t("online") + " " + peersOnline : ""),
-                )
-              : null,
-            snapshot && Array.isArray(snapshot.typing) && snapshot.typing.length > 0
-              ? h(
-                  "span",
-                  { className: "dchat-typing", "aria-live": "polite" },
-                  snapshot.typing
-                    .slice(0, 2)
-                    .map((peer) => (peer && peer.nick ? peer.nick : t("anonymous")))
-                    .join("、") +
-                    " " +
-                    t("typing"),
-                )
-              : null,
+            "main",
+            { className: "dchat-main" },
+            mainHead,
+            banner,
+            requestBanner,
+            settingsView,
+            snapshot && peers.length > 1 ? peersView : null,
+            bodyView,
+            sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,
+            composer,
           ),
         ),
-        banner,
-        requestBanner,
-        settingsView,
         inviteView,
         friendsView,
-        snapshot ? peersView : null,
-        bodyView,
-        sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,
-        composer,
       );
     }
 
