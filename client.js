@@ -112,6 +112,28 @@ window.__ModuleLoader__.load({
         "你们需要先进入同一个房间：把邀请码发给对方，或粘贴对方发来的邀请码。",
       onboardingOr: "或者",
       typing: "正在输入…",
+      friends: "好友",
+      friendsTitle: "好友与发现",
+      discover: "发现",
+      discoverHint: "开启后会出现在公共发现目录，装了插件的人可以搜到你并发起连接。",
+      discoverOff: "未出现在公共目录",
+      discoverToggle: "出现在公共发现目录（别人可找到我）",
+      discoverSearch: "搜索昵称或 ID…",
+      discoverEmpty: "暂时没发现其他人。让对方也打开「发现」，或直接发邀请码。",
+      contacts: "通讯录",
+      contactsEmpty: "还没有联系人。去「发现」里找一个人，或粘贴邀请码加入房间。",
+      connect: "连接",
+      connecting: "连接中…",
+      joinRoom: "切换",
+      remove: "删除",
+      accept: "接受",
+      dismiss: "忽略",
+      requestTitle: "连接请求",
+      requestBody: " 想和你聊天",
+      selfTag: "我",
+      findFriends: "发现好友",
+      onlineNow: "在线",
+      lastSeenShort: "最近",
     };
 
     /** 取中文文案；未知 key 原样返回，永不抛错。 */
@@ -975,6 +997,139 @@ window.__ModuleLoader__.load({
   margin-top: 1px;
 }
 
+/* 好友与发现 */
+.dchat-friends {
+  position: absolute;
+  inset: 0;
+  z-index: 21;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.32);
+}
+.dchat-friends-card {
+  width: min(380px, 100%);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--dchat-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-overlay, var(--dsw-alias-bg-layer-1, #fff));
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.28);
+  overflow-y: auto;
+}
+.dchat-friends-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dchat-friends-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.dchat-friends-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+.dchat-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--dchat-label);
+  cursor: pointer;
+}
+.dchat-search {
+  width: 100%;
+  box-sizing: border-box;
+}
+.dchat-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px;
+  border-radius: 8px;
+}
+.dchat-dir-row:hover {
+  background: var(--dchat-hover);
+}
+.dchat-dir-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dchat-dir-nick {
+  font-size: 12.5px;
+  color: var(--dchat-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-dir-id {
+  font-size: 10.5px;
+  opacity: 0.55;
+}
+.dchat-dir-meta {
+  font-size: 10.5px;
+  opacity: 0.6;
+}
+.dchat-small-btn {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.dchat-small-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.dchat-small-btn.ghost {
+  background: transparent;
+  border-color: var(--dchat-border-l2);
+  color: var(--dchat-label-2);
+}
+.dchat-request {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 12px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--dchat-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12));
+}
+.dchat-request-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--dchat-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-request-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.dchat-icon-btn {
+  position: relative;
+}
+
 .dchat-empty {
   display: flex;
   flex-direction: column;
@@ -1210,6 +1365,27 @@ window.__ModuleLoader__.load({
       );
     }
 
+    const PEOPLE_ICON = h(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 16,
+        height: 16,
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.6,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": "true",
+        focusable: "false",
+        style: { display: "block" },
+      },
+      h("circle", { key: "a", cx: 9, cy: 8, r: 3.1 }),
+      h("path", { key: "b", d: "M3.5 19c.6-3.4 2.9-5.2 5.5-5.2s4.9 1.8 5.5 5.2" }),
+      h("path", { key: "c", d: "M15.6 5.2a2.9 2.9 0 0 1 0 5.6" }),
+      h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
+    );
+
     const INVITE_ICON = h(
       "svg",
       {
@@ -1338,6 +1514,11 @@ window.__ModuleLoader__.load({
             { type: "button", className: "dchat-btn", onClick: options.onInvite },
             "🔗 " + t("invite"),
           ),
+          h(
+            "button",
+            { type: "button", className: "dchat-btn ghost", onClick: options.onFindFriends },
+            "🧭 " + t("findFriends"),
+          ),
         ),
         h("div", { className: "dchat-empty-or" }, t("onboardingOr")),
         h(
@@ -1441,6 +1622,12 @@ window.__ModuleLoader__.load({
       const [joinCode, setJoinCode] = useState("");
       const [joining, setJoining] = useState(false);
       const [joinError, setJoinError] = useState("");
+      const [friendsOpen, setFriendsOpen] = useState(false);
+      const [social, setSocial] = useState(null);
+      const [socialError, setSocialError] = useState("");
+      const [discoverQuery, setDiscoverQuery] = useState("");
+      const [connectingId, setConnectingId] = useState("");
+      const [socialBusy, setSocialBusy] = useState("");
 
       const mountedRef = useRef(true);
       const pollingRef = useRef(false);
@@ -1537,6 +1724,27 @@ window.__ModuleLoader__.load({
           }
         };
       }, [refresh]);
+
+      // 好友/发现状态：面板打开时高频刷新，平时低频刷新（用于未读请求角标）。
+      const loadSocial = useCallback(async () => {
+        try {
+          const data = await request("/social", { method: "GET", headers: { accept: "application/json" }, cache: "no-store" });
+          if (!mountedRef.current) return;
+          setSocial(data || null);
+          setSocialError("");
+        } catch (error) {
+          if (mountedRef.current) setSocialError(error && error.message ? error.message : t("unreachable"));
+        }
+      }, []);
+
+      useEffect(() => {
+        mountedRef.current = true;
+        void loadSocial();
+        const timer = setInterval(() => {
+          void loadSocial();
+        }, friendsOpen ? 5000 : 15000);
+        return () => clearInterval(timer);
+      }, [loadSocial, friendsOpen]);
 
       // toast 定时器清理。
       useEffect(
@@ -1750,6 +1958,60 @@ window.__ModuleLoader__.load({
         }
       }, [joinCode, joining, refresh]);
 
+      /** 社交动作：统一 POST 后刷新 social + 聊天状态。 */
+      const socialAction = useCallback(
+        async (path, body) => {
+          setSocialBusy(path);
+          setSocialError("");
+          try {
+            const data = await request(path, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(body || {}),
+            });
+            if (!mountedRef.current) return;
+            if (data && data.state) {
+              const next = normalizeSnapshot(data.state);
+              if (next) setSnapshot(next);
+            }
+            forceScrollRef.current = true;
+            await loadSocial();
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) {
+              setSocialError(error && error.message ? error.message : t("unreachable"));
+            }
+          } finally {
+            if (mountedRef.current) setSocialBusy("");
+          }
+        },
+        [loadSocial, refresh],
+      );
+
+      const toggleDiscoverable = useCallback(async () => {
+        const enabled = !(social && social.discoverable === true);
+        await socialAction("/social/discoverable", { enabled });
+      }, [social, socialAction]);
+
+      const connectTo = useCallback(
+        async (id) => {
+          if (!id || connectingId) return;
+          setConnectingId(id);
+          try {
+            await socialAction("/social/connect", { id });
+            setFriendsOpen(false);
+          } finally {
+            if (mountedRef.current) setConnectingId("");
+          }
+        },
+        [connectingId, socialAction],
+      );
+
+      const acceptRequest = useCallback(async (id) => { await socialAction("/social/accept", { id }); }, [socialAction]);
+      const dismissRequest = useCallback(async (id) => { await socialAction("/social/dismiss", { id }); }, [socialAction]);
+      const joinContact = useCallback(async (id) => { await socialAction("/social/join", { id }); setFriendsOpen(false); }, [socialAction]);
+      const removeContact = useCallback(async (id) => { await socialAction("/social/remove", { id }); }, [socialAction]);
+
       /** 发送消息：Enter 或按钮触发；失败保留输入并显示服务端错误。 */
       const submit = useCallback(async () => {
         if (sendingRef.current) return;
@@ -1867,14 +2129,47 @@ window.__ModuleLoader__.load({
               ? h("div", { className: "dchat-banner" }, "⚠️ " + snapshot.agent.lastError)
               : null;
 
+      const pendingList =
+        social && Array.isArray(social.inbox) ? social.inbox : [];
+      const requestBanner =
+        pendingList.length > 0
+          ? h(
+              "div",
+              { className: "dchat-request" },
+              h(
+                "div",
+                { className: "dchat-request-text" },
+                "👋 " +
+                  String(pendingList[0].fromNick || t("anonymous")) +
+                  t("requestBody"),
+              ),
+              h(
+                "div",
+                { className: "dchat-request-actions" },
+                h(
+                  "button",
+                  { type: "button", className: "dchat-small-btn", onClick: () => acceptRequest(pendingList[0].id) },
+                  t("accept"),
+                ),
+                h(
+                  "button",
+                  { type: "button", className: "dchat-small-btn ghost", onClick: () => dismissRequest(pendingList[0].id) },
+                  t("dismiss"),
+                ),
+              ),
+            )
+          : null;
+
       const peerChips = peers.map((peer, index) => {
         const rawId = peer && peer.id != null ? String(peer.id) : "";
         const id = rawId || "peer-" + index;
         const nick = peer && peer.nick ? String(peer.nick) : shortId(rawId) || t("anonymous");
+        // 重名成员（多台 dsh 用同一个昵称）由 host 提供 #短id 的 label，避免分不清。
+        const label = peer && peer.label ? String(peer.label) : nick;
         const online = peer && peer.online === true;
         const titleText = online
-          ? nick + " · " + t("online")
-          : nick +
+          ? label + " · " + t("online")
+          : label +
             (peer && peer.lastSeen
               ? " · " + t("lastSeen") + " " + formatTime(peer.lastSeen)
               : "");
@@ -1890,7 +2185,7 @@ window.__ModuleLoader__.load({
             },
             initialsOf(nick),
           ),
-          h("span", { className: "dchat-peer-nick" }, nick),
+          h("span", { className: "dchat-peer-nick" }, label),
           h("span", {
             className: "dchat-peer-state" + (online ? " online" : ""),
             title: online ? t("online") : t("offline"),
@@ -2123,6 +2418,7 @@ window.__ModuleLoader__.load({
               messages.length === 0
                 ? h(ChatEmpty, {
                     onInvite: openInvite,
+                    onFindFriends: () => setFriendsOpen(true),
                     joinCode,
                     onJoinCode: setJoinCode,
                     onJoin: joinByCode,
@@ -2147,6 +2443,145 @@ window.__ModuleLoader__.load({
               h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
               t("loading"),
             );
+
+      const friendsView = friendsOpen
+        ? (() => {
+            const directoryList = social && Array.isArray(social.directory) ? social.directory : [];
+            const contactsList = social && Array.isArray(social.contacts) ? social.contacts : [];
+            const query = discoverQuery.trim().toLowerCase();
+            const visibleDirectory = directoryList.filter(
+              (peer) =>
+                !query ||
+                String(peer.nick || "").toLowerCase().includes(query) ||
+                String(peer.id || "").toLowerCase().includes(query),
+            );
+            return h(
+              "div",
+              { className: "dchat-friends", role: "dialog", "aria-label": t("friendsTitle") },
+              h(
+                "div",
+                { className: "dchat-friends-card" },
+                h(
+                  "div",
+                  { className: "dchat-friends-head" },
+                  h("span", { className: "dchat-invite-title" }, t("friendsTitle")),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-icon-btn",
+                      "aria-label": t("inviteClose"),
+                      title: t("inviteClose"),
+                      onClick: () => setFriendsOpen(false),
+                    },
+                    COLLAPSE_ICON,
+                  ),
+                ),
+                socialError ? h("div", { className: "dchat-invite-error" }, "⚠️ " + socialError) : null,
+                h(
+                  "label",
+                  { className: "dchat-toggle" },
+                  h("input", {
+                    type: "checkbox",
+                    checked: social ? social.discoverable === true : false,
+                    onChange: toggleDiscoverable,
+                  }),
+                  t("discoverToggle"),
+                ),
+                h("div", { className: "dchat-hint" }, t("discoverHint")),
+                h("input", {
+                  className: "dchat-input dchat-search",
+                  type: "search",
+                  value: discoverQuery,
+                  placeholder: t("discoverSearch"),
+                  "aria-label": t("discoverSearch"),
+                  onChange: (event) => setDiscoverQuery(event.target.value),
+                }),
+                h(
+                  "div",
+                  { className: "dchat-friends-section" },
+                  h("div", { className: "dchat-friends-title" }, t("discover") + " · " + String(visibleDirectory.length)),
+                  visibleDirectory.length === 0
+                    ? h("div", { className: "dchat-hint" }, t("discoverEmpty"))
+                    : visibleDirectory.map((peer) =>
+                        h(
+                          "div",
+                          { key: "dir-" + peer.id, className: "dchat-dir-row" },
+                          h(
+                            "span",
+                            {
+                              className: "dchat-avatar",
+                              style: { background: avatarColor(peer.id) },
+                              "aria-hidden": "true",
+                            },
+                            initialsOf(peer.nick),
+                          ),
+                          h(
+                            "div",
+                            { className: "dchat-dir-info" },
+                            h(
+                              "div",
+                              { className: "dchat-dir-nick" },
+                              String(peer.nick || t("anonymous")),
+                              h("span", { className: "dchat-dir-id" }, " · " + String(peer.id || "").slice(0, 6)),
+                            ),
+                            h("div", { className: "dchat-dir-meta" }, t("lastSeenShort") + " " + formatTime(peer.at)),
+                          ),
+                          h(
+                            "button",
+                            {
+                              type: "button",
+                              className: "dchat-small-btn",
+                              disabled: connectingId === peer.id,
+                              onClick: () => connectTo(peer.id),
+                            },
+                            connectingId === peer.id ? t("connecting") : t("connect"),
+                          ),
+                        ),
+                      ),
+                ),
+                h(
+                  "div",
+                  { className: "dchat-friends-section" },
+                  h("div", { className: "dchat-friends-title" }, t("contacts") + " · " + String(contactsList.length)),
+                  contactsList.length === 0
+                    ? h("div", { className: "dchat-hint" }, t("contactsEmpty"))
+                    : contactsList.map((contact) =>
+                        h(
+                          "div",
+                          { key: "contact-" + contact.id, className: "dchat-dir-row" },
+                          h(
+                            "span",
+                            {
+                              className: "dchat-avatar",
+                              style: { background: avatarColor(contact.id) },
+                              "aria-hidden": "true",
+                            },
+                            initialsOf(contact.nick),
+                          ),
+                          h(
+                            "div",
+                            { className: "dchat-dir-info" },
+                            h("div", { className: "dchat-dir-nick" }, String(contact.nick || t("anonymous"))),
+                            h("div", { className: "dchat-dir-meta" }, "房间 " + contact.room),
+                          ),
+                          h(
+                            "button",
+                            { type: "button", className: "dchat-small-btn", onClick: () => joinContact(contact.id) },
+                            t("joinRoom"),
+                          ),
+                          h(
+                            "button",
+                            { type: "button", className: "dchat-small-btn ghost", onClick: () => removeContact(contact.id) },
+                            t("remove"),
+                          ),
+                        ),
+                      ),
+                ),
+              ),
+            );
+          })()
+        : null;
 
       const inviteView = inviteOpen
         ? h(
@@ -2258,6 +2693,24 @@ window.__ModuleLoader__.load({
                 {
                   type: "button",
                   className: "dchat-icon-btn",
+                  "aria-label": t("friends"),
+                  title: t("friends"),
+                  onClick: () => setFriendsOpen(true),
+                },
+                PEOPLE_ICON,
+                pendingList.length > 0
+                  ? h(
+                      "span",
+                      { className: "dchat-icon-badge" },
+                      pendingList.length > 9 ? "9+" : String(pendingList.length),
+                    )
+                  : null,
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-icon-btn",
                   "aria-label": t("invite"),
                   title: t("invite"),
                   onClick: openInvite,
@@ -2326,8 +2779,10 @@ window.__ModuleLoader__.load({
           ),
         ),
         banner,
+        requestBanner,
         settingsView,
         inviteView,
+        friendsView,
         snapshot ? peersView : null,
         bodyView,
         sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,

@@ -14,6 +14,7 @@
 import { AgentReplier } from './lib/agent-reply.js'
 import { PeerChat } from './lib/peerchat.js'
 import { registerRoutes } from './lib/routes.js'
+import { Social } from './lib/social.js'
 import { registerTools } from './lib/tools.js'
 
 // 只硬性依赖 tools；webServer 是可选服务（无 Web GUI 的 profile 里插件仍可提供工具）。
@@ -26,12 +27,32 @@ export const inject = ['tools']
 export function apply(ctx, config) {
   const app = new PeerChat({ ctx, config })
   const replier = new AgentReplier({ ctx, app })
+  const social = new Social({ ctx, app, store: app.store })
+  app.onConfigChanged = () => social.restart()
 
   ctx.effect(() => app.start())
   ctx.effect(() => replier.start())
+  ctx.effect(() => social.start())
 
-  const disposeRoutes = registerRoutes(ctx, app)
-  if (disposeRoutes) ctx.effect(() => disposeRoutes)
+  // webServer 可能在插件激活时还没就绪（新进程启动竞态）：轮询等待，拿到再注册。
+  let routeTimer = null
+  let routeDispose = null
+  const setupRoutes = () => {
+    if (routeDispose) return
+    const webServer = ctx.get?.('webServer')
+    if (!webServer) {
+      routeTimer = setTimeout(setupRoutes, 500)
+      if (typeof routeTimer.unref === 'function') routeTimer.unref()
+      return
+    }
+    routeDispose = registerRoutes(ctx, app, social)
+    if (routeDispose) ctx.effect(() => routeDispose)
+    ctx.logger?.info?.('dsh-chat-plugin: Web API 已注册')
+  }
+  setupRoutes()
+  ctx.effect(() => () => {
+    if (routeTimer) clearTimeout(routeTimer)
+  })
 
   ctx.effect(() => registerTools(ctx, app))
 

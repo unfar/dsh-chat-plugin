@@ -20,6 +20,7 @@ const { AgentReplier } = await import('../lib/agent-reply.js')
 const { seal, open, deriveTopic } = await import('../lib/crypto.js')
 const { encodeInvite, decodeInvite } = await import('../lib/invite.js')
 const { externalPeerId } = await import('../lib/bridge.js')
+const { directoryTopic, inboxTopic, sealPresence, openPresence, sealConnect, openConnect } = await import('../lib/social.js')
 const { ChatStore } = await import('../lib/store.js')
 
 const logger = { info() {}, warn() {}, error() {}, debug() {} }
@@ -50,6 +51,18 @@ check(true, 'malformed invite code is rejected')
 check(externalPeerId('Hermes') === externalPeerId(' hermes '), 'external peer id is stable and case-insensitive')
 check(externalPeerId('Hermes') !== externalPeerId('WorkBuddy'), 'different external agents get different ids')
 check(externalPeerId('Hermes').startsWith('ext-'), 'external peer id has ext- prefix')
+
+// ---------- social discovery ----------
+const selfId = 'abc12345'
+const otherId = 'zzz99999'
+check(directoryTopic() === directoryTopic(), 'directory topic is deterministic')
+check(inboxTopic(selfId) !== inboxTopic(otherId), 'each peer id gets its own inbox topic')
+const presenceBody = sealPresence({ id: selfId, nick: 'Tester' })
+const presence = openPresence(presenceBody)
+check(presence?.id === selfId && presence?.nick === 'Tester', 'presence card round-trips')
+const connectBody = sealConnect(otherId, { from: { id: selfId, nick: 'Tester' }, room: { name: 'dm-1', passphrase: 'pw' } })
+check(openConnect(otherId, connectBody)?.room?.name === 'dm-1', 'connect packet opens only for the target inbox')
+check(openConnect(selfId, connectBody) === null, 'connect packet is not readable by another peer id')
 
 // ---------- store ----------
 const store = new ChatStore()

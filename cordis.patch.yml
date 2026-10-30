@@ -21,3 +21,7 @@
         agentAutoReply: false
         # 自动回复使用的 agent preset：minimal（默认，无工具，最安全）或 standard（带 bash/fs 等工具，谨慎）
         agentPreset: minimal
+        # 出现在公共发现目录：开启后装了 dsh Chat 的人能在「好友 → 发现」里看到你并发起连接
+        discoverable: false
+        # 发现目录心跳间隔（毫秒）：越大越省中继配额，默认 10 分钟
+        discoverHeartbeatMs: 600000
