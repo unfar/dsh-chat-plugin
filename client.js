@@ -40,7 +40,38 @@ window.__ModuleLoader__.load({
       encrypted: "🔒 端到端加密",
       plain: "🔓 明文",
       settings: "设置",
-      settingsTitle: "房间设置",
+      settingsTitle: "设置",
+      settingsProfile: "个人资料",
+      settingsChat: "当前会话",
+      settingsAutomation: "Agent 自动化",
+      settingsNotify: "桌面通知",
+      settingsRoom: "房间与中继",
+      settingsDiscover: "发现与隐私",
+      settingsAdvanced: "更多",
+      settingsGuide: "重新查看新手引导",
+      settingsInvite: "查看邀请码",
+      onboardTitle: "欢迎使用 dsh Chat",
+      onboardLead: "三步开始：起个名字、建一个房间（或加入朋友的），就可以和另一台 dsh 聊天了。",
+      onboardStep1: "① 你的昵称",
+      onboardNicknameHint: "对方在成员栏看到的名字，之后随时能改。",
+      onboardStep2: "② 房间",
+      onboardCreateLabel: "新建群聊（名字）",
+      onboardJoinLabel: "或粘贴朋友的邀请码",
+      onboardStep3: "③ 被发现",
+      onboardDiscoverHint: "开启后，装了 dsh Chat 的人能在「发现」里搜到你并发起私聊。",
+      onboardFinish: "开始使用",
+      onboardSkip: "稍后再说",
+      onboardWorking: "正在准备…",
+      members: "成员",
+      membersTitle: "群成员",
+      inviteMembers: "邀请成员",
+      renameChat: "重命名会话",
+      more: "更多",
+      close: "关闭",
+      menu: "会话菜单",
+      sideToggle: "会话列表",
+      me: "我",
+      offline: "离线",
       room: "房间",
       roomName: "房间名",
       roomPlaceholder: "lobby",
@@ -69,6 +100,7 @@ window.__ModuleLoader__.load({
       relayError: "中继连接异常",
       nickname: "昵称",
       nicknameHint: "留空则使用主机名",
+      nicknameHelp: "这是其他成员在成员栏看到的名字。",
       passphrase: "房间口令（可选，设置后端到端加密）",
       passphraseSet: "已设置，留空保持不变",
       passphraseEmpty: "未设置，留空保持不变",
@@ -432,6 +464,72 @@ window.__ModuleLoader__.load({
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
+  overflow: hidden;
+}
+.dchat-hamburger {
+  display: none;
+}
+.dchat-menu {
+  position: absolute;
+  top: 52px;
+  right: 12px;
+  z-index: 24;
+  min-width: 176px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dchat-border-l2);
+  border-radius: 10px;
+  background: var(--dchat-overlay);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.24);
+}
+.dchat-menu-item {
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dchat-label);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dchat-menu-item:hover {
+  background: var(--dchat-hover);
+}
+.dchat-menu-item.danger {
+  color: var(--dchat-err);
+}
+.dchat-menu-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 23;
+  background: transparent;
+}
+.dchat-member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--dchat-border-l1);
+}
+.dchat-member-row:last-of-type {
+  border-bottom: 0;
+}
+.dchat-member-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-member-tag {
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+}
+.dchat-side-backdrop {
+  display: none;
 }
 .dchat-side {
   width: 268px;
@@ -1064,6 +1162,16 @@ window.__ModuleLoader__.load({
   font-weight: 500;
   cursor: pointer;
 }
+.dchat-btn:focus-visible,
+.dchat-small-btn:focus-visible,
+.dchat-icon-btn:focus-visible,
+.dchat-menu-item:focus-visible,
+.dchat-discover-btn:focus-visible,
+.dchat-chat-row:focus-visible,
+.dchat-send:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dchat-brand) 70%, transparent);
+  outline-offset: 1px;
+}
 .dchat-btn:disabled {
   opacity: 0.5;
   cursor: default;
@@ -1096,18 +1204,73 @@ window.__ModuleLoader__.load({
 }
 
 /* ── 设置面板 ───────────────────────────────────────────────── */
-.dchat-settings {
-  margin: 6px 14px 0;
+.dchat-settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.dchat-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dchat-settings-section-title {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dchat-label-2);
+  opacity: 0.85;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--dchat-border-l1);
+}
+.dchat-onboard {
+  width: min(480px, 100%);
+}
+.dchat-onboard-head {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.dchat-onboard-lead {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--dchat-label-2);
+}
+.dchat-onboard-step {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
   border: 1px solid var(--dchat-border-l1);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--dchat-layer-1);
-  padding: 12px;
+}
+.dchat-onboard-step-title {
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.dchat-settings {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px;
+  background: var(--dchat-bg);
+  overflow: hidden;
 }
 .dchat-settings-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--dchat-border-l1);
 }
 .dchat-settings-title {
   font-size: 13px;
@@ -1152,10 +1315,13 @@ window.__ModuleLoader__.load({
   margin: 2px 0 0 22px;
 }
 .dchat-settings-actions {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dchat-border-l1);
 }
 .dchat-notice {
   font-size: 11.5px;
@@ -1362,6 +1528,47 @@ window.__ModuleLoader__.load({
   opacity: 0.65;
 }
 
+/* ── 窄屏：侧栏抽屉 ─────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .dchat-hamburger {
+    display: inline-flex;
+  }
+  .dchat-side {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 16;
+    width: min(288px, 86%);
+    background: var(--dchat-overlay);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+    transform: translateX(-102%);
+    transition: transform 0.18s ease;
+  }
+  .dchat-side.open {
+    transform: none;
+  }
+  .dchat-side-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .dchat-main-head {
+    padding: 8px 10px;
+  }
+  .dchat-list {
+    padding: 12px 10px 6px;
+  }
+  .dchat-composer {
+    padding: 6px 10px 10px;
+  }
+  .dchat-stack {
+    max-width: 84%;
+  }
+}
+
 /* ── 窄屏 ───────────────────────────────────────────────────── */
 @media (max-width: 620px) {
   .dchat-side {
@@ -1441,6 +1648,41 @@ window.__ModuleLoader__.load({
           : null,
       );
     }
+
+    const MENU_ICON = h(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 17,
+        height: 17,
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.8,
+        strokeLinecap: "round",
+        "aria-hidden": "true",
+        focusable: "false",
+        style: { display: "block" },
+      },
+      h("path", { key: "a", d: "M4 7h16" }),
+      h("path", { key: "b", d: "M4 12h16" }),
+      h("path", { key: "c", d: "M4 17h16" }),
+    );
+
+    const MORE_ICON = h(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 17,
+        height: 17,
+        fill: "currentColor",
+        "aria-hidden": "true",
+        focusable: "false",
+        style: { display: "block" },
+      },
+      h("circle", { key: "a", cx: 5, cy: 12, r: 1.6 }),
+      h("circle", { key: "b", cx: 12, cy: 12, r: 1.6 }),
+      h("circle", { key: "c", cx: 19, cy: 12, r: 1.6 }),
+    );
 
     const SEND_ICON = h(
       "svg",
@@ -1768,6 +2010,19 @@ window.__ModuleLoader__.load({
       const [chatTitleDraft, setChatTitleDraft] = useState("");
       const [notifyEnabled, setNotifyEnabled] = useState(false);
       const [notifyError, setNotifyError] = useState("");
+      const [onboardingOpen, setOnboardingOpen] = useState(false);
+      const [onboardSeen, setOnboardSeen] = useState(false);
+      const [obNickname, setObNickname] = useState("");
+      const [obGroupTitle, setObGroupTitle] = useState("");
+      const [obInviteCode, setObInviteCode] = useState("");
+      const [obDiscover, setObDiscover] = useState(true);
+      const [obBusy, setObBusy] = useState(false);
+      const [obError, setObError] = useState("");
+      const [sideOpen, setSideOpen] = useState(() =>
+        typeof window === "undefined" ? true : window.innerWidth > 720,
+      );
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [membersOpen, setMembersOpen] = useState(false);
 
       const mountedRef = useRef(true);
       const pollingRef = useRef(false);
@@ -2177,6 +2432,7 @@ window.__ModuleLoader__.load({
         async (id) => {
           if (!id) return;
           await socialAction("/chats/switch", { id });
+          if (typeof window !== "undefined" && window.innerWidth <= 720) setSideOpen(false);
         },
         [socialAction],
       );
@@ -2222,6 +2478,76 @@ window.__ModuleLoader__.load({
         await socialAction("/chats/leave", { id: currentChat.id });
         void loadChats();
       }, [currentChat, socialAction, loadChats]);
+
+      /** 打开首次使用引导（预填当前昵称/发现状态）。 */
+      const openOnboarding = useCallback(() => {
+        setObNickname(
+          (snapshot && snapshot.settings && snapshot.settings.nickname) || "",
+        );
+        setObGroupTitle("");
+        setObInviteCode("");
+        setObDiscover(social ? social.discoverable === true : true);
+        setObError("");
+        setOnboardingOpen(true);
+      }, [snapshot, social]);
+
+      const finishOnboarding = useCallback(async () => {
+        if (obBusy) return;
+        setObBusy(true);
+        setObError("");
+        try {
+          const nickname = obNickname.trim();
+          await request("/config", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              nickname: nickname || undefined,
+              onboarded: true,
+              discoverable: obDiscover === true,
+            }),
+          });
+          if (obInviteCode.trim()) {
+            await request("/join", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ code: obInviteCode.trim() }),
+            });
+          } else if (obGroupTitle.trim()) {
+            await request("/chats/create", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ title: obGroupTitle.trim() }),
+            });
+          }
+          if (!mountedRef.current) return;
+          setOnboardingOpen(false);
+          setOnboardSeen(true);
+          await loadSocial();
+          await loadChats();
+          void refresh();
+        } catch (error) {
+          if (mountedRef.current) {
+            setObError(error && error.message ? error.message : t("unreachable"));
+          }
+        } finally {
+          if (mountedRef.current) setObBusy(false);
+        }
+      }, [obNickname, obGroupTitle, obInviteCode, obDiscover, obBusy, loadSocial, loadChats, refresh]);
+
+      const dismissOnboarding = useCallback(async () => {
+        setOnboardingOpen(false);
+        setOnboardSeen(true);
+        try {
+          await request("/config", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ onboarded: true }),
+          });
+        } catch {
+          /* ignore */
+        }
+        void refresh();
+      }, [refresh]);
 
       /** 发送消息：Enter 或按钮触发；失败保留输入并显示服务端错误。 */
       const submit = useCallback(async () => {
@@ -2391,6 +2717,31 @@ window.__ModuleLoader__.load({
         }
       }, [snapshot]);
 
+      // 全新安装（未完成引导且没有昵称）时自动弹一次引导；老用户不会被打扰。
+      useEffect(() => {
+        if (onboardSeen || onboardingOpen) return;
+        if (!snapshot || !snapshot.settings) return;
+        if (snapshot.settings.onboarded !== true && !snapshot.settings.nickname) {
+          setOnboardSeen(true);
+          openOnboarding();
+        }
+      }, [snapshot, onboardSeen, onboardingOpen, openOnboarding]);
+
+      const openMembers = useCallback(() => {
+        setMenuOpen(false);
+        setMembersOpen(true);
+      }, []);
+
+      const openRename = useCallback(() => {
+        setMenuOpen(false);
+        if (!settingsOpen) toggleSettings();
+      }, [settingsOpen, toggleSettings]);
+
+      const leaveFromMenu = useCallback(async () => {
+        setMenuOpen(false);
+        await leaveCurrentChat();
+      }, [leaveCurrentChat]);
+
       const banner = hostMissing
         ? h("div", { className: "dchat-banner" }, "⚠️ " + t("hostMissing"))
         : loadError
@@ -2488,6 +2839,14 @@ window.__ModuleLoader__.load({
           : null,
       );
 
+      const settingsSection = (title, children) =>
+        h(
+          "div",
+          { className: "dchat-settings-section" },
+          h("div", { className: "dchat-settings-section-title" }, title),
+          ...children,
+        );
+
       const settingsView =
         settingsOpen && form
           ? h(
@@ -2512,11 +2871,25 @@ window.__ModuleLoader__.load({
               ),
               h(
                 "div",
-                { className: "dchat-settings-grid" },
-                h(
-                  "div",
-                  { className: "dchat-field dchat-field-full" },
-                  h("span", null, t("currentChat")),
+                { className: "dchat-settings-body" },
+                settingsSection(t("settingsProfile"), [
+                  h(
+                    "div",
+                    { className: "dchat-field" },
+                    h("span", null, t("nickname")),
+                    h("input", {
+                      className: "dchat-input",
+                      type: "text",
+                      value: form.nickname,
+                      placeholder: t("nicknameHint"),
+                      "aria-label": t("nickname"),
+                      maxLength: 40,
+                      onChange: (event) => updateForm({ nickname: event.target.value }),
+                    }),
+                    h("div", { className: "dchat-hint" }, t("nicknameHelp")),
+                  ),
+                ]),
+                settingsSection(t("settingsChat"), [
                   h(
                     "div",
                     { className: "dchat-settings-row" },
@@ -2549,112 +2922,9 @@ window.__ModuleLoader__.load({
                       t("leaveChat"),
                     ),
                   ),
-                ),
-                h(
-                  "div",
-                  { className: "dchat-field dchat-field-full" },
-                  h(
-                    "label",
-                    { className: "dchat-check" },
-                    h("input", {
-                      type: "checkbox",
-                      checked: notifyEnabled,
-                      onChange: toggleNotify,
-                    }),
-                    t("notifications"),
-                  ),
-                  h("div", { className: "dchat-hint" }, notifyError || t("notificationsHint")),
-                ),
-                h(
-                  "div",
-                  { className: "dchat-field" },
-                  h("span", null, t("nickname")),
-                  h("input", {
-                    className: "dchat-input",
-                    type: "text",
-                    value: form.nickname,
-                    placeholder: t("nicknameHint"),
-                    "aria-label": t("nickname"),
-                    maxLength: 40,
-                    onChange: (event) => updateForm({ nickname: event.target.value }),
-                  }),
-                ),
-                h(
-                  "div",
-                  { className: "dchat-field" },
-                  h("span", null, t("roomName")),
-                  h("input", {
-                    className: "dchat-input",
-                    type: "text",
-                    value: form.room,
-                    placeholder: t("roomPlaceholder"),
-                    "aria-label": t("roomName"),
-                    maxLength: 64,
-                    onChange: (event) => updateForm({ room: event.target.value }),
-                  }),
-                ),
-                h(
-                  "div",
-                  { className: "dchat-field dchat-field-full" },
-                  h("span", null, t("passphrase")),
-                  h("input", {
-                    className: "dchat-input",
-                    type: "password",
-                    autoComplete: "new-password",
-                    value: form.passphrase,
-                    placeholder: form.passphraseSet ? t("passphraseSet") : t("passphraseEmpty"),
-                    "aria-label": t("passphrase"),
-                    disabled: form.clearPassphrase === true,
-                    onChange: (event) =>
-                      updateForm({ passphrase: event.target.value, clearPassphrase: false }),
-                  }),
-                  form.passphraseSet
-                    ? h(
-                        "label",
-                        { className: "dchat-check" },
-                        h("input", {
-                          type: "checkbox",
-                          checked: form.clearPassphrase === true,
-                          onChange: (event) =>
-                            updateForm({ clearPassphrase: event.target.checked }),
-                        }),
-                        t("clearPassphrase"),
-                      )
-                    : null,
-                ),
-                h(
-                  "div",
-                  { className: "dchat-field" },
-                  h("span", null, t("relayKind")),
-                  h(
-                    "select",
-                    {
-                      className: "dchat-select",
-                      value: form.relayKind,
-                      "aria-label": t("relayKind"),
-                      onChange: (event) => updateForm({ relayKind: event.target.value }),
-                    },
-                    h("option", { value: "ntfy" }, t("relayNtfy")),
-                    h("option", { value: "custom" }, t("relayCustom")),
-                  ),
-                ),
-                h(
-                  "div",
-                  { className: "dchat-field" },
-                  h("span", null, t("relayUrl")),
-                  h("input", {
-                    className: "dchat-input",
-                    type: "text",
-                    value: form.relayUrl,
-                    placeholder: t("relayUrlPlaceholder"),
-                    "aria-label": t("relayUrl"),
-                    onChange: (event) => updateForm({ relayUrl: event.target.value }),
-                  }),
-                ),
-              ),
-                h(
-                  "div",
-                  { className: "dchat-field dchat-field-full" },
+                  h("div", { className: "dchat-hint" }, "当前房间 #" + (snapshot ? snapshot.room : "-")),
+                ]),
+                settingsSection(t("settingsAutomation"), [
                   h(
                     "label",
                     { className: "dchat-check" },
@@ -2665,32 +2935,149 @@ window.__ModuleLoader__.load({
                     }),
                     t("agentAutoReply"),
                   ),
-                  h("div", { className: "dchat-hint dchat-hint-inline" }, t("agentAutoReplyHint")),
-                ),
-              h(
-                "div",
-                { className: "dchat-hint" },
-                t("lobbyHint"),
+                  h("div", { className: "dchat-hint" }, t("agentAutoReplyHint")),
+                ]),
+                settingsSection(t("settingsNotify"), [
+                  h(
+                    "label",
+                    { className: "dchat-check" },
+                    h("input", { type: "checkbox", checked: notifyEnabled, onChange: toggleNotify }),
+                    t("notifications"),
+                  ),
+                  h("div", { className: "dchat-hint" }, notifyError || t("notificationsHint")),
+                ]),
+                settingsSection(t("settingsRoom"), [
+                  h(
+                    "div",
+                    { className: "dchat-settings-grid" },
+                    h(
+                      "div",
+                      { className: "dchat-field" },
+                      h("span", null, t("roomName")),
+                      h("input", {
+                        className: "dchat-input",
+                        type: "text",
+                        value: form.room,
+                        placeholder: t("roomPlaceholder"),
+                        "aria-label": t("roomName"),
+                        maxLength: 64,
+                        onChange: (event) => updateForm({ room: event.target.value }),
+                      }),
+                    ),
+                    h(
+                      "div",
+                      { className: "dchat-field" },
+                      h("span", null, t("relayKind")),
+                      h(
+                        "select",
+                        {
+                          className: "dchat-select",
+                          value: form.relayKind,
+                          "aria-label": t("relayKind"),
+                          onChange: (event) => updateForm({ relayKind: event.target.value }),
+                        },
+                        h("option", { value: "ntfy" }, t("relayNtfy")),
+                        h("option", { value: "custom" }, t("relayCustom")),
+                      ),
+                    ),
+                    h(
+                      "div",
+                      { className: "dchat-field dchat-field-full" },
+                      h("span", null, t("passphrase")),
+                      h("input", {
+                        className: "dchat-input",
+                        type: "password",
+                        autoComplete: "new-password",
+                        value: form.passphrase,
+                        placeholder: form.passphraseSet ? t("passphraseSet") : t("passphraseEmpty"),
+                        "aria-label": t("passphrase"),
+                        disabled: form.clearPassphrase === true,
+                        onChange: (event) =>
+                          updateForm({ passphrase: event.target.value, clearPassphrase: false }),
+                      }),
+                      form.passphraseSet
+                        ? h(
+                            "label",
+                            { className: "dchat-check" },
+                            h("input", {
+                              type: "checkbox",
+                              checked: form.clearPassphrase === true,
+                              onChange: (event) =>
+                                updateForm({ clearPassphrase: event.target.checked }),
+                            }),
+                            t("clearPassphrase"),
+                          )
+                        : null,
+                    ),
+                    h(
+                      "div",
+                      { className: "dchat-field dchat-field-full" },
+                      h("span", null, t("relayUrl")),
+                      h("input", {
+                        className: "dchat-input",
+                        type: "text",
+                        value: form.relayUrl,
+                        placeholder: t("relayUrlPlaceholder"),
+                        "aria-label": t("relayUrl"),
+                        onChange: (event) => updateForm({ relayUrl: event.target.value }),
+                      }),
+                    ),
+                  ),
+                  h("div", { className: "dchat-hint" }, t("lobbyHint")),
+                ]),
+                settingsSection(t("settingsDiscover"), [
+                  h(
+                    "label",
+                    { className: "dchat-check" },
+                    h("input", {
+                      type: "checkbox",
+                      checked: social ? social.discoverable === true : false,
+                      onChange: toggleDiscoverable,
+                    }),
+                    t("discoverToggle"),
+                  ),
+                  h("div", { className: "dchat-hint" }, t("discoverHint")),
+                ]),
+                settingsSection(t("settingsAdvanced"), [
+                  h(
+                    "div",
+                    { className: "dchat-settings-row" },
+                    h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-small-btn ghost",
+                        onClick: () => {
+                          setSettingsOpen(false);
+                          openOnboarding();
+                        },
+                      },
+                      t("settingsGuide"),
+                    ),
+                    h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-small-btn ghost",
+                        onClick: openInvite,
+                      },
+                      t("settingsInvite"),
+                    ),
+                  ),
+                ]),
               ),
               h(
                 "div",
                 { className: "dchat-settings-actions" },
                 h(
                   "button",
-                  {
-                    type: "button",
-                    className: "dchat-btn",
-                    disabled: saving,
-                    onClick: saveConfig,
-                  },
+                  { type: "button", className: "dchat-btn", disabled: saving, onClick: saveConfig },
                   saving ? t("saving") : t("save"),
                 ),
                 saveNotice
                   ? h(
                       "span",
-                      {
-                        className: "dchat-notice " + (saveNotice.kind === "ok" ? "ok" : "err"),
-                      },
+                      { className: "dchat-notice " + (saveNotice.kind === "ok" ? "ok" : "err") },
                       saveNotice.text,
                     )
                   : null,
@@ -2783,6 +3170,7 @@ window.__ModuleLoader__.load({
               h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
               t("loading"),
             );
+
 
       const friendsView = friendsOpen
         ? (() => {
@@ -2987,6 +3375,87 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const onboardingView = onboardingOpen
+        ? h(
+            "div",
+            { className: "dchat-invite", role: "dialog", "aria-label": t("onboardTitle") },
+            h(
+              "div",
+              { className: "dchat-invite-card dchat-onboard" },
+              h("div", { className: "dchat-onboard-head" }, t("onboardTitle")),
+              h("div", { className: "dchat-onboard-lead" }, t("onboardLead")),
+              h(
+                "div",
+                { className: "dchat-onboard-step" },
+                h("div", { className: "dchat-onboard-step-title" }, t("onboardStep1")),
+                h("input", {
+                  className: "dchat-input",
+                  type: "text",
+                  value: obNickname,
+                  placeholder: t("nicknameHint"),
+                  maxLength: 40,
+                  "aria-label": t("nickname"),
+                  onChange: (event) => setObNickname(event.target.value),
+                }),
+                h("div", { className: "dchat-hint" }, t("onboardNicknameHint")),
+              ),
+              h(
+                "div",
+                { className: "dchat-onboard-step" },
+                h("div", { className: "dchat-onboard-step-title" }, t("onboardStep2")),
+                h("input", {
+                  className: "dchat-input",
+                  type: "text",
+                  value: obGroupTitle,
+                  placeholder: t("onboardCreateLabel"),
+                  maxLength: 40,
+                  "aria-label": t("onboardCreateLabel"),
+                  onChange: (event) => setObGroupTitle(event.target.value),
+                }),
+                h("input", {
+                  className: "dchat-input",
+                  type: "text",
+                  value: obInviteCode,
+                  placeholder: t("joinPlaceholder"),
+                  "aria-label": t("joinTitle"),
+                  onChange: (event) => setObInviteCode(event.target.value),
+                }),
+              ),
+              h(
+                "div",
+                { className: "dchat-onboard-step" },
+                h("div", { className: "dchat-onboard-step-title" }, t("onboardStep3")),
+                h(
+                  "label",
+                  { className: "dchat-check" },
+                  h("input", {
+                    type: "checkbox",
+                    checked: obDiscover,
+                    onChange: (event) => setObDiscover(event.target.checked),
+                  }),
+                  t("discoverToggle"),
+                ),
+                h("div", { className: "dchat-hint" }, t("onboardDiscoverHint")),
+              ),
+              obError ? h("div", { className: "dchat-invite-error" }, "⚠️ " + obError) : null,
+              h(
+                "div",
+                { className: "dchat-invite-actions" },
+                h(
+                  "button",
+                  { type: "button", className: "dchat-btn ghost", disabled: obBusy, onClick: dismissOnboarding },
+                  t("onboardSkip"),
+                ),
+                h(
+                  "button",
+                  { type: "button", className: "dchat-btn", disabled: obBusy, onClick: finishOnboarding },
+                  obBusy ? t("onboardWorking") : t("onboardFinish"),
+                ),
+              ),
+            ),
+          )
+        : null;
+
       const createView = createOpen
         ? h(
             "div",
@@ -3040,6 +3509,110 @@ window.__ModuleLoader__.load({
                     onClick: createChat,
                   },
                   socialBusy === "create" ? t("creating") : t("create"),
+                ),
+              ),
+            ),
+          )
+        : null;
+
+      const menuView = menuOpen
+        ? h(
+            "div",
+            { className: "dchat-menu", role: "menu", "aria-label": t("menu") },
+            [
+              { key: "members", label: t("members"), onClick: openMembers },
+              {
+                key: "invite",
+                label: t("inviteMembers"),
+                onClick: () => {
+                  setMenuOpen(false);
+                  openInvite();
+                },
+              },
+              { key: "rename", label: t("renameChat"), onClick: openRename },
+              { key: "leave", label: t("leaveChat"), onClick: leaveFromMenu, danger: true },
+            ].map((item) =>
+              h(
+                "button",
+                {
+                  key: item.key,
+                  type: "button",
+                  role: "menuitem",
+                  className: "dchat-menu-item" + (item.danger ? " danger" : ""),
+                  onClick: item.onClick,
+                },
+                item.label,
+              ),
+            ),
+          )
+        : null;
+
+      const membersView = membersOpen
+        ? h(
+            "div",
+            { className: "dchat-invite", role: "dialog", "aria-label": t("membersTitle") },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("membersTitle")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setMembersOpen(false),
+                  },
+                  COLLAPSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-member-row" },
+                h(
+                  "span",
+                  {
+                    className: "dchat-avatar",
+                    style: { background: "var(--dchat-brand)" },
+                    "aria-hidden": "true",
+                  },
+                  me ? initialsOf(me.nick) : "我",
+                ),
+                h("span", { className: "dchat-member-name" }, me ? me.nick : t("me")),
+                h("span", { className: "dchat-member-tag" }, t("you")),
+              ),
+              ...peers.map((peer) =>
+                h(
+                  "div",
+                  { key: "member-" + peer.id, className: "dchat-member-row" },
+                  h(
+                    "span",
+                    { className: "dchat-avatar", style: { background: avatarColor(peer.id) }, "aria-hidden": "true" },
+                    initialsOf(peer.nick),
+                  ),
+                  h("span", { className: "dchat-member-name" }, String(peer.label || peer.nick || t("anonymous"))),
+                  h("span", { className: "dchat-peer-state" + (peer.online ? " online" : "") }),
+                  h("span", { className: "dchat-member-tag" }, peer.online ? t("online") : t("offline")),
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-invite-actions" },
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-btn",
+                    onClick: () => {
+                      setMembersOpen(false);
+                      openInvite();
+                    },
+                  },
+                  t("inviteMembers"),
                 ),
               ),
             ),
@@ -3169,7 +3742,7 @@ window.__ModuleLoader__.load({
 
       const sideView = h(
         "aside",
-        { className: "dchat-side", "aria-label": t("contacts") },
+        { className: "dchat-side" + (sideOpen ? " open" : ""), "aria-label": t("contacts") },
         h(
           "div",
           { className: "dchat-side-head" },
@@ -3279,6 +3852,17 @@ window.__ModuleLoader__.load({
         "header",
         { className: "dchat-main-head" },
         h(
+          "button",
+          {
+            type: "button",
+            className: "dchat-icon-btn dchat-hamburger",
+            "aria-label": t("sideToggle"),
+            title: t("sideToggle"),
+            onClick: () => setSideOpen((open) => !open),
+          },
+          MENU_ICON,
+        ),
+        h(
           "span",
           {
             className: "dchat-head-avatar",
@@ -3305,6 +3889,18 @@ window.__ModuleLoader__.load({
         h(
           "div",
           { className: "dchat-head-tools" },
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-icon-btn",
+              "aria-label": t("menu"),
+              title: t("more"),
+              "aria-expanded": menuOpen ? "true" : "false",
+              onClick: () => setMenuOpen((open) => !open),
+            },
+            MORE_ICON,
+          ),
           h(
             "button",
             {
@@ -3363,9 +3959,14 @@ window.__ModuleLoader__.load({
             composer,
           ),
         ),
+        sideOpen ? h("div", { className: "dchat-side-backdrop", onClick: () => setSideOpen(false) }) : null,
+        menuOpen ? h("div", { className: "dchat-menu-backdrop", onClick: () => setMenuOpen(false) }) : null,
+        menuView,
         inviteView,
         friendsView,
         createView,
+        onboardingView,
+        membersView,
       );
     }
 
