@@ -1871,10 +1871,12 @@ window.__ModuleLoader__.load({
         const rawId = peer && peer.id != null ? String(peer.id) : "";
         const id = rawId || "peer-" + index;
         const nick = peer && peer.nick ? String(peer.nick) : shortId(rawId) || t("anonymous");
+        // 重名成员（多台 dsh 用同一个昵称）由 host 提供 #短id 的 label，避免分不清。
+        const label = peer && peer.label ? String(peer.label) : nick;
         const online = peer && peer.online === true;
         const titleText = online
-          ? nick + " · " + t("online")
-          : nick +
+          ? label + " · " + t("online")
+          : label +
             (peer && peer.lastSeen
               ? " · " + t("lastSeen") + " " + formatTime(peer.lastSeen)
               : "");
@@ -1890,7 +1892,7 @@ window.__ModuleLoader__.load({
             },
             initialsOf(nick),
           ),
-          h("span", { className: "dchat-peer-nick" }, nick),
+          h("span", { className: "dchat-peer-nick" }, label),
           h("span", {
             className: "dchat-peer-state" + (online ? " online" : ""),
             title: online ? t("online") : t("offline"),

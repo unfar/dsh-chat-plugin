@@ -14,6 +14,7 @@
 import { AgentReplier } from './lib/agent-reply.js'
 import { PeerChat } from './lib/peerchat.js'
 import { registerRoutes } from './lib/routes.js'
+import { Social } from './lib/social.js'
 import { registerTools } from './lib/tools.js'
 
 // 只硬性依赖 tools；webServer 是可选服务（无 Web GUI 的 profile 里插件仍可提供工具）。
@@ -26,11 +27,14 @@ export const inject = ['tools']
 export function apply(ctx, config) {
   const app = new PeerChat({ ctx, config })
   const replier = new AgentReplier({ ctx, app })
+  const social = new Social({ ctx, app, store: app.store })
+  app.onConfigChanged = () => social.restart()
 
   ctx.effect(() => app.start())
   ctx.effect(() => replier.start())
+  ctx.effect(() => social.start())
 
-  const disposeRoutes = registerRoutes(ctx, app)
+  const disposeRoutes = registerRoutes(ctx, app, social)
   if (disposeRoutes) ctx.effect(() => disposeRoutes)
 
   ctx.effect(() => registerTools(ctx, app))

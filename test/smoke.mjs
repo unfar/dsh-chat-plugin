@@ -19,7 +19,6 @@ const { registerRoutes } = await import('../lib/routes.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
 const { seal, open, deriveTopic } = await import('../lib/crypto.js')
 const { encodeInvite, decodeInvite } = await import('../lib/invite.js')
-const { externalPeerId } = await import('../lib/bridge.js')
 const { ChatStore } = await import('../lib/store.js')
 
 const logger = { info() {}, warn() {}, error() {}, debug() {} }
@@ -45,11 +44,6 @@ const decodedInvite = decodeInvite(invite)
 check(decodedInvite.room === 'team' && decodedInvite.passphrase === 'pw', 'invite code round-trips room + passphrase')
 assert.throws(() => decodeInvite('dshchat1:not-base64!!!'), /邀请码/)
 check(true, 'malformed invite code is rejected')
-
-// ---------- external agent bridge ----------
-check(externalPeerId('Hermes') === externalPeerId(' hermes '), 'external peer id is stable and case-insensitive')
-check(externalPeerId('Hermes') !== externalPeerId('WorkBuddy'), 'different external agents get different ids')
-check(externalPeerId('Hermes').startsWith('ext-'), 'external peer id has ext- prefix')
 
 // ---------- store ----------
 const store = new ChatStore()
@@ -90,6 +84,28 @@ const typingState = app.getState()
 check(app.messages.length === beforeCount, 'typing event does not create a message')
 check(typingState.typing.length === 1 && typingState.typing[0].nick === 'Peer A', 'typing state is exposed to the UI')
 
+// 中继重放的历史事件：旧 ts 不能把成员标成在线
+const oldTs = Date.now() - 6 * 60 * 1000
+const replay = seal({ v: 1, id: 'replay-hello-1', from: 'peer-old', nick: 'Old Peer', ts: oldTs, kind: 'hello' }, app.key)
+app.onInbound({ body: replay })
+const replayState = app.getState()
+const oldPeer = replayState.peers.find((peer) => peer.id === 'peer-old')
+check(oldPeer && oldPeer.online === false, 'replayed old hello does not mark peer online')
+
+// 重名成员带 #短id 展示名
+const nickA = seal({ v: 1, id: 'dup-a', from: 'peer-aaaaaa', nick: 'Same Nick', ts: Date.now(), kind: 'message', text: 'a' }, app.key)
+const nickB = seal({ v: 1, id: 'dup-b', from: 'peer-bbbbbb', nick: 'Same Nick', ts: Date.now(), kind: 'message', text: 'b' }, app.key)
+app.onInbound({ body: nickA })
+app.onInbound({ body: nickB })
+const dupPeers = app.getState().peers.filter((peer) => peer.nick === 'Same Nick')
+check(dupPeers.length === 2 && dupPeers.every((peer) => peer.label === `Same Nick#${peer.id.slice(0, 6)}`), 'duplicate nicknames get #shortid labels')
+check(app.promptText().includes('Same Nick#'), 'promptText disambiguates duplicate nicknames')
+
+// 太久没活动的成员会被清出快照（历史消息仍保留）
+app.touchPeer('peer-ancient', 'Ancient', Date.now() - 25 * 60 * 60 * 1000)
+check(!app.getState().peers.some((peer) => peer.id === 'peer-ancient'), 'stale peers are pruned')
+check(app.onlinePeerCount() >= 2 && app.promptText().includes('online'), 'promptText reports online peer count')
+
 // 邀请码来自当前房间
 check(decodeInvite(app.inviteCode()).room === app.room, 'inviteCode() encodes the current room')
 
@@ -97,8 +113,8 @@ check(decodeInvite(app.inviteCode()).room === app.room, 'inviteCode() encodes th
 const tools = []
 registerTools({ logger, tools: { register: (definition) => { tools.push(definition); return () => {} } } }, app)
 check(
-  tools.map((tool) => tool.name).join(',') === 'chat_send,chat_read,chat_ask,chat_dispatch,chat_status',
-  'five chat_* tools register',
+  tools.map((tool) => tool.name).join(',') === 'chat_send,chat_read,chat_ask,chat_status',
+  'four chat_* tools register',
 )
 for (const tool of tools) {
   assert.equal(tool.parameters.type, 'object')
