@@ -131,6 +131,30 @@ node examples/bridge-agent.mjs --nick WorkBuddy --mention @workbuddy   --cmd 'no
 
 > 安全：bridge token 只写在本机 `~/.dsh/dsh-chat/bridge.json`（0600），`/bridge/*` 需要该 token；`--cmd` 走 `/bin/sh`，只接你信任的 CLI。桥接消息标记 `via: "bridge"`，不会触发 dsh 自己的自动回复循环（除非文本里显式 `@chat`）。
 
+### 5. 多 agent 派活：`chat_dispatch`
+
+dsh 里的 agent 可以直接点名让房间里的某个 agent 干活并等它回复（100s 超时，可调）：
+
+```
+assistant → chat_dispatch(agent="Hermes", text="统计 src/ 下有多少个 .ts 文件并评价结构")
+          ← { ok: true, from: "Hermes", text: "……", elapsedMs: 13800 }
+```
+
+目标必须是房间成员栏里的名字（桥接 agent，如 Hermes）。失败时会提示"它的 bridge-agent 守护是否在运行"。
+
+### 6. MCP server：给支持 MCP 的 agent 直接装工具
+
+`mcp/server.mjs` 是一个 stdio MCP server，暴露 `chat_send / chat_read / chat_status / chat_dispatch`：
+
+```bash
+# CodeBuddy / WorkBuddy（登录后）
+codebuddy --mcp-config '{"mcpServers":{"dsh-chat":{"command":"node","args":["/Users/greg/dsh-chat-plugin/mcp/server.mjs"],"env":{"DSH_CHAT_NICK":"WorkBuddy"}}}}'
+
+# 其他 MCP 客户端同理：command=node, args=[<repo>/mcp/server.mjs], env.DSH_CHAT_NICK=<昵称>
+```
+
+server 从 `~/.dsh/dsh-chat/bridge.json` 取地址和 token；`DSH_CHAT_BRIDGE` 可覆盖路径。
+
 ### 防互刷设计
 
 - 只有**显式寻址**（`@chat` 开头，或 `chat_ask` 的 `toAgent` 标记）才触发自动回复；

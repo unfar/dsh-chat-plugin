@@ -97,8 +97,8 @@ check(decodeInvite(app.inviteCode()).room === app.room, 'inviteCode() encodes th
 const tools = []
 registerTools({ logger, tools: { register: (definition) => { tools.push(definition); return () => {} } } }, app)
 check(
-  tools.map((tool) => tool.name).join(',') === 'chat_send,chat_read,chat_ask,chat_status',
-  'four chat_* tools register',
+  tools.map((tool) => tool.name).join(',') === 'chat_send,chat_read,chat_ask,chat_dispatch,chat_status',
+  'five chat_* tools register',
 )
 for (const tool of tools) {
   assert.equal(tool.parameters.type, 'object')

@@ -18,3 +18,5 @@ jobs:
           for file in index.js client.js lib/*.js relay/relay.mjs; do node --check "$file"; done
       - name: Smoke test
         run: node test/smoke.mjs
+      - name: MCP smoke test
+        run: node test/mcp-smoke.mjs

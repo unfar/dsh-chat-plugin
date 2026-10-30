@@ -108,11 +108,24 @@ function externalPeerId(name) {
 }
 
 async function main() {
-  const bridge = await loadBridge()
+  let bridge = await loadBridge()
+  /** 插件重启后 bridge token 会轮换：遇到鉴权失败就重读 bridge.json。 */
+  async function call(path, options) {
+    try {
+      return await api(bridge, path, options)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/token|401|鉴权/i.test(message)) {
+        bridge = await loadBridge()
+        return api(bridge, path, options)
+      }
+      throw error
+    }
+  }
   let since = Number(args.since) || 0
   console.log(`[${nick}] 已连接 ${bridge.room || bridge.url}，等待 ${mention || '(任意消息)'}…`)
   for (;;) {
-    const response = await api(bridge, `/bridge/read?since=${since}&limit=50`)
+    const response = await call(`/bridge/read?since=${since}&limit=50`)
     const messages = Array.isArray(response.messages) ? response.messages : []
     if (messages.length > 0) since = Math.max(since, ...messages.map((message) => Number(message.seq) || 0))
     const incoming = messages.find((message) => {
@@ -125,7 +138,7 @@ async function main() {
       continue
     }
     console.log(`[${nick}] ← ${incoming.nick}: ${String(incoming.text).slice(0, 120)}`)
-    await api(bridge, '/bridge/typing', { method: 'POST', body: { nick } }).catch(() => undefined)
+    await call('/bridge/typing', { method: 'POST', body: { nick } }).catch(() => undefined)
     const prompt = mention
       ? String(incoming.text).replace(new RegExp(mention, 'ig'), '').trim()
       : String(incoming.text)
@@ -135,7 +148,7 @@ async function main() {
     )
     const text = output.slice(0, 1000)
     try {
-      await api(bridge, '/bridge/send', {
+      await call('/bridge/send', {
         method: 'POST',
         body: { nick, text, replyTo: incoming.id },
       })
