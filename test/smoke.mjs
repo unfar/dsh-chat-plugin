@@ -14,6 +14,7 @@ import { join } from 'node:path'
 process.env.DSH_HOME = mkdtempSync(join(tmpdir(), 'dsh-chat-plugin-smoke-'))
 
 const { PeerChat } = await import('../lib/peerchat.js')
+const { Chats } = await import('../lib/chats.js')
 const { registerTools } = await import('../lib/tools.js')
 const { registerRoutes } = await import('../lib/routes.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
@@ -69,6 +70,31 @@ const store = new ChatStore()
 store.saveConfig({ peerId: 'abc', room: 'r' })
 check(store.loadConfig().peerId === 'abc', 'config persists')
 
+// ---------- chats ----------
+const chatsApp = {
+  room: 'room-a',
+  config: { passphrase: 'pw', relayKind: 'ntfy', relayUrl: 'https://ntfy.sh' },
+  async updateConfig(patch) {
+    Object.assign(this.config, patch)
+    this.room = patch.room || this.room
+    return this.getState ? this.getState() : {}
+  },
+}
+const chats = new Chats({ app: chatsApp, store })
+chats.ensureCurrent()
+let snapshotChats = chats.snapshot()
+check(snapshotChats.chats.length === 1 && snapshotChats.chats[0].room === 'room-a', 'ensureCurrent registers the active room')
+const created = await chats.createGroup('测试群')
+check(created.kind === 'group' && created.room.startsWith('grp-'), 'createGroup makes a random group room')
+check(chatsApp.room === created.room, 'createGroup switches the active room')
+chats.addDm({ peerId: 'peer-x', nick: 'Alice', room: 'dm-1', passphrase: 'pw' })
+check(chats.snapshot().chats.some((chat) => chat.id === 'dm:peer-x'), 'addDm registers a DM chat')
+chats.rename(created.id, '改名群')
+check(chats.get(created.id).title === '改名群', 'rename updates chat title')
+await chats.leave(created.id)
+check(!chats.get(created.id), 'leave removes the chat from the list')
+
+
 // ---------- room state machine ----------
 const app = new PeerChat({
   ctx: { logger },
@@ -94,6 +120,14 @@ check(app.countUnread('human') === 1, 'unread counter increments')
 app.markRead(app.seq, 'human')
 check(app.countUnread('human') === 0, 'human read cursor advances')
 check(app.countUnread('agent') === 1, 'agent read cursor is independent')
+
+// ---------- read receipts ----------
+const receiptBody = seal(
+  { v: 1, id: 'receipt-1', from: 'peer-a', nick: 'Peer A', ts: Date.now(), kind: 'read', seq: 2 },
+  app.key,
+)
+app.onInbound({ body: receiptBody })
+check(app.getState().readReceipts['peer-a'] === 2, 'read receipt updates peer cursor')
 
 // typing 是瞬时状态：不产生消息、不进未读
 const typingBody = seal({ v: 1, id: 'typing-1', from: 'peer-a', nick: 'Peer A', ts: Date.now(), kind: 'typing' }, app.key)

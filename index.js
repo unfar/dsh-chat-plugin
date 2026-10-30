@@ -12,6 +12,7 @@
  * $DSH_HOME/dsh-chat/config.json，并在下次启动时优先于行 config。
  */
 import { AgentReplier } from './lib/agent-reply.js'
+import { Chats } from './lib/chats.js'
 import { PeerChat } from './lib/peerchat.js'
 import { registerRoutes } from './lib/routes.js'
 import { Social } from './lib/social.js'
@@ -27,12 +28,17 @@ export const inject = ['tools']
 export function apply(ctx, config) {
   const app = new PeerChat({ ctx, config })
   const replier = new AgentReplier({ ctx, app })
-  const social = new Social({ ctx, app, store: app.store })
+  const chats = new Chats({ app, store: app.store })
+  const social = new Social({ ctx, app, store: app.store, chats })
   app.onConfigChanged = () => social.restart()
 
   ctx.effect(() => app.start())
   ctx.effect(() => replier.start())
   ctx.effect(() => social.start())
+  ctx.effect(() => {
+    chats.ensureCurrent()
+    return () => {}
+  })
 
   // webServer 可能在插件激活时还没就绪（新进程启动竞态）：轮询等待，拿到再注册。
   let routeTimer = null
@@ -45,7 +51,7 @@ export function apply(ctx, config) {
       if (typeof routeTimer.unref === 'function') routeTimer.unref()
       return
     }
-    routeDispose = registerRoutes(ctx, app, social)
+    routeDispose = registerRoutes(ctx, app, social, chats)
     if (routeDispose) ctx.effect(() => routeDispose)
     ctx.logger?.info?.('dsh-chat-plugin: Web API 已注册')
   }
