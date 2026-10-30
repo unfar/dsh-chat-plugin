@@ -18,7 +18,7 @@ const { Chats } = await import('../lib/chats.js')
 const { registerTools } = await import('../lib/tools.js')
 const { registerRoutes } = await import('../lib/routes.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
-const { seal, open, deriveTopic } = await import('../lib/crypto.js')
+const { seal, open, deriveTopic, sealBuffer, openBuffer } = await import('../lib/crypto.js')
 const { encodeInvite, decodeInvite } = await import('../lib/invite.js')
 const { externalPeerId } = await import('../lib/bridge.js')
 const { directoryTopic, inboxTopic, sealPresence, openPresence, sealConnect, openConnect } = await import('../lib/social.js')
@@ -39,6 +39,14 @@ check(sealed.startsWith('dshpc1:'), 'seal() produces v1 ciphertext envelope')
 check(open(sealed, key).text === '你好 dsh Chat', 'open() round-trips payload')
 check(deriveTopic('room', 'pw') === deriveTopic('room', 'pw'), 'topic derivation is deterministic')
 check(deriveTopic('room', 'pw') !== deriveTopic('room', 'other'), 'different passphrase → different topic')
+
+// 附件二进制加解密
+const rawBytes = Buffer.from('attachment-bytes-你好')
+const sealedBytes = sealBuffer(rawBytes, key)
+check(!sealedBytes.equals(rawBytes) && sealedBytes.length === rawBytes.length + 28, 'sealBuffer adds iv+tag')
+check(openBuffer(sealedBytes, key).equals(rawBytes), 'openBuffer round-trips attachment bytes')
+assert.throws(() => openBuffer(sealedBytes, Buffer.alloc(32, 9)), /附件|unable|auth/i)
+check(true, 'openBuffer rejects a wrong key')
 
 // ---------- invite code ----------
 const invite = encodeInvite({ room: 'team', passphrase: 'pw', relayKind: 'ntfy', relayUrl: 'https://ntfy.sh' })

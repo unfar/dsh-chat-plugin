@@ -1,5 +1,9 @@
 # dsh Chat（dsh 信使）
 
+<img src="docs/logo.png" width="72" align="left" alt="dsh Chat logo" />
+
+<br clear="left" />
+
 让**多台 dsh** 连进同一个聊天室——像 IM 一样聊天，而且**两边的 agent 可以直接对话**。
 
 > 展示名就叫 **dsh Chat**；npm 包名用 `dsh-chat-plugin`（因为 `dsh-chat` 已被另一个 DSH 群聊插件占用）。
@@ -37,6 +41,7 @@ Telegram 式双栏布局，配色与控件全部走 DSH 主题 token（浅色 / 
 | 🔖 未读分隔 | 进入房间时用「未读消息」分隔线标出上次读到的位置；@提到会高亮 |
 | 📝 草稿 | 每个会话独立保存未发送的输入，切回来还在 |
 | 🩺 连接诊断 | 设置里一键检测中继健康端点与延迟 |
+| 🖼 图片与文件 | 拖/选图片或文件（≤10MB），端到端加密传输；图片内嵌预览可放大，文件卡片可下载 |
 | 🔔 桌面通知 | 页面在后台时收到新消息弹系统通知（浏览器授权后） |
 | 🧭 首次引导 | 新安装自动走三步向导：昵称 → 建群/加入 → 开启发现 |
 | ⚙️ 分区设置 | 设置页按「资料 / 会话 / 自动化 / 通知 / 房间 / 发现 / 更多」分区 |
@@ -70,6 +75,27 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 - 侧边栏多一个 **dsh Chat** 图标（带未读数字角标）→ 全屏聊天面板；设置页里也有一份入口。
 - 工具列表多出 `chat_send` / `chat_read` / `chat_ask` / `chat_status`。
 - HTTP API：`/dsh-chat-plugin/api/{state,send,config,read,health}`。
+
+## 图片与文件（v1.3）
+
+输入框左侧 📎 选择图片或文件（单个 ≤10MB）：
+
+- **端到端加密**：附件先用房间密钥 AES-256-GCM 加密，再上传中继；中继只看到 `.bin` 密文
+- **两种通道**：公共 ntfy 走附件仓库（上传返回临时 URL）；自建 relay 走 `PUT /blob/...` 内存缓存
+- **本地缓存**：发送方保留原文件，接收方下载后解密缓存到 `$DSH_HOME/dsh-chat/files/`，历史里随时能看
+- **展示**：图片内嵌气泡、点击进入灯箱（可下载）；其他文件显示名称/大小/下载卡片
+- 限制：ntfy 公共附件约 3 小时过期；对方在过期前打开聊天即可缓存成功（过期后只能看本机已有缓存）
+
+![附件](docs/preview-attachments.png)
+
+## 品牌 Logo（v1.3）
+
+<img src="docs/logo.png" width="96" alt="logo" />
+
+- 设计语言参考 DeepSeek：深蓝渐变圆角方块 + 极简白色字形，去掉多余描边与文字
+- 字形是"对话气泡 + D"的融合，左下角带一个鲸尾式收笔，呼应 DeepSeek 的鲸鱼意象
+- 同一套图形用于：插件图标（`icon.svg`）、侧边栏入口与面板头部（内联 SVG，任意尺寸清晰）
+- 源文件：`docs/logo.png`（512px）、`icon.svg`（矢量）
 
 ## 消息交互与可靠性（v1.2）
 

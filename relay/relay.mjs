@@ -26,6 +26,12 @@ const HOST = process.env.HOST || '0.0.0.0'
 const MAX_BODY_BYTES = 64 * 1024
 const MAX_MESSAGES_PER_TOPIC = 500
 const TTL_MS = 24 * 60 * 60 * 1000
+/** 附件 blob：内存缓存，最多 100 个 / 12 小时（重启即清空）。 */
+const MAX_BLOBS = 100
+const BLOB_TTL_MS = 12 * 60 * 60 * 1000
+const MAX_BLOB_BYTES = 12 * 1024 * 1024
+/** @type {Map<string, { buffer: Buffer, ts: number }>} */
+const blobs = new Map()
 const HEARTBEAT_MS = 25 * 1000
 
 /** @type {Map<string, { messages: Array<{id:string,ts:number,message:string}>, subscribers: Set<import('node:http').ServerResponse>, touched: number }>} */
@@ -67,22 +73,26 @@ function json(res, status, value) {
   res.end(JSON.stringify(value))
 }
 
-function readBody(req) {
+function readBodyBuffer(req, limit = MAX_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     let size = 0
     const chunks = []
     req.on('data', (chunk) => {
       size += chunk.length
-      if (size > MAX_BODY_BYTES) {
+      if (size > limit) {
         reject(new Error('body too large'))
         req.destroy()
         return
       }
       chunks.push(chunk)
     })
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    req.on('end', () => resolve(Buffer.concat(chunks)))
     req.on('error', reject)
   })
+}
+
+function readBody(req) {
+  return readBodyBuffer(req).then((buffer) => buffer.toString('utf8'))
 }
 
 const server = createServer(async (req, res) => {
@@ -138,6 +148,37 @@ const server = createServer(async (req, res) => {
     return undefined
   }
 
+  if (req.method === 'PUT' && parts[0] === 'blob' && parts[1] && parts[2]) {
+    try {
+      const buffer = await readBodyBuffer(req, MAX_BLOB_BYTES)
+      if (buffer.length === 0) return json(res, 400, { ok: false, error: 'empty blob' })
+      const key = `${parts[1]}/${parts[2]}`
+      blobs.set(key, { buffer, ts: Date.now() })
+      while (blobs.size > MAX_BLOBS) {
+        const oldest = [...blobs.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
+        if (!oldest) break
+        blobs.delete(oldest[0])
+      }
+      return json(res, 200, { ok: true, url: `/blob/${parts[1]}/${parts[2]}`, size: buffer.length })
+    } catch (error) {
+      return json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'bad blob' })
+    }
+  }
+
+  if (req.method === 'GET' && parts[0] === 'blob' && parts[1] && parts[2]) {
+    const entry = blobs.get(`${parts[1]}/${parts[2]}`)
+    if (!entry || Date.now() - entry.ts > BLOB_TTL_MS) {
+      return json(res, 404, { ok: false, error: 'blob not found' })
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': entry.buffer.length,
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    })
+    return res.end(entry.buffer)
+  }
+
   return json(res, 404, { ok: false, error: 'not found' })
 })
 
@@ -145,6 +186,9 @@ setInterval(() => {
   const now = Date.now()
   for (const [name, entry] of topics) {
     if (entry.subscribers.size === 0 && now - entry.touched > TTL_MS) topics.delete(name)
+  }
+  for (const [key, entry] of blobs) {
+    if (now - entry.ts > BLOB_TTL_MS) blobs.delete(key)
   }
 }, 60 * 1000).unref?.()
 

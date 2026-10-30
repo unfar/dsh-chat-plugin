@@ -179,6 +179,13 @@ window.__ModuleLoader__.load({
       diagnosticsOk: "中继可达",
       diagnosticsFail: "中继不可达",
       quoteUnavailable: "引用的消息不在本机窗口内",
+      attach: "发送图片或文件",
+      uploading: "上传中…",
+      uploadFailed: "上传失败",
+      fileTooLarge: "文件太大（上限 10MB）",
+      download: "下载",
+      imagePreview: "图片预览",
+      closePreview: "关闭预览",
       newChat: "新建群聊",
       newChatTitle: "创建一个群聊",
       newChatHint: "创建后会生成随机房间名和口令，用邀请码把朋友拉进来。",
@@ -1207,6 +1214,101 @@ window.__ModuleLoader__.load({
   color: var(--dchat-label-2);
   padding-top: 2px;
 }
+.dchat-attach {
+  flex: none;
+  margin-bottom: 2px;
+}
+.dchat-uploading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 14px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 8px;
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label-2);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-img {
+  display: block;
+  max-width: min(300px, 100%);
+  max-height: 300px;
+  border-radius: 10px;
+  cursor: zoom-in;
+  object-fit: cover;
+}
+.dchat-bubble-media {
+  padding: 4px;
+  background: var(--dchat-layer-1);
+}
+.dchat-row.mine .dchat-bubble-media {
+  background: var(--dchat-layer-1);
+}
+.dchat-file-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 190px;
+  padding: 6px 8px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 9px;
+  color: inherit;
+  text-decoration: none;
+  background: var(--dchat-layer-1);
+}
+.dchat-row.mine .dchat-file-card {
+  border-color: transparent;
+  background: var(--dchat-overlay);
+  color: var(--dchat-label);
+}
+.dchat-file-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.dchat-file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dchat-file-name {
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.dchat-file-size {
+  font-size: 10.5px;
+  opacity: 0.75;
+}
+.dchat-lightbox {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.82);
+}
+.dchat-lightbox-img {
+  max-width: min(88%, 1000px);
+  max-height: 76vh;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  cursor: default;
+}
+.dchat-lightbox-actions {
+  display: flex;
+  gap: 8px;
+}
 .dchat-time {
   font-size: 10px;
   color: var(--dchat-label-2);
@@ -1792,8 +1894,6 @@ window.__ModuleLoader__.load({
       const ownerProps = props || {};
       const requestedSize = Number(ownerProps.size);
       const size = Number.isFinite(requestedSize) && requestedSize > 0 ? requestedSize : 18;
-      const active = ownerProps.active === true;
-      const color = active ? "var(--dsw-alias-brand-primary, #3b6ef5)" : "currentColor";
       // 侧边栏图标自己做一份轻量未读轮询（5s），面板打开时会立刻清零。
       const [unread, setUnread] = useState(0);
       useEffect(() => {
@@ -1821,25 +1921,7 @@ window.__ModuleLoader__.load({
       return h(
         "span",
         { className: "dchat-icon-wrap", style: { position: "relative", display: "inline-flex" } },
-        h(
-          "svg",
-          {
-            viewBox: "0 0 24 24",
-            width: size,
-            height: size,
-            fill: "none",
-            stroke: color,
-            strokeWidth: 1.7,
-            strokeLinecap: "round",
-            strokeLinejoin: "round",
-            "aria-hidden": "true",
-            focusable: "false",
-            style: { display: "block", flex: "none", color: color },
-          },
-          h("rect", { key: "back", x: 13, y: 3.4, width: 7.4, height: 6.2, rx: 2.1 }),
-          h("rect", { key: "front", x: 3.6, y: 8.8, width: 10.6, height: 7.6, rx: 2.4 }),
-          h("path", { key: "tail", d: "M7.4 16.4v3.2l3.3-3.2" }),
-        ),
+        h(LogoMark, { size }),
         unread > 0
           ? h(
               "span",
@@ -1942,6 +2024,38 @@ window.__ModuleLoader__.load({
       return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
     }
 
+    function humanSize(bytes) {
+      const size = Number(bytes) || 0;
+      if (size < 1024) return size + " B";
+      if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+      return (size / 1024 / 1024).toFixed(1) + " MB";
+    }
+
+    function fileUrlOf(file) {
+      if (!file) return "";
+      if (typeof file.url === "string" && /^data:/i.test(file.url)) return file.url;
+      if (!file.id) return "";
+      return "/dsh-chat-plugin/api/file/" + encodeURIComponent(String(file.id));
+    }
+
+    const ATTACH_ICON = h(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 17,
+        height: 17,
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: 1.8,
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        "aria-hidden": "true",
+        focusable: "false",
+        style: { display: "block" },
+      },
+      h("path", { key: "a", d: "M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8-8a3.4 3.4 0 0 1 4.8 4.8l-8 8a1.8 1.8 0 0 1-2.6-2.6l7.3-7.3" }),
+    );
+
     const SEND_ICON = h(
       "svg",
       {
@@ -1982,29 +2096,46 @@ window.__ModuleLoader__.load({
       h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
     );
 
-    /** 面板内的品牌小图标（带 unread 角标的 PanelIcon 只给侧边栏 slot 用）。 */
-    function BrandMark(props) {
+    /** 产品 Logo（圆角蓝底 + 白色 D/鲸尾，参考 DeepSeek 的极简蓝色风格）。 */
+    function LogoMark(props) {
       const size = Number(props && props.size) || 18;
       return h(
         "svg",
         {
-          viewBox: "0 0 24 24",
+          viewBox: "0 0 64 64",
           width: size,
           height: size,
-          fill: "none",
-          stroke: "currentColor",
-          strokeWidth: 1.7,
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-          "aria-hidden": "true",
+          role: "img",
+          "aria-label": "dsh Chat",
           focusable: "false",
-          style: { display: "block" },
+          style: { display: "block", flex: "none" },
         },
-        h("rect", { key: "back", x: 13, y: 3.4, width: 7.4, height: 6.2, rx: 2.1 }),
-        h("rect", { key: "front", x: 3.6, y: 8.8, width: 10.6, height: 7.6, rx: 2.4 }),
-        h("path", { key: "tail", d: "M7.4 16.4v3.2l3.3-3.2" }),
+        h(
+          "defs",
+          { key: "defs" },
+          h(
+            "linearGradient",
+            { id: "dshchat-logo-grad", x1: 8, y1: 4, x2: 58, y2: 62, gradientUnits: "userSpaceOnUse" },
+            h("stop", { key: "a", offset: 0, stopColor: "#5B8CFF" }),
+            h("stop", { key: "b", offset: 1, stopColor: "#3B5BDB" }),
+          ),
+        ),
+        h("rect", { key: "bg", x: 2, y: 2, width: 60, height: 60, rx: 16, fill: "url(#dshchat-logo-grad)" }),
+        h("path", {
+          key: "d",
+          d: "M20 13h14c11 0 18.5 8.4 18.5 19S45 51 34 51H22c-1 5-4.6 8.6-10 10 3.2-4 3.6-8.4 2.2-12.5C13 46 12 42 12 37c0-5 1.4-9 3.8-12.6C17.4 20 18.6 16 20 13z",
+          fill: "#FFFFFF",
+        }),
+        h("path", {
+          key: "counter",
+          d: "M29 21h5c5.6 0 9.5 4.5 9.5 11s-3.9 11-9.5 11h-5z",
+          fill: "url(#dshchat-logo-grad)",
+        }),
       );
     }
+
+    /** 兼容旧名：面板内的品牌小图标。 */
+    const BrandMark = LogoMark;
 
     const INVITE_ICON = h(
       "svg",
@@ -2081,6 +2212,8 @@ window.__ModuleLoader__.load({
       const nick = String(message.nick || shortId(message.from) || t("anonymous"));
       const color = avatarColor(message.from == null ? nick : message.from);
       const meNick = props.meNick || "";
+      const file = message.file && message.file.id ? message.file : null;
+      const isImage = Boolean(file && /^image\//i.test(String(file.mime || "")));
       return h(
         "div",
         { className: "dchat-row " + (mine ? "mine" : "theirs") + (grouped ? " grouped" : "") },
@@ -2141,7 +2274,10 @@ window.__ModuleLoader__.load({
             ),
             h(
               "div",
-              { className: "dchat-bubble", title: fullTimeTitle(message.ts) },
+              {
+                className: "dchat-bubble" + (isImage ? " dchat-bubble-media" : ""),
+                title: fullTimeTitle(message.ts),
+              },
               message.replyTo
                 ? h(
                     "div",
@@ -2158,7 +2294,30 @@ window.__ModuleLoader__.load({
                       : null,
                   )
                 : null,
-              h("span", { className: "dchat-text" }, renderMentions(text, meNick)),
+              file
+                ? isImage
+                  ? h("img", {
+                      className: "dchat-img",
+                      src: fileUrlOf(file),
+                      alt: file.name,
+                      loading: "lazy",
+                      onClick: () => props.onOpenImage && props.onOpenImage({ url: fileUrlOf(file), name: file.name }),
+                    })
+                  : h(
+                      "a",
+                      { className: "dchat-file-card", href: fileUrlOf(file), download: file.name },
+                      h("span", { className: "dchat-file-icon", "aria-hidden": "true" }, "📄"),
+                      h(
+                        "span",
+                        { className: "dchat-file-info" },
+                        h("span", { className: "dchat-file-name" }, file.name),
+                        h("span", { className: "dchat-file-size" }, humanSize(file.size)),
+                      ),
+                    )
+                : null,
+              text && (!file || text !== file.name)
+                ? h("span", { className: "dchat-text" }, renderMentions(text, meNick))
+                : null,
             ),
             pickerOpen
               ? h(
@@ -2387,6 +2546,8 @@ window.__ModuleLoader__.load({
       const [diagnostic, setDiagnostic] = useState(null);
       const [diagnosticBusy, setDiagnosticBusy] = useState(false);
       const [toast, setToast] = useState(null);
+      const [uploading, setUploading] = useState(null);
+      const [preview, setPreview] = useState(null);
 
       const mountedRef = useRef(true);
       const pollingRef = useRef(false);
@@ -2405,6 +2566,7 @@ window.__ModuleLoader__.load({
       const draftSavedRef = useRef("");
       const [unreadAnchor, setUnreadAnchor] = useState(0);
       const anchorRoomRef = useRef(null);
+      const fileInputRef = useRef(null);
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
 
@@ -2920,6 +3082,48 @@ window.__ModuleLoader__.load({
         void refresh();
       }, [refresh]);
 
+      /** 选择并上传图片/文件（原始字节直传 Host，Host 加密后传中继）。 */
+      const uploadFile = useCallback(
+        async (file) => {
+          if (!file) return;
+          if (file.size > 10 * 1024 * 1024) {
+            setSendError(t("fileTooLarge"));
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+          }
+          setUploading({ name: file.name, size: file.size });
+          setSendError("");
+          try {
+            const response = await fetch("/dsh-chat-plugin/api/upload", {
+              method: "POST",
+              headers: {
+                "x-file-name": encodeURIComponent(file.name),
+                "x-file-type": file.type || "application/octet-stream",
+              },
+              body: file,
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.ok === false) {
+              throw new Error(data.error || t("uploadFailed"));
+            }
+            if (!mountedRef.current) return;
+            if (data.message) {
+              setSnapshot((previous) => appendMessage(previous, data.message));
+              forceScrollRef.current = true;
+            }
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) {
+              setSendError((error && error.message) || t("uploadFailed"));
+            }
+          } finally {
+            if (mountedRef.current) setUploading(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }
+        },
+        [refresh],
+      );
+
       /** 发送消息：Enter 或按钮触发；失败保留输入并显示服务端错误。 */
       const submit = useCallback(async () => {
         if (sendingRef.current) return;
@@ -3233,6 +3437,7 @@ window.__ModuleLoader__.load({
           setCreateOpen(false);
           setMembersOpen(false);
           setOnboardingOpen(false);
+          setPreview(null);
           if (settingsOpen) setSettingsOpen(false);
         };
         window.addEventListener("keydown", onKeyDown);
@@ -3673,6 +3878,7 @@ window.__ModuleLoader__.load({
               onTogglePicker: toggleReactionPicker,
               onReact: reactTo,
               onCopy: copyMessageText,
+              onOpenImage: setPreview,
             }),
           );
         });
@@ -4196,9 +4402,64 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const previewView = preview
+        ? h(
+            "div",
+            {
+              className: "dchat-lightbox",
+              role: "dialog",
+              "aria-label": t("imagePreview"),
+              onClick: () => setPreview(null),
+            },
+            h("img", {
+              className: "dchat-lightbox-img",
+              src: preview.url,
+              alt: preview.name,
+              onClick: (event) => event.stopPropagation(),
+            }),
+            h(
+              "div",
+              { className: "dchat-lightbox-actions" },
+              h(
+                "a",
+                { className: "dchat-btn", href: preview.url, download: preview.name },
+                t("download"),
+              ),
+              h(
+                "button",
+                { type: "button", className: "dchat-btn ghost", onClick: () => setPreview(null) },
+                t("closePreview"),
+              ),
+            ),
+          )
+        : null;
+
       const composer = h(
         "div",
         { className: "dchat-composer" },
+        h(
+          "button",
+          {
+            type: "button",
+            className: "dchat-icon-btn dchat-attach",
+            "aria-label": t("attach"),
+            title: t("attach"),
+            disabled: Boolean(uploading),
+            onClick: () => fileInputRef.current && fileInputRef.current.click(),
+          },
+          ATTACH_ICON,
+        ),
+        h("input", {
+          ref: fileInputRef,
+          type: "file",
+          style: { display: "none" },
+          "aria-hidden": "true",
+          tabIndex: -1,
+          onChange: (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (file) void uploadFile(file);
+          },
+        }),
         h("textarea", {
           ref: textareaRef,
           className: "dchat-input",
@@ -4533,6 +4794,14 @@ window.__ModuleLoader__.load({
             snapshot && peers.length > 1 ? peersView : null,
             bodyView,
             sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,
+            uploading
+              ? h(
+                  "div",
+                  { className: "dchat-uploading" },
+                  h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
+                  t("uploading") + " " + uploading.name,
+                )
+              : null,
             replyBar,
             composer,
           ),
@@ -4545,6 +4814,7 @@ window.__ModuleLoader__.load({
         createView,
         onboardingView,
         membersView,
+        previewView,
         toast ? h("div", { className: "dchat-toast" }, toast) : null,
       );
     }
