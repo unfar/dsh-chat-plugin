@@ -125,7 +125,15 @@ async function main() {
   let since = Number(args.since) || 0
   console.log(`[${nick}] 已连接 ${bridge.room || bridge.url}，等待 ${mention || '(任意消息)'}…`)
   for (;;) {
-    const response = await call(`/bridge/read?since=${since}&limit=50`)
+    let response
+    try {
+      response = await call(`/bridge/read?since=${since}&limit=50`)
+    } catch (error) {
+      // 插件重启/短暂不可用时不要退出，几秒后重试。
+      console.error(`[${nick}] 读取失败（稍后重试）：${error instanceof Error ? error.message : String(error)}`)
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      continue
+    }
     const messages = Array.isArray(response.messages) ? response.messages : []
     if (messages.length > 0) since = Math.max(since, ...messages.map((message) => Number(message.seq) || 0))
     const incoming = messages.find((message) => {
