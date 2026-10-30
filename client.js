@@ -167,6 +167,18 @@ window.__ModuleLoader__.load({
       findFriends: "发现好友",
       onlineNow: "在线",
       lastSeenShort: "最近",
+      reply: "回复",
+      replyTo: "回复",
+      cancelReply: "取消回复",
+      copyText: "复制",
+      copied: "已复制",
+      react: "回应",
+      unreadDivider: "未读消息",
+      diagnostics: "连接诊断",
+      diagnosticsTesting: "诊断中…",
+      diagnosticsOk: "中继可达",
+      diagnosticsFail: "中继不可达",
+      quoteUnavailable: "引用的消息不在本机窗口内",
       newChat: "新建群聊",
       newChatTitle: "创建一个群聊",
       newChatHint: "创建后会生成随机房间名和口令，用邀请码把朋友拉进来。",
@@ -346,6 +358,7 @@ window.__ModuleLoader__.load({
         agentUnread: Number(raw.agentUnread) || 0,
         lastReadSeq: Number(raw.lastReadSeq) || 0,
         typing: safeArray(raw.typing).filter((peer) => peer && typeof peer === "object"),
+        reactions: raw.reactions && typeof raw.reactions === "object" ? raw.reactions : {},
         agent:
           raw.agent && typeof raw.agent === "object"
             ? {
@@ -1001,6 +1014,198 @@ window.__ModuleLoader__.load({
 }
 .dchat-row.mine.grouped .dchat-bubble {
   border-top-right-radius: 6px;
+}
+.dchat-bubble-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.dchat-actions {
+  position: absolute;
+  top: -14px;
+  display: none;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 8px;
+  background: var(--dchat-overlay);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 2;
+}
+.dchat-row.theirs .dchat-actions {
+  right: 0;
+}
+.dchat-row.mine .dchat-actions {
+  left: 0;
+}
+.dchat-row:hover .dchat-actions,
+.dchat-bubble-wrap:focus-within .dchat-actions {
+  display: flex;
+}
+.dchat-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dchat-label-2);
+  cursor: pointer;
+}
+.dchat-act:hover {
+  background: var(--dchat-hover);
+  color: var(--dchat-label);
+}
+.dchat-react-picker {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 3px 4px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 10px;
+  background: var(--dchat-overlay);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  align-self: flex-start;
+  z-index: 3;
+}
+.dchat-row.mine .dchat-react-picker {
+  align-self: flex-end;
+}
+.dchat-react-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dchat-react-btn:hover {
+  background: var(--dchat-hover);
+}
+.dchat-reactions {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.dchat-row.mine .dchat-reactions {
+  justify-content: flex-end;
+}
+.dchat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 21px;
+  padding: 0 7px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 11px;
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label-2);
+  font-family: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+.dchat-chip.mine {
+  border-color: color-mix(in srgb, var(--dchat-brand) 55%, transparent);
+  background: color-mix(in srgb, var(--dchat-brand) 12%, transparent);
+  color: var(--dchat-brand);
+}
+.dchat-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 5px;
+  padding: 4px 8px;
+  border-left: 3px solid color-mix(in srgb, var(--dchat-brand) 70%, transparent);
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.14);
+  font-size: 11px;
+  max-width: 100%;
+}
+.dchat-row.mine .dchat-quote {
+  background: rgba(255, 255, 255, 0.18);
+  border-left-color: var(--dchat-brand-fg);
+}
+.dchat-quote-name {
+  font-weight: 600;
+  opacity: 0.9;
+}
+.dchat-quote-text {
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.dchat-mention {
+  color: var(--dchat-brand);
+  font-weight: 600;
+}
+.dchat-row.mine .dchat-mention {
+  color: var(--dchat-brand-fg);
+  text-decoration: underline;
+}
+.dchat-unread-divider {
+  align-self: center;
+  margin: 10px 0 6px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dchat-brand) 14%, transparent);
+  color: var(--dchat-brand);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.dchat-reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 14px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--dchat-border-l1);
+  border-left: 3px solid var(--dchat-brand);
+  border-radius: 8px;
+  background: var(--dchat-layer-1);
+}
+.dchat-reply-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dchat-reply-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dchat-brand);
+}
+.dchat-reply-text {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 86px;
+  transform: translateX(-50%);
+  z-index: 26;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: rgba(20, 22, 26, 0.86);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+.dchat-diagnostics {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  padding-top: 2px;
 }
 .dchat-time {
   font-size: 10px;
@@ -1684,6 +1889,59 @@ window.__ModuleLoader__.load({
       h("circle", { key: "c", cx: 19, cy: 12, r: 1.6 }),
     );
 
+    const REPLY_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M9 7L3 12l6 5" }),
+      h("path", { key: "b", d: "M3 12h7.5a6.5 6.5 0 0 1 6.5 6.5" }),
+    );
+
+    const SMILE_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("circle", { key: "a", cx: 12, cy: 12, r: 8 }),
+      h("path", { key: "b", d: "M9 10.5h.01M15 10.5h.01" }),
+      h("path", { key: "c", d: "M9 14.5c.8 1 1.8 1.5 3 1.5s2.2-.5 3-1.5" }),
+    );
+
+    const COPY_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("rect", { key: "a", x: 9, y: 9, width: 11, height: 11, rx: 2 }),
+      h("path", { key: "b", d: "M15 5H6a2 2 0 0 0-2 2v9" }),
+    );
+
+    const REACTION_EMOJIS = ["👍", "❤️", "😂", "🎉", "👀"];
+
+    /** 渲染消息文本：@提及高亮。 */
+    function renderMentions(text, meNick) {
+      const value = String(text == null ? "" : text);
+      if (!value) return "";
+      const pattern = /(@[^\s@]+)/g;
+      const parts = [];
+      let last = 0;
+      let match;
+      while ((match = pattern.exec(value)) !== null) {
+        if (match.index > last) parts.push(value.slice(last, match.index));
+        const mention = match[1];
+        const name = mention.slice(1).toLowerCase();
+        const mineMention =
+          name === "all" ||
+          name === "everyone" ||
+          (meNick && name === String(meNick).toLowerCase());
+        parts.push(
+          h(
+            "span",
+            { key: "m-" + match.index, className: "dchat-mention" + (mineMention ? " me" : "") },
+            mention,
+          ),
+        );
+        last = match.index + mention.length;
+      }
+      if (last < value.length) parts.push(value.slice(last));
+      return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
+    }
+
     const SEND_ICON = h(
       "svg",
       {
@@ -1816,9 +2074,13 @@ window.__ModuleLoader__.load({
       const mine = props.mine === true;
       const grouped = props.grouped === true;
       const showTime = props.showTime !== false;
+      const quoted = props.quoted || null;
+      const chips = Array.isArray(props.reactions) ? props.reactions : [];
+      const pickerOpen = props.pickerOpen === true;
       const text = message.text == null ? "" : String(message.text);
       const nick = String(message.nick || shortId(message.from) || t("anonymous"));
       const color = avatarColor(message.from == null ? nick : message.from);
+      const meNick = props.meNick || "";
       return h(
         "div",
         { className: "dchat-row " + (mine ? "mine" : "theirs") + (grouped ? " grouped" : "") },
@@ -1837,7 +2099,105 @@ window.__ModuleLoader__.load({
                 }),
                 h("span", { className: "dchat-nick" }, nick),
               ),
-          h("div", { className: "dchat-bubble", title: fullTimeTitle(message.ts) }, text),
+          h(
+            "div",
+            { className: "dchat-bubble-wrap" },
+            h(
+              "div",
+              { className: "dchat-actions", role: "toolbar" },
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-act",
+                  title: t("reply"),
+                  "aria-label": t("reply"),
+                  onClick: () => props.onReply && props.onReply(message),
+                },
+                REPLY_ICON,
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-act",
+                  title: t("react"),
+                  "aria-label": t("react"),
+                  onClick: () => props.onTogglePicker && props.onTogglePicker(message.id),
+                },
+                SMILE_ICON,
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-act",
+                  title: t("copyText"),
+                  "aria-label": t("copyText"),
+                  onClick: () => props.onCopy && props.onCopy(text),
+                },
+                COPY_ICON,
+              ),
+            ),
+            h(
+              "div",
+              { className: "dchat-bubble", title: fullTimeTitle(message.ts) },
+              message.replyTo
+                ? h(
+                    "div",
+                    { className: "dchat-quote" },
+                    h(
+                      "span",
+                      { className: "dchat-quote-name" },
+                      quoted
+                        ? (quoted.mine ? t("you") : String(quoted.nick || t("anonymous"))) + "："
+                        : t("quoteUnavailable"),
+                    ),
+                    quoted
+                      ? h("span", { className: "dchat-quote-text" }, String(quoted.text || "").slice(0, 120))
+                      : null,
+                  )
+                : null,
+              h("span", { className: "dchat-text" }, renderMentions(text, meNick)),
+            ),
+            pickerOpen
+              ? h(
+                  "div",
+                  { className: "dchat-react-picker" },
+                  REACTION_EMOJIS.map((emoji) =>
+                    h(
+                      "button",
+                      {
+                        key: emoji,
+                        type: "button",
+                        className: "dchat-react-btn",
+                        onClick: () => props.onReact && props.onReact(message.id, emoji),
+                      },
+                      emoji,
+                    ),
+                  ),
+                )
+              : null,
+          ),
+          chips.length > 0
+            ? h(
+                "div",
+                { className: "dchat-reactions" },
+                chips.map((chip) =>
+                  h(
+                    "button",
+                    {
+                      key: chip.emoji,
+                      type: "button",
+                      className: "dchat-chip" + (chip.mine ? " mine" : ""),
+                      title: chip.count + " 个回应",
+                      onClick: () => props.onReact && props.onReact(message.id, chip.emoji),
+                    },
+                    String(chip.emoji) + " " + String(chip.count),
+                  ),
+                ),
+              )
+            : null,
           showTime
             ? h(
                 "div",
@@ -1856,7 +2216,6 @@ window.__ModuleLoader__.load({
       );
     }
 
-    /** 空消息列表的占位。 */
     function ChatEmpty(props) {
       const options = props || {};
       return h(
@@ -2023,6 +2382,11 @@ window.__ModuleLoader__.load({
       );
       const [menuOpen, setMenuOpen] = useState(false);
       const [membersOpen, setMembersOpen] = useState(false);
+      const [replyTo, setReplyTo] = useState(null);
+      const [reactionFor, setReactionFor] = useState(null);
+      const [diagnostic, setDiagnostic] = useState(null);
+      const [diagnosticBusy, setDiagnosticBusy] = useState(false);
+      const [toast, setToast] = useState(null);
 
       const mountedRef = useRef(true);
       const pollingRef = useRef(false);
@@ -2038,6 +2402,9 @@ window.__ModuleLoader__.load({
       const typingSentRef = useRef(0);
       const lastNotifiedSeqRef = useRef(0);
       const notifyEnabledRef = useRef(false);
+      const draftSavedRef = useRef("");
+      const [unreadAnchor, setUnreadAnchor] = useState(0);
+      const anchorRoomRef = useRef(null);
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
 
@@ -2066,6 +2433,10 @@ window.__ModuleLoader__.load({
           });
           if (!mountedRef.current) return;
           const next = normalizeSnapshot(data);
+          if (next && anchorRoomRef.current !== next.room) {
+            anchorRoomRef.current = next.room;
+            setUnreadAnchor(Math.max(0, Number(next.lastReadSeq) || 0) + 1);
+          }
           if (next) {
             // 面板可见 = 用户正在看，把人的已读游标推到最新（侧边栏角标随之清空）。
             // 页面在后台时不算已读，留角标提醒。
@@ -2554,6 +2925,7 @@ window.__ModuleLoader__.load({
         if (sendingRef.current) return;
         const text = draft;
         if (!text || !text.trim()) return;
+        const quotedId = replyTo && replyTo.id ? replyTo.id : undefined;
         sendingRef.current = true;
         setSending(true);
         setSendError("");
@@ -2563,7 +2935,7 @@ window.__ModuleLoader__.load({
             data = await request("/send", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ text }),
+              body: JSON.stringify({ text, replyTo: quotedId }),
             });
           } catch (error) {
             if (error && error.code === "missing") setHostMissing(true);
@@ -2572,6 +2944,7 @@ window.__ModuleLoader__.load({
           if (!mountedRef.current) return;
           setHostMissing(false);
           setDraft("");
+          setReplyTo(null);
           forceScrollRef.current = true;
           if (data && data.message && typeof data.message === "object") {
             setSnapshot((previous) => appendMessage(previous, data.message));
@@ -2741,6 +3114,130 @@ window.__ModuleLoader__.load({
         setMenuOpen(false);
         await leaveCurrentChat();
       }, [leaveCurrentChat]);
+
+      /** 消息操作：回复 / 回应 / 复制。 */
+      const startReply = useCallback((message) => {
+        if (!message) return;
+        setReplyTo(message);
+        if (textareaRef.current && typeof textareaRef.current.focus === "function") {
+          textareaRef.current.focus();
+        }
+      }, []);
+
+      const toggleReactionPicker = useCallback((messageId) => {
+        setReactionFor((current) => (current === messageId ? null : messageId));
+      }, []);
+
+      const reactTo = useCallback(
+        async (messageId, emoji) => {
+          if (!messageId || !emoji) return;
+          setReactionFor(null);
+          try {
+            await request("/react", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: messageId, emoji }),
+            });
+            if (mountedRef.current) void refresh();
+          } catch (error) {
+            if (mountedRef.current) setSendError(error && error.message ? error.message : t("unreachable"));
+          }
+        },
+        [refresh],
+      );
+
+      const copyMessageText = useCallback(async (value) => {
+        try {
+          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(value);
+          } else if (typeof document !== "undefined") {
+            const area = document.createElement("textarea");
+            area.value = value;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            try {
+              document.execCommand("copy");
+            } finally {
+              area.remove();
+            }
+          }
+          setToast(t("copied"));
+          if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+          toastTimerRef.current = setTimeout(() => {
+            toastTimerRef.current = null;
+            if (mountedRef.current) setToast(null);
+          }, 1800);
+        } catch {
+          /* ignore */
+        }
+      }, []);
+
+      /** 连接诊断：检查中继 HTTP 健康端点。 */
+      const runDiagnostics = useCallback(async () => {
+        if (diagnosticBusy) return;
+        setDiagnosticBusy(true);
+        setDiagnostic(null);
+        try {
+          const data = await request("/diagnostics", {
+            method: "GET",
+            headers: { accept: "application/json" },
+            cache: "no-store",
+          });
+          if (mountedRef.current) setDiagnostic(data || null);
+        } catch (error) {
+          if (mountedRef.current) {
+            setDiagnostic({ ok: false, error: error && error.message ? error.message : t("unreachable") });
+          }
+        } finally {
+          if (mountedRef.current) setDiagnosticBusy(false);
+        }
+      }, [diagnosticBusy]);
+
+
+      // 每个会话独立的输入草稿。
+      useEffect(() => {
+        if (!snapshot || typeof window === "undefined") return;
+        try {
+          const stored = window.localStorage.getItem("dshchat.draft." + snapshot.room) || "";
+          draftSavedRef.current = stored;
+          setDraft(stored);
+        } catch {
+          /* ignore */
+        }
+      }, [snapshot && snapshot.room]);
+
+      useEffect(() => {
+        if (!snapshot || typeof window === "undefined") return;
+        if (draft === draftSavedRef.current) return;
+        draftSavedRef.current = draft;
+        try {
+          if (draft) window.localStorage.setItem("dshchat.draft." + snapshot.room, draft);
+          else window.localStorage.removeItem("dshchat.draft." + snapshot.room);
+        } catch {
+          /* ignore */
+        }
+      }, [draft, snapshot && snapshot.room]);
+
+      // Esc 关闭所有浮层 / 取消回复。
+      useEffect(() => {
+        if (typeof window === "undefined") return;
+        const onKeyDown = (event) => {
+          if (event.key !== "Escape") return;
+          setMenuOpen(false);
+          setReactionFor(null);
+          setReplyTo(null);
+          setInviteOpen(false);
+          setFriendsOpen(false);
+          setCreateOpen(false);
+          setMembersOpen(false);
+          setOnboardingOpen(false);
+          if (settingsOpen) setSettingsOpen(false);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+      }, [settingsOpen]);
 
       const banner = hostMissing
         ? h("div", { className: "dchat-banner" }, "⚠️ " + t("hostMissing"))
@@ -3063,7 +3560,33 @@ window.__ModuleLoader__.load({
                       },
                       t("settingsInvite"),
                     ),
+                    h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-small-btn ghost",
+                        disabled: diagnosticBusy,
+                        onClick: runDiagnostics,
+                      },
+                      diagnosticBusy ? t("diagnosticsTesting") : t("diagnostics"),
+                    ),
                   ),
+                  diagnostic
+                    ? h(
+                        "div",
+                        { className: "dchat-diagnostics" },
+                        diagnostic.ok !== false && diagnostic.relay
+                          ? (diagnostic.relay.reachable ? "✅ " : "⚠️ ") +
+                            t("diagnosticsOk") +
+                            " · " +
+                            String(diagnostic.relay.kind) +
+                            " · " +
+                            String(diagnostic.relay.latencyMs) +
+                            "ms" +
+                            (diagnostic.relay.reachable ? "" : "（" + (diagnostic.relay.error || diagnostic.relay.status) + "）")
+                          : "⚠️ " + (diagnostic.error || t("diagnosticsFail")),
+                      )
+                    : null,
                 ]),
               ),
               h(
@@ -3085,10 +3608,15 @@ window.__ModuleLoader__.load({
             )
           : null;
 
-      // 消息列表 + 日期分隔。
+      // 消息列表 + 日期分隔 + 未读分隔线。
       const messageChildren = [];
+      const msgMap = new Map();
+      for (const message of messages) {
+        if (message && message.id) msgMap.set(message.id, message);
+      }
       if (snapshot) {
         let lastDay = "";
+        let dividerInserted = false;
         messages.forEach((message, index) => {
           if (!message || typeof message !== "object") return;
           const day = dayLabel(message.ts);
@@ -3123,8 +3651,29 @@ window.__ModuleLoader__.load({
             Math.abs((Number(next.ts) || 0) - (Number(message.ts) || 0)) < 5 * 60 * 1000;
           const readByPeer =
             mine && snapshot && Number(snapshot.peerReadSeq) >= Number(seq) && Number(seq) > 0;
+          if (!dividerInserted && unreadAnchor > 0 && Number(seq) >= unreadAnchor) {
+            dividerInserted = true;
+            messageChildren.push(
+              h("div", { key: "unread-divider", className: "dchat-unread-divider" }, t("unreadDivider")),
+            );
+          }
           messageChildren.push(
-            h(MessageRow, { key, message, mine, grouped, showTime: !nextGrouped, readByPeer }),
+            h(MessageRow, {
+              key,
+              message,
+              mine,
+              grouped,
+              showTime: !nextGrouped,
+              readByPeer,
+              quoted: message.replyTo ? msgMap.get(message.replyTo) : null,
+              reactions: snapshot.reactions ? snapshot.reactions[message.id] : null,
+              pickerOpen: reactionFor === message.id,
+              meNick: me ? me.nick : "",
+              onReply: startReply,
+              onTogglePicker: toggleReactionPicker,
+              onReact: reactTo,
+              onCopy: copyMessageText,
+            }),
           );
         });
       }
@@ -3619,6 +4168,34 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const replyBar = replyTo
+        ? h(
+            "div",
+            { className: "dchat-reply-bar" },
+            h(
+              "div",
+              { className: "dchat-reply-info" },
+              h(
+                "div",
+                { className: "dchat-reply-name" },
+                t("replyTo") + " " + (replyTo.mine ? t("you") : String(replyTo.nick || t("anonymous"))),
+              ),
+              h("div", { className: "dchat-reply-text" }, String(replyTo.text || "").slice(0, 120)),
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-icon-btn",
+                "aria-label": t("cancelReply"),
+                title: t("cancelReply"),
+                onClick: () => setReplyTo(null),
+              },
+              COLLAPSE_ICON,
+            ),
+          )
+        : null;
+
       const composer = h(
         "div",
         { className: "dchat-composer" },
@@ -3956,6 +4533,7 @@ window.__ModuleLoader__.load({
             snapshot && peers.length > 1 ? peersView : null,
             bodyView,
             sendError ? h("div", { className: "dchat-send-error" }, "⚠️ " + sendError) : null,
+            replyBar,
             composer,
           ),
         ),
@@ -3967,6 +4545,7 @@ window.__ModuleLoader__.load({
         createView,
         onboardingView,
         membersView,
+        toast ? h("div", { className: "dchat-toast" }, toast) : null,
       );
     }
 

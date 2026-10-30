@@ -129,6 +129,18 @@ const receiptBody = seal(
 app.onInbound({ body: receiptBody })
 check(app.getState().readReceipts['peer-a'] === 2, 'read receipt updates peer cursor')
 
+// ---------- reactions ----------
+app.applyReaction({ messageId: 'msg-x', emoji: '👍', from: 'peer-a' })
+app.applyReaction({ messageId: 'msg-x', emoji: '👍', from: app.me.id })
+let chips = app.getState().reactions['msg-x']
+check(chips.length === 1 && chips[0].count === 2 && chips[0].mine === true, 'reactions aggregate + mine flag')
+app.applyReaction({ messageId: 'msg-x', emoji: '👍', from: 'peer-a', add: false })
+chips = app.getState().reactions['msg-x']
+check(chips[0].count === 1, 'reaction removal updates count')
+const reactionBody = seal({ v: 1, id: 'react-1', from: 'peer-b', nick: 'Peer B', ts: Date.now(), kind: 'reaction', to: 'msg-y', emoji: '🎉', add: true }, app.key)
+app.onInbound({ body: reactionBody })
+check(app.getState().reactions['msg-y']?.[0]?.emoji === '🎉', 'inbound reaction envelope is applied')
+
 // typing 是瞬时状态：不产生消息、不进未读
 const typingBody = seal({ v: 1, id: 'typing-1', from: 'peer-a', nick: 'Peer A', ts: Date.now(), kind: 'typing' }, app.key)
 const beforeCount = app.messages.length
