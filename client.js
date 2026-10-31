@@ -186,6 +186,14 @@ window.__ModuleLoader__.load({
       download: "下载",
       imagePreview: "图片预览",
       closePreview: "关闭预览",
+      search: "搜索消息",
+      searchPlaceholder: "搜索本会话…",
+      searchNoResults: "没有匹配的消息",
+      searchCount: "条结果",
+      closeSearch: "关闭搜索",
+      dropHint: "松开以发送图片或文件",
+      retry: "重试",
+      linkHint: "链接",
       agentId: "Agent ID",
       agentIdHint: "把这个 ID 发给朋友，对方在「发现」里按 ID 就能加你，不必开启发现目录。",
       agentIdInvalid: "Agent ID 是 8 位字母数字，例如 K7M2-QX9T",
@@ -2759,6 +2767,97 @@ window.__ModuleLoader__.load({
   border-radius: var(--dchat-radius-pill);
   box-shadow: var(--dchat-shadow-2);
 }
+
+/* ══ v1.7 富文本 / 搜索 / 拖拽 ═══════════════════════════════════════ */
+.dchat-root .dchat-link {
+  color: var(--dchat-brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  word-break: break-all;
+}
+.dchat-root .dchat-row.mine .dchat-link {
+  color: var(--dchat-brand-fg);
+}
+.dchat-root .dchat-code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(127, 127, 127, 0.16);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+}
+.dchat-root .dchat-row.mine .dchat-code {
+  background: rgba(255, 255, 255, 0.2);
+}
+.dchat-root .dchat-row strong {
+  font-weight: 700;
+}
+
+.dchat-root .dchat-searchbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-bg);
+  animation: dchat-msg-in 140ms var(--dchat-ease);
+}
+.dchat-root .dchat-searchbar-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-searchbar .dchat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  border-radius: var(--dchat-radius-sm);
+}
+.dchat-root .dchat-searchbar-count {
+  flex: none;
+  font-size: var(--dchat-font-xs);
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+}
+
+.dchat-root .dchat-drop {
+  position: absolute;
+  inset: 0;
+  z-index: 28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--dchat-brand) 12%, rgba(10, 12, 16, 0.5));
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.dchat-root .dchat-drop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 30px;
+  border: 1.5px dashed var(--dchat-brand);
+  border-radius: var(--dchat-radius-xl);
+  background: var(--dchat-overlay);
+  color: var(--dchat-brand);
+  font-size: var(--dchat-font-md);
+  font-weight: var(--dchat-weight-semibold);
+  box-shadow: var(--dchat-shadow-3);
+}
+.dchat-root .dchat-drop-card svg {
+  width: 26px;
+  height: 26px;
+}
+.dchat-root .dchat-send-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dchat-root .dchat-send-error-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -2867,30 +2966,52 @@ window.__ModuleLoader__.load({
 
     const REACTION_EMOJIS = ["👍", "❤️", "😂", "🎉", "👀"];
 
-    /** 渲染消息文本：@提及高亮。 */
+    /** 渲染消息文本：链接 / **粗体** / `代码` / @提及 高亮。 */
     function renderMentions(text, meNick) {
       const value = String(text == null ? "" : text);
       if (!value) return "";
-      const pattern = /(@[^\s@]+)/g;
+      const pattern = /(https?:\/\/[^\s<>()]+)|(\*\*[^*\n]+\*\*)|(`[^`\n]+`)|(@[^\s@]+)/g;
       const parts = [];
       let last = 0;
       let match;
+      let key = 0;
       while ((match = pattern.exec(value)) !== null) {
         if (match.index > last) parts.push(value.slice(last, match.index));
-        const mention = match[1];
-        const name = mention.slice(1).toLowerCase();
-        const mineMention =
-          name === "all" ||
-          name === "everyone" ||
-          (meNick && name === String(meNick).toLowerCase());
-        parts.push(
-          h(
-            "span",
-            { key: "m-" + match.index, className: "dchat-mention" + (mineMention ? " me" : "") },
-            mention,
-          ),
-        );
-        last = match.index + mention.length;
+        if (match[1]) {
+          parts.push(
+            h(
+              "a",
+              {
+                key: "link-" + key++,
+                className: "dchat-link",
+                href: match[1],
+                target: "_blank",
+                rel: "noopener noreferrer",
+                onClick: (event) => event.stopPropagation(),
+              },
+              match[1],
+            ),
+          );
+        } else if (match[2]) {
+          parts.push(h("strong", { key: "bold-" + key++ }, match[2].slice(2, -2)));
+        } else if (match[3]) {
+          parts.push(h("code", { key: "code-" + key++, className: "dchat-code" }, match[3].slice(1, -1)));
+        } else {
+          const mention = match[4];
+          const name = mention.slice(1).toLowerCase();
+          const mineMention =
+            name === "all" ||
+            name === "everyone" ||
+            (meNick && name === String(meNick).toLowerCase());
+          parts.push(
+            h(
+              "span",
+              { key: "m-" + match.index, className: "dchat-mention" + (mineMention ? " me" : "") },
+              mention,
+            ),
+          );
+        }
+        last = match.index + match[0].length;
       }
       if (last < value.length) parts.push(value.slice(last));
       return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
@@ -2978,6 +3099,13 @@ window.__ModuleLoader__.load({
       { viewBox: "0 0 24 24", width: 12, height: 12, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
       h("rect", { key: "a", x: 5, y: 10, width: 14, height: 10, rx: 2.5 }),
       h("path", { key: "b", d: "M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" }),
+    );
+
+    const SEARCH_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("circle", { key: "a", cx: 11, cy: 11, r: 6.5 }),
+      h("path", { key: "b", d: "M16 16l4.5 4.5" }),
     );
 
     const PLUS_ICON = h(
@@ -3489,6 +3617,9 @@ window.__ModuleLoader__.load({
       const [diagnostic, setDiagnostic] = useState(null);
       const [diagnosticBusy, setDiagnosticBusy] = useState(false);
       const [toast, setToast] = useState(null);
+      const [searchOpen, setSearchOpen] = useState(false);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [dragActive, setDragActive] = useState(false);
       const [uploading, setUploading] = useState(null);
       const [preview, setPreview] = useState(null);
 
@@ -4081,6 +4212,18 @@ window.__ModuleLoader__.load({
         [refresh],
       );
 
+      /** 一次发送多个文件（拖拽/粘贴可能带多张图）。 */
+      const uploadFiles = useCallback(
+        async (fileList) => {
+          const files = Array.from(fileList || []).filter((file) => file && file.size >= 0);
+          for (const file of files) {
+            // 依次上传，保证消息顺序与上传状态清晰
+            await uploadFile(file);
+          }
+        },
+        [uploadFile],
+      );
+
       /** 发送消息：Enter 或按钮触发；失败保留输入并显示服务端错误。 */
       const submit = useCallback(async () => {
         if (sendingRef.current) return;
@@ -4110,7 +4253,13 @@ window.__ModuleLoader__.load({
           if (data && data.message && typeof data.message === "object") {
             setSnapshot((previous) => appendMessage(previous, data.message));
           }
-          if (textareaRef.current) textareaRef.current.focus();
+          if (textareaRef.current && typeof textareaRef.current.focus === "function") {
+            try {
+              textareaRef.current.focus();
+            } catch {
+              /* jsdom 等环境里 focus 可能不可用 */
+            }
+          }
           void refresh();
         } catch (error) {
           if (!mountedRef.current) return;
@@ -4381,6 +4530,18 @@ window.__ModuleLoader__.load({
         }
       }, [draft, snapshot && snapshot.room]);
 
+      // 未读数同步到页面标题，方便切到别的标签页时也知道有新消息。
+      const baseTitleRef = useRef(typeof document === "undefined" ? "" : document.title);
+      useEffect(() => {
+        if (typeof document === "undefined") return;
+        const unread = Number(snapshot && snapshot.unread) || 0;
+        const base = baseTitleRef.current || "dsh Chat";
+        document.title = unread > 0 ? `(${unread}) ${base}` : base;
+        return () => {
+          document.title = base;
+        };
+      }, [snapshot && snapshot.unread]);
+
       // Esc 关闭所有浮层 / 取消回复。
       useEffect(() => {
         if (typeof window === "undefined") return;
@@ -4395,6 +4556,8 @@ window.__ModuleLoader__.load({
           setMembersOpen(false);
           setOnboardingOpen(false);
           setPreview(null);
+          setSearchOpen(false);
+          setSearchQuery("");
           if (settingsOpen) setSettingsOpen(false);
         };
         window.addEventListener("keydown", onKeyDown);
@@ -4806,6 +4969,24 @@ window.__ModuleLoader__.load({
             )
           : null;
 
+      // 会话内搜索：只过滤展示，不改动真实消息顺序。
+      const searchActive = searchOpen && searchQuery.trim().length > 0;
+      const searchLower = searchQuery.trim().toLowerCase();
+      const listMessages = searchActive
+        ? messages.filter((message) => {
+            if (!message || typeof message !== "object") return false;
+            const haystack = [
+              message.text,
+              message.nick,
+              message.file && message.file.name,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(searchLower);
+          })
+        : messages;
+
       // 消息列表 + 日期分隔 + 未读分隔线。
       const messageChildren = [];
       const msgMap = new Map();
@@ -4815,10 +4996,10 @@ window.__ModuleLoader__.load({
       if (snapshot) {
         let lastDay = "";
         let dividerInserted = false;
-        messages.forEach((message, index) => {
+        listMessages.forEach((message, index) => {
           if (!message || typeof message !== "object") return;
           const day = dayLabel(message.ts);
-          if (day && day !== lastDay) {
+          if (!searchActive && day && day !== lastDay) {
             messageChildren.push(
               h("div", { key: "day-" + day + "-" + index, className: "dchat-day" }, day),
             );
@@ -4831,7 +5012,7 @@ window.__ModuleLoader__.load({
             seq == null
               ? "msg-i-" + index
               : "msg-s-" + String(seq) + (message.id ? "-" + String(message.id) : "");
-          const previous = index > 0 ? messages[index - 1] : null;
+          const previous = index > 0 ? listMessages[index - 1] : null;
           const grouped =
             Boolean(previous) &&
             (previous.mine === true) === (message.mine === true) &&
@@ -4839,7 +5020,7 @@ window.__ModuleLoader__.load({
             new Date(Number(previous.ts) || 0).toDateString() ===
               new Date(Number(message.ts) || 0).toDateString() &&
             Math.abs((Number(message.ts) || 0) - (Number(previous.ts) || 0)) < 5 * 60 * 1000;
-          const next = index + 1 < messages.length ? messages[index + 1] : null;
+          const next = index + 1 < listMessages.length ? listMessages[index + 1] : null;
           const nextGrouped =
             Boolean(next) &&
             (next.mine === true) === (message.mine === true) &&
@@ -4849,7 +5030,7 @@ window.__ModuleLoader__.load({
             Math.abs((Number(next.ts) || 0) - (Number(message.ts) || 0)) < 5 * 60 * 1000;
           const readByPeer =
             mine && snapshot && Number(snapshot.peerReadSeq) >= Number(seq) && Number(seq) > 0;
-          if (!dividerInserted && unreadAnchor > 0 && Number(seq) >= unreadAnchor) {
+          if (!searchActive && !dividerInserted && unreadAnchor > 0 && Number(seq) >= unreadAnchor) {
             dividerInserted = true;
             messageChildren.push(
               h("div", { key: "unread-divider", className: "dchat-unread-divider" }, t("unreadDivider")),
@@ -4876,6 +5057,53 @@ window.__ModuleLoader__.load({
           );
         });
       }
+
+      const searchView = searchOpen
+        ? h(
+            "div",
+            { className: "dchat-searchbar" },
+            h("span", { className: "dchat-searchbar-icon" }, SEARCH_ICON),
+            h("input", {
+              className: "dchat-input",
+              type: "text",
+              autoFocus: true,
+              value: searchQuery,
+              placeholder: t("searchPlaceholder"),
+              "aria-label": t("searchPlaceholder"),
+              onChange: (event) => setSearchQuery(event.target.value),
+              onKeyDown: (event) => {
+                if (event.key === "Escape") {
+                  event.stopPropagation();
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }
+              },
+            }),
+            h(
+              "span",
+              { className: "dchat-searchbar-count" },
+              searchActive
+                ? listMessages.length === 0
+                  ? t("searchNoResults")
+                  : String(listMessages.length) + " " + t("searchCount")
+                : "",
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-icon-btn",
+                "aria-label": t("closeSearch"),
+                title: t("closeSearch"),
+                onClick: () => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                },
+              },
+              CLOSE_ICON,
+            ),
+          )
+        : null;
 
       const bodyView = snapshot
         ? h(
@@ -5340,6 +5568,14 @@ window.__ModuleLoader__.load({
             "div",
             { className: "dchat-menu", role: "menu", "aria-label": t("menu") },
             [
+              {
+                key: "search",
+                label: t("search"),
+                onClick: () => {
+                  setMenuOpen(false);
+                  setSearchOpen(true);
+                },
+              },
               { key: "members", label: t("members"), onClick: openMembers },
               {
                 key: "invite",
@@ -5539,6 +5775,13 @@ window.__ModuleLoader__.load({
           "aria-label": t("composerAria"),
           onChange: handleDraftChange,
           onKeyDown: handleKeyDown,
+          onPaste: (event) => {
+            const files = Array.from((event.clipboardData && event.clipboardData.files) || []);
+            if (files.length > 0) {
+              event.preventDefault();
+              void uploadFiles(files);
+            }
+          },
         }),
         h(
           "button",
@@ -5854,7 +6097,29 @@ window.__ModuleLoader__.load({
 
       return h(
         "div",
-        { className: "dchat-root" + (inSettings ? " dchat-in-settings" : "") },
+        {
+          className: "dchat-root" + (inSettings ? " dchat-in-settings" : ""),
+          onDragEnter: (event) => {
+            if (event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files")) {
+              event.preventDefault();
+              setDragActive(true);
+            }
+          },
+          onDragOver: (event) => {
+            if (event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files")) {
+              event.preventDefault();
+            }
+          },
+          onDragLeave: (event) => {
+            if (event.target === event.currentTarget) setDragActive(false);
+          },
+          onDrop: (event) => {
+            event.preventDefault();
+            setDragActive(false);
+            const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
+            if (files.length > 0) void uploadFiles(files);
+          },
+        },
         h(
           "div",
           { className: "dchat-layout" },
@@ -5863,12 +6128,32 @@ window.__ModuleLoader__.load({
             "main",
             { className: "dchat-main" },
             mainHead,
+            searchView,
             banner,
             requestBanner,
             settingsView,
             snapshot && peers.length > 1 ? peersView : null,
             bodyView,
-            sendError ? h("div", { className: "dchat-send-error" }, sendError) : null,
+            sendError
+              ? h(
+                  "div",
+                  { className: "dchat-send-error" },
+                  h("span", { className: "dchat-send-error-text" }, sendError),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-small-btn",
+                      disabled: sending || !draft.trim(),
+                      onClick: () => {
+                        setSendError("");
+                        void submit();
+                      },
+                    },
+                    t("retry"),
+                  ),
+                )
+              : null,
             uploading
               ? h(
                   "div",
@@ -5881,6 +6166,13 @@ window.__ModuleLoader__.load({
             composer,
           ),
         ),
+        dragActive
+          ? h(
+              "div",
+              { className: "dchat-drop" },
+              h("div", { className: "dchat-drop-card" }, ATTACH_ICON, t("dropHint")),
+            )
+          : null,
         sideOpen ? h("div", { className: "dchat-side-backdrop", onClick: () => setSideOpen(false) }) : null,
         menuOpen ? h("div", { className: "dchat-menu-backdrop", onClick: () => setMenuOpen(false) }) : null,
         menuView,
