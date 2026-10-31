@@ -111,6 +111,7 @@ window.__ModuleLoader__.load({
       relayUrl: "中继地址",
       relayUrlPlaceholder: "https://ntfy.sh",
       save: "保存并重连",
+      saved: "已保存",
       saving: "保存中…",
       saved: "已保存并重连",
       saveFailed: "保存失败",
@@ -193,6 +194,33 @@ window.__ModuleLoader__.load({
       closeSearch: "关闭搜索",
       dropHint: "松开以发送图片或文件",
       retry: "重试",
+      back: "返回",
+      changeAvatar: "更换头像",
+      avatarHint: "支持 PNG / JPG / WebP / GIF，建议正方形",
+      avatarType: "头像只支持图片文件",
+      statusLabel: "个性签名",
+      statusHint: "一句话介绍自己，会显示在你的资料卡里",
+      settingsAbout: "关于",
+      aboutVersion: "dsh Chat v2.0",
+      globalSearchPlaceholder: "搜索会话或消息…",
+      searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
+      searchConversations: "会话",
+      searchMessages: "消息",
+      edit: "编辑",
+      editMessage: "编辑消息",
+      saveEdit: "保存",
+      cancelEdit: "取消",
+      delete: "删除",
+      deleteConfirm: "确定撤回这条消息？对方也会看到撤回提示。",
+      messageDeleted: "这条消息已撤回",
+      editedTag: "已编辑",
+      forwardedFrom: "转发自",
+      forward: "转发",
+      forwardTitle: "转发到",
+      mute: "静音",
+      unmute: "取消静音",
+      muted: "已静音",
+      aboutHint: "端到端加密的 dsh 点对点聊天插件。消息与文件只在你和对方之间可见，中继只看到密文。",
       linkHint: "链接",
       agentId: "Agent ID",
       agentIdHint: "把这个 ID 发给朋友，对方在「发现」里按 ID 就能加你，不必开启发现目录。",
@@ -364,6 +392,8 @@ window.__ModuleLoader__.load({
           id: String(me.id == null ? "" : me.id),
           agentId: String(me.agentId == null ? "" : me.agentId),
           nick: String(me.nick == null ? "" : me.nick),
+          avatar: String(me.avatar == null ? "" : me.avatar),
+          status: String(me.status == null ? "" : me.status),
         },
         room: typeof raw.room === "string" ? raw.room : "",
         relay: {
@@ -422,6 +452,8 @@ window.__ModuleLoader__.load({
             ? settings.relayUrl
             : String(relay.url || ""),
         agentAutoReply: settings.agentAutoReply === true,
+        status: typeof settings.status === "string" ? settings.status : String(me.status || ""),
+        avatar: typeof settings.avatar === "string" ? settings.avatar : String(me.avatar || ""),
       };
     }
 
@@ -440,6 +472,7 @@ window.__ModuleLoader__.load({
       const relayUrl = typeof form.relayUrl === "string" ? form.relayUrl.trim() : "";
       if (relayUrl) payload.relayUrl = relayUrl;
       payload.agentAutoReply = form.agentAutoReply === true;
+      if (typeof form.status === "string") payload.status = form.status.trim();
       return payload;
     }
 
@@ -2858,6 +2891,525 @@ window.__ModuleLoader__.load({
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* ══ v2.0 产品化外壳：侧栏资料卡 / 页面化设置与联系人 / 全局搜索 ══ */
+
+.dchat-root .dchat-contacts-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: var(--dchat-label-2);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-contacts-entry:hover {
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-side-entry-badge {
+  margin-left: auto;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-size: 9.5px;
+  font-weight: 650;
+}
+.dchat-root .dchat-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--dchat-radius-md);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-profile-card:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-profile-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dchat-root .dchat-profile-name {
+  font-size: 12.5px;
+  font-weight: 620;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-profile-sub {
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-avatar-img {
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+  background: var(--dchat-layer-2);
+  display: inline-block;
+}
+
+/* 页面化主视图 */
+.dchat-root .dchat-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--dchat-bg);
+}
+.dchat-root .dchat-main.dchat-main-page {
+  overflow: hidden;
+}
+.dchat-root .dchat-main.dchat-main-page > :not(.dchat-settings):not(.dchat-friends) {
+  display: none;
+}
+.dchat-root .dchat-main.dchat-main-page > .dchat-settings,
+.dchat-root .dchat-main.dchat-main-page > .dchat-friends {
+  display: flex;
+}
+.dchat-root .dchat-page-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 16px;
+  flex: none;
+  border-bottom: 1px solid var(--dchat-border-l1);
+}
+.dchat-root .dchat-page-title {
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+}
+.dchat-root .dchat-page-spacer {
+  flex: 1 1 auto;
+}
+.dchat-root .dchat-settings-version {
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+}
+
+/* 设置页 */
+.dchat-root .dchat-settings {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  padding: 0;
+  overflow: hidden;
+}
+.dchat-root .dchat-settings-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.dchat-root .dchat-settings-nav {
+  width: 184px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+  border-right: 1px solid var(--dchat-border-l1);
+  overflow-y: auto;
+}
+.dchat-root .dchat-settings-nav-item {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: var(--dchat-label-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-settings-nav-item:hover {
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-settings-nav-item.active {
+  background: color-mix(in srgb, var(--dchat-brand) 12%, transparent);
+  color: var(--dchat-brand);
+  font-weight: 620;
+}
+.dchat-root .dchat-settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+.dchat-root .dchat-settings-actions {
+  flex: none;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 12px 24px;
+  border-top: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-bg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dchat-root .dchat-avatar-edit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dchat-root .dchat-avatar-edit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dchat-root .dchat-about {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+.dchat-root .dchat-about-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 620;
+}
+
+/* 联系人页（复用好友内容） */
+.dchat-root .dchat-main.dchat-main-page > .dchat-friends {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  padding: 0;
+  background: var(--dchat-bg);
+  backdrop-filter: none;
+  animation: none;
+  overflow: hidden;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.dchat-root .dchat-friends-card {
+  flex: 1 1 auto;
+  width: auto;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--dchat-bg);
+  animation: none;
+  overflow-y: auto;
+}
+.dchat-root .dchat-friends-card > :not(.dchat-page-head) {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+.dchat-root .dchat-friends-card .dchat-page-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0 16px;
+  background: var(--dchat-bg);
+}
+
+/* 全局搜索 */
+.dchat-root .dchat-searchmodal {
+  position: absolute;
+  inset: 0;
+  z-index: 34;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 9vh 16px 16px;
+  background: rgba(10, 12, 16, 0.44);
+  backdrop-filter: blur(3px);
+  animation: dchat-fade var(--dchat-dur-2) var(--dchat-ease);
+}
+.dchat-root .dchat-searchmodal-card {
+  width: min(560px, 100%);
+  max-height: 72%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-lg);
+  background: var(--dchat-overlay);
+  box-shadow: var(--dchat-shadow-3);
+  overflow: hidden;
+  animation: dchat-pop var(--dchat-dur-2) var(--dchat-ease);
+}
+.dchat-root .dchat-searchmodal-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--dchat-border-l1);
+}
+.dchat-root .dchat-searchmodal-input input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dchat-label);
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+.dchat-root .dchat-searchmodal-input input::placeholder {
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-searchmodal-results {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+.dchat-root .dchat-search-section {
+  padding: 8px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  color: var(--dchat-label-2);
+  text-transform: uppercase;
+}
+.dchat-root .dchat-search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-search-result:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-search-result-title {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.dchat-root .dchat-search-result-meta {
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-search-result-text {
+  font-size: 12px;
+  color: var(--dchat-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-search-empty {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+}
+
+/* 搜索结果定位高亮 */
+@keyframes dchat-hit {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  25% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--dchat-brand) 55%, transparent); }
+}
+.dchat-root .dchat-row.highlighted .dchat-bubble {
+  animation: dchat-hit 1.6s var(--dchat-ease);
+}
+
+@media (max-width: 720px) {
+  .dchat-root .dchat-settings-layout {
+    flex-direction: column;
+  }
+  .dchat-root .dchat-settings-nav {
+    width: auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--dchat-border-l1);
+    overflow-x: auto;
+  }
+  .dchat-root .dchat-settings-nav-item {
+    white-space: nowrap;
+  }
+  .dchat-root .dchat-settings-body {
+    padding: 16px;
+  }
+  .dchat-root .dchat-settings-actions {
+    padding: 10px 16px;
+  }
+  .dchat-root .dchat-friends-card > :not(.dchat-page-head) {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* ══ v2.0 消息管理 / 资料 ═══════════════════════════════════════════ */
+
+.dchat-root .dchat-row {
+  align-items: flex-end;
+}
+.dchat-root .dchat-row-avatar {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-right: 2px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 620;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+.dchat-root .dchat-act-danger:hover {
+  color: var(--dchat-err);
+  background: color-mix(in srgb, var(--dchat-err) 12%, transparent);
+}
+.dchat-root .dchat-bubble-deleted {
+  background: transparent !important;
+  border: 1px dashed var(--dchat-border-l2) !important;
+  box-shadow: none !important;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-deleted-text {
+  font-style: italic;
+  opacity: 0.8;
+}
+.dchat-root .dchat-forwarded {
+  margin-bottom: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.75;
+  border-left: 2px solid currentColor;
+  padding-left: 6px;
+}
+.dchat-root .dchat-edited {
+  font-size: 10px;
+  opacity: 0.65;
+  font-style: italic;
+}
+.dchat-root .dchat-edit-bar .dchat-edit-input {
+  height: 32px;
+  border-radius: var(--dchat-radius-sm);
+  margin-top: 2px;
+  width: 100%;
+}
+.dchat-root .dchat-forward-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 46vh;
+  overflow-y: auto;
+  margin: 0 -6px;
+}
+.dchat-root .dchat-forward-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-forward-item:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-forward-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-forward-current {
+  font-size: 10px;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-chat-muted {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dchat-label-2);
+  margin-right: 2px;
+}
+.dchat-root .dchat-chat-muted svg {
+  width: 12px;
+  height: 12px;
+}
+
+.dchat-root .dchat-skeleton {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  overflow: hidden;
+}
+.dchat-root .dchat-skeleton-row {
+  display: flex;
+}
+.dchat-root .dchat-skeleton-row.mine {
+  justify-content: flex-end;
+}
+.dchat-root .dchat-skeleton-bubble {
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--dchat-layer-1) 25%,
+    var(--dchat-layer-2) 37%,
+    var(--dchat-layer-1) 63%
+  );
+  background-size: 400% 100%;
+  animation: dchat-shimmer 1.4s ease infinite;
+}
+@keyframes dchat-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -2942,6 +3494,35 @@ window.__ModuleLoader__.load({
       h("circle", { key: "c", cx: 19, cy: 12, r: 1.6 }),
     );
 
+    const EDIT_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z" }),
+      h("path", { key: "b", d: "M13.5 6.5l3 3" }),
+    );
+
+    const TRASH_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M4 7h16" }),
+      h("path", { key: "b", d: "M9 7V5h6v2" }),
+      h("path", { key: "c", d: "M6 7l1 13h10l1-13" }),
+      h("path", { key: "d", d: "M10 11v5M14 11v5" }),
+    );
+
+    const FORWARD_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M4 12l16-7-4 16-4-6-8-3z" }),
+    );
+
+    const MUTE_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M6 9v6h4l5 4V5l-5 4H6z" }),
+      h("path", { key: "b", d: "M17 9l4 6M21 9l-4 6" }),
+    );
+
     const REPLY_ICON = h(
       "svg",
       { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
@@ -3024,6 +3605,38 @@ window.__ModuleLoader__.load({
       return (size / 1024 / 1024).toFixed(1) + " MB";
     }
 
+    function avatarUrlOf(file) {
+      if (!file) return "";
+      const value = String(file);
+      if (/^data:/i.test(value)) return value;
+      return "/dsh-chat-plugin/api/avatar?v=" + encodeURIComponent(value);
+    }
+
+    function Avatar(props) {
+      const size = Number(props.size) || 36;
+      const nick = String(props.nick || "");
+      const src = props.src || "";
+      const style = { width: size, height: size };
+      if (src) {
+        return h("img", {
+          className: "dchat-avatar-img" + (props.className ? " " + props.className : ""),
+          style,
+          src,
+          alt: nick,
+          loading: "lazy",
+        });
+      }
+      return h(
+        "span",
+        {
+          className: "dchat-avatar" + (props.className ? " " + props.className : ""),
+          style: { ...style, background: avatarColor(props.id || nick) },
+          "aria-hidden": "true",
+        },
+        initialsOf(nick),
+      );
+    }
+
     function fileUrlOf(file) {
       if (!file) return "";
       if (typeof file.url === "string" && /^data:/i.test(file.url)) return file.url;
@@ -3099,6 +3712,12 @@ window.__ModuleLoader__.load({
       { viewBox: "0 0 24 24", width: 12, height: 12, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
       h("rect", { key: "a", x: 5, y: 10, width: 14, height: 10, rx: 2.5 }),
       h("path", { key: "b", d: "M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" }),
+    );
+
+    const BACK_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M15 5l-7 7 7 7" }),
     );
 
     const SEARCH_ICON = h(
@@ -3284,9 +3903,31 @@ window.__ModuleLoader__.load({
       const meNick = props.meNick || "";
       const file = message.file && message.file.id ? message.file : null;
       const isImage = Boolean(file && /^image\//i.test(String(file.mime || "")));
+      const deleted = message.deleted === true;
+      const edited = message.edited === true;
+      const forwardedFrom = message.forwardedFrom ? String(message.forwardedFrom) : "";
       return h(
         "div",
-        { className: "dchat-row " + (mine ? "mine" : "theirs") + (grouped ? " grouped" : "") },
+        {
+          className:
+            "dchat-row " +
+            (mine ? "mine" : "theirs") +
+            (grouped ? " grouped" : "") +
+            (props.highlighted ? " highlighted" : ""),
+          "data-message-id": message.id,
+          "data-seq": message.seq,
+        },
+        props.showAvatar && !mine && !grouped
+          ? h(
+              "span",
+              {
+                className: "dchat-row-avatar",
+                style: { background: color },
+                "aria-hidden": "true",
+              },
+              initialsOf(nick),
+            )
+          : null,
         h(
           "div",
           { className: "dchat-stack" },
@@ -3305,7 +3946,9 @@ window.__ModuleLoader__.load({
           h(
             "div",
             { className: "dchat-bubble-wrap" },
-            h(
+            deleted
+              ? null
+              : h(
               "div",
               { className: "dchat-actions", role: "toolbar" },
               h(
@@ -3341,14 +3984,57 @@ window.__ModuleLoader__.load({
                 },
                 COPY_ICON,
               ),
+              mine && !file && text
+                ? h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-act",
+                      title: t("edit"),
+                      "aria-label": t("edit"),
+                      onClick: () => props.onEdit && props.onEdit(message),
+                    },
+                    EDIT_ICON,
+                  )
+                : null,
+              mine
+                ? h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-act dchat-act-danger",
+                      title: t("delete"),
+                      "aria-label": t("delete"),
+                      onClick: () => props.onDelete && props.onDelete(message),
+                    },
+                    TRASH_ICON,
+                  )
+                : null,
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-act",
+                  title: t("forward"),
+                  "aria-label": t("forward"),
+                  onClick: () => props.onForward && props.onForward(message),
+                },
+                FORWARD_ICON,
+              ),
             ),
             h(
               "div",
               {
-                className: "dchat-bubble" + (isImage ? " dchat-bubble-media" : ""),
+                className:
+                  "dchat-bubble" +
+                  (isImage ? " dchat-bubble-media" : "") +
+                  (deleted ? " dchat-bubble-deleted" : ""),
                 title: fullTimeTitle(message.ts),
               },
-              message.replyTo
+              deleted
+                ? h("span", { className: "dchat-text dchat-deleted-text" }, t("messageDeleted"))
+                : null,
+              !deleted && message.replyTo
                 ? h(
                     "div",
                     { className: "dchat-quote" },
@@ -3364,7 +4050,7 @@ window.__ModuleLoader__.load({
                       : null,
                   )
                 : null,
-              file
+              !deleted && file
                 ? isImage
                   ? h("img", {
                       className: "dchat-img",
@@ -3385,8 +4071,16 @@ window.__ModuleLoader__.load({
                       ),
                     )
                 : null,
-              text && (!file || text !== file.name)
-                ? h("span", { className: "dchat-text" }, renderMentions(text, meNick))
+              !deleted && forwardedFrom
+                ? h("div", { className: "dchat-forwarded" }, t("forwardedFrom") + " " + forwardedFrom)
+                : null,
+              !deleted && text && (!file || text !== file.name)
+                ? h(
+                    "span",
+                    { className: "dchat-text" },
+                    renderMentions(text, meNick),
+                    edited ? h("span", { className: "dchat-edited" }, " · " + t("editedTag")) : null,
+                  )
                 : null,
               showTime
                 ? h(
@@ -3618,6 +4312,16 @@ window.__ModuleLoader__.load({
       const [diagnosticBusy, setDiagnosticBusy] = useState(false);
       const [toast, setToast] = useState(null);
       const [searchOpen, setSearchOpen] = useState(false);
+      const [settingsTab, setSettingsTab] = useState("profile");
+      const [avatarBusy, setAvatarBusy] = useState(false);
+      const [globalOpen, setGlobalOpen] = useState(false);
+      const [globalQuery, setGlobalQuery] = useState("");
+      const [globalBusy, setGlobalBusy] = useState(false);
+      const [globalResults, setGlobalResults] = useState({ messages: [], chats: [] });
+      const [pendingJump, setPendingJump] = useState(null);
+      const [highlightId, setHighlightId] = useState("");
+      const [editing, setEditing] = useState(null);
+      const [forwardFor, setForwardFor] = useState(null);
       const [searchQuery, setSearchQuery] = useState("");
       const [dragActive, setDragActive] = useState(false);
       const [uploading, setUploading] = useState(null);
@@ -3641,6 +4345,8 @@ window.__ModuleLoader__.load({
       const [unreadAnchor, setUnreadAnchor] = useState(0);
       const anchorRoomRef = useRef(null);
       const fileInputRef = useRef(null);
+      const avatarInputRef = useRef(null);
+      const saveNoticeTimerRef = useRef(null);
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
 
@@ -4170,6 +4876,44 @@ window.__ModuleLoader__.load({
         void refresh();
       }, [refresh]);
 
+      /** 上传/更换个人头像（Host 侧存到 stateDir/avatars）。 */
+      const uploadAvatar = useCallback(
+        async (file) => {
+          if (!file) return;
+          if (!/^image\//i.test(file.type || "")) {
+            setSaveNotice({ kind: "err", text: t("avatarType") });
+            return;
+          }
+          setAvatarBusy(true);
+          try {
+            const response = await fetch("/dsh-chat-plugin/api/avatar", {
+              method: "POST",
+              headers: { "x-file-type": file.type || "image/png" },
+              body: file,
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.ok === false) {
+              throw new Error(data.error || t("uploadFailed"));
+            }
+            if (saveNoticeTimerRef.current) clearTimeout(saveNoticeTimerRef.current);
+            setSaveNotice({ kind: "ok", text: t("saved") });
+            saveNoticeTimerRef.current = setTimeout(() => {
+              saveNoticeTimerRef.current = null;
+              if (mountedRef.current) setSaveNotice(null);
+            }, 2000);
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) {
+              setSaveNotice({ kind: "err", text: (error && error.message) || t("uploadFailed") });
+            }
+          } finally {
+            if (mountedRef.current) setAvatarBusy(false);
+            if (avatarInputRef.current) avatarInputRef.current.value = "";
+          }
+        },
+        [refresh],
+      );
+
       /** 选择并上传图片/文件（原始字节直传 Host，Host 加密后传中继）。 */
       const uploadFile = useCallback(
         async (file) => {
@@ -4542,6 +5286,94 @@ window.__ModuleLoader__.load({
         };
       }, [snapshot && snapshot.unread]);
 
+      // ⌘K / Ctrl+K 打开全局搜索；Esc 关闭。
+      useEffect(() => {
+        if (typeof window === "undefined") return;
+        const onKeyDown = (event) => {
+          if ((event.metaKey || event.ctrlKey) && String(event.key).toLowerCase() === "k") {
+            event.preventDefault();
+            setGlobalOpen((open) => !open);
+          }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+      }, []);
+
+      // 全局搜索：请求 Host /search（失败时在本机范围内兜底）。
+      useEffect(() => {
+        if (!globalOpen) return undefined;
+        const query = globalQuery.trim();
+        if (!query) {
+          setGlobalResults({ messages: [], chats: [] });
+          return undefined;
+        }
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+          setGlobalBusy(true);
+          try {
+            const data = await request("/search?q=" + encodeURIComponent(query), {
+              method: "GET",
+              headers: { accept: "application/json" },
+              cache: "no-store",
+            });
+            if (cancelled) return;
+            setGlobalResults({
+              messages: Array.isArray(data && data.messages) ? data.messages : [],
+              chats: Array.isArray(data && data.chats) ? data.chats : [],
+            });
+          } catch (error) {
+            if (cancelled) return;
+            const lower = query.toLowerCase();
+            const localChats = (chats || [])
+              .filter((chat) => String(chat.title || "").toLowerCase().includes(lower))
+              .map((chat) => ({ id: chat.id, title: chat.title, room: chat.room }));
+            const localMessages = (messages || [])
+              .filter((message) =>
+                String(message.text || "").toLowerCase().includes(lower) ||
+                String((message.file && message.file.name) || "").toLowerCase().includes(lower),
+              )
+              .slice(-30)
+              .reverse()
+              .map((message) => ({
+                chatId: (chats && chats.find((c) => c.active) || {}).id,
+                chatTitle: snapshot ? snapshot.room : "",
+                room: snapshot ? snapshot.room : "",
+                id: message.id,
+                seq: message.seq,
+                ts: message.ts,
+                nick: message.nick,
+                text: message.text,
+              }));
+            setGlobalResults({ messages: localMessages, chats: localChats });
+          } finally {
+            if (!cancelled) setGlobalBusy(false);
+          }
+        }, 220);
+        return () => {
+          cancelled = true;
+          clearTimeout(timer);
+        };
+      }, [globalOpen, globalQuery, chats, messages, snapshot]);
+
+      // 跳转到搜索结果消息并短暂高亮。
+      useEffect(() => {
+        if (!pendingJump || typeof document === "undefined") return;
+        const found = (messages || []).some((message) => message && message.id === pendingJump.id);
+        if (!found) return;
+        const timer = setTimeout(() => {
+          const element = document.querySelector(
+            '[data-message-id="' + String(pendingJump.id).replace(/"/g, "") + '"]',
+          );
+          if (element && typeof element.scrollIntoView === "function") {
+            element.scrollIntoView({ block: "center", behavior: "smooth" });
+          }
+          setHighlightId(pendingJump.id);
+          setPendingJump(null);
+          setTimeout(() => setHighlightId(""), 1800);
+        }, 120);
+        return () => clearTimeout(timer);
+      }, [pendingJump, messages]);
+
       // Esc 关闭所有浮层 / 取消回复。
       useEffect(() => {
         if (typeof window === "undefined") return;
@@ -4558,11 +5390,109 @@ window.__ModuleLoader__.load({
           setPreview(null);
           setSearchOpen(false);
           setSearchQuery("");
+          setGlobalOpen(false);
           if (settingsOpen) setSettingsOpen(false);
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
       }, [settingsOpen]);
+
+      /** 消息管理：编辑 / 撤回 / 转发 / 静音。 */
+      const startEdit = useCallback((message) => {
+        if (!message || !message.mine || message.deleted || message.file) return;
+        setReplyTo(null);
+        setEditing({ id: message.id, text: String(message.text || "") });
+      }, []);
+
+      const submitEdit = useCallback(async () => {
+        if (!editing || !String(editing.text || "").trim()) return;
+        try {
+          await request("/edit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ id: editing.id, text: String(editing.text).trim() }),
+          });
+          setEditing(null);
+          void refresh();
+        } catch (error) {
+          if (mountedRef.current) {
+            setSendError((error && error.message) || t("sendingFailed"));
+          }
+        }
+      }, [editing, refresh]);
+
+      const removeMessage = useCallback(
+        async (message) => {
+          if (!message || !message.mine) return;
+          if (
+            typeof window !== "undefined" &&
+            typeof window.confirm === "function" &&
+            !window.confirm(t("deleteConfirm"))
+          ) {
+            return;
+          }
+          try {
+            await request("/delete", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: message.id }),
+            });
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) {
+              setSendError((error && error.message) || t("sendingFailed"));
+            }
+          }
+        },
+        [refresh],
+      );
+
+      const startForward = useCallback((message) => {
+        if (!message || message.deleted) return;
+        setForwardFor(message);
+      }, []);
+
+      const doForward = useCallback(
+        async (chatId) => {
+          if (!forwardFor || !chatId) return;
+          try {
+            const data = await request("/forward", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: forwardFor.id, chatId }),
+            });
+            if (data && data.state) {
+              const next = normalizeSnapshot(data.state);
+              if (next) setSnapshot(next);
+            }
+            setForwardFor(null);
+            setEditing(null);
+            await loadChats();
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) {
+              setSendError((error && error.message) || t("sendingFailed"));
+            }
+          }
+        },
+        [forwardFor, loadChats, refresh],
+      );
+
+      const toggleMuteChat = useCallback(async () => {
+        if (!currentChat) return;
+        try {
+          await request("/chats/mute", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ id: currentChat.id, muted: !currentChat.muted }),
+          });
+          await loadChats();
+        } catch (error) {
+          if (mountedRef.current) {
+            setSendError((error && error.message) || t("unreachable"));
+          }
+        }
+      }, [currentChat, loadChats]);
 
       const banner = hostMissing
         ? h("div", { className: "dchat-banner" }, t("hostMissing"))
@@ -4664,291 +5594,415 @@ window.__ModuleLoader__.load({
 
       const settingsSection = (title, children) =>
         h(
-          "div",
+          "section",
           { className: "dchat-settings-section" },
           h("div", { className: "dchat-settings-section-title" }, title),
           ...children,
         );
 
+      const settingsField = (label, input, hint) =>
+        h(
+          "div",
+          { className: "dchat-field" },
+          h("span", null, label),
+          input,
+          hint ? h("div", { className: "dchat-hint" }, hint) : null,
+        );
+
+      const settingsTabs = [
+        { id: "profile", label: t("settingsProfile") },
+        { id: "chat", label: t("settingsChat") },
+        { id: "notifications", label: t("settingsNotify") },
+        { id: "privacy", label: t("settingsDiscover") },
+        { id: "connection", label: t("settingsRoom") },
+        { id: "about", label: t("settingsAbout") },
+      ];
+
       const settingsView =
         settingsOpen && form
           ? h(
               "div",
-              { className: "dchat-settings" },
+              { className: "dchat-settings dchat-page" },
               h(
                 "div",
-                { className: "dchat-settings-head" },
-                h("span", { className: "dchat-settings-title" }, t("settingsTitle")),
+                { className: "dchat-page-head" },
                 h(
                   "button",
                   {
                     type: "button",
                     className: "dchat-icon-btn",
-                    "aria-label": t("collapse"),
-                    title: t("collapse"),
-                    onClick: toggleSettings,
-                    style: { marginLeft: "auto" },
+                    "aria-label": t("back"),
+                    title: t("back"),
+                    onClick: () => setSettingsOpen(false),
                   },
-                  CLOSE_ICON,
+                  BACK_ICON,
                 ),
+                h("span", { className: "dchat-page-title" }, t("settingsTitle")),
+                h("span", { className: "dchat-page-spacer" }),
+                h("span", { className: "dchat-settings-version" }, t("aboutVersion")),
               ),
               h(
                 "div",
-                { className: "dchat-settings-body" },
-                settingsSection(t("settingsProfile"), [
-                  h(
-                    "div",
-                    { className: "dchat-field" },
-                    h("span", null, t("nickname")),
-                    h("input", {
-                      className: "dchat-input",
-                      type: "text",
-                      value: form.nickname,
-                      placeholder: t("nicknameHint"),
-                      "aria-label": t("nickname"),
-                      maxLength: 40,
-                      onChange: (event) => updateForm({ nickname: event.target.value }),
-                    }),
-                    h("div", { className: "dchat-hint" }, t("nicknameHelp")),
-                  ),
-                  h(
-                    "div",
-                    { className: "dchat-field" },
-                    h("span", null, t("agentId")),
+                { className: "dchat-settings-layout" },
+                h(
+                  "nav",
+                  { className: "dchat-settings-nav", "aria-label": t("settingsTitle") },
+                  ...settingsTabs.map((tab) =>
                     h(
-                      "div",
-                      { className: "dchat-id-row" },
-                      h(
-                        "code",
-                        { className: "dchat-agentid" },
-                        formatAgentId(
-                          (snapshot && snapshot.me && snapshot.me.agentId) ||
-                            (form && form.agentId) ||
-                            "",
-                        ) || "········",
-                      ),
-                      h(
-                        "button",
-                        {
-                          type: "button",
-                          className: "dchat-small-btn ghost",
-                          onClick: () =>
-                            copyMessageText(
-                              formatAgentId(
-                                (snapshot && snapshot.me && snapshot.me.agentId) ||
-                                  (form && form.agentId) ||
-                                  "",
+                      "button",
+                      {
+                        key: tab.id,
+                        type: "button",
+                        className:
+                          "dchat-settings-nav-item" + (settingsTab === tab.id ? " active" : ""),
+                        onClick: () => setSettingsTab(tab.id),
+                      },
+                      tab.label,
+                    ),
+                  ),
+                ),
+                h(
+                  "div",
+                  { className: "dchat-settings-body" },
+                  settingsTab === "profile"
+                    ? [
+                        settingsSection(t("settingsProfile"), [
+                          h(
+                            "div",
+                            { className: "dchat-avatar-edit" },
+                            h(Avatar, {
+                              nick: form.nickname || (me && me.nick) || "",
+                              id: me && me.id,
+                              src:
+                                form.avatar || (me && me.avatar)
+                                  ? avatarUrlOf(form.avatar || (me && me.avatar))
+                                  : "",
+                              size: 56,
+                            }),
+                            h(
+                              "div",
+                              { className: "dchat-avatar-edit-info" },
+                              h(
+                                "button",
+                                {
+                                  type: "button",
+                                  className: "dchat-small-btn",
+                                  disabled: avatarBusy,
+                                  onClick: () =>
+                                    avatarInputRef.current && avatarInputRef.current.click(),
+                                },
+                                avatarBusy ? t("uploading") : t("changeAvatar"),
+                              ),
+                              h("div", { className: "dchat-hint" }, t("avatarHint")),
+                            ),
+                            h("input", {
+                              ref: avatarInputRef,
+                              type: "file",
+                              accept: "image/*",
+                              style: { display: "none" },
+                              onChange: (event) => {
+                                const file = event.target.files && event.target.files[0];
+                                if (file) void uploadAvatar(file);
+                              },
+                            }),
+                          ),
+                          settingsField(
+                            t("nickname"),
+                            h("input", {
+                              className: "dchat-input",
+                              type: "text",
+                              value: form.nickname,
+                              placeholder: t("nicknameHint"),
+                              "aria-label": t("nickname"),
+                              maxLength: 40,
+                              onChange: (event) => updateForm({ nickname: event.target.value }),
+                            }),
+                            t("nicknameHelp"),
+                          ),
+                          settingsField(
+                            t("statusLabel"),
+                            h("input", {
+                              className: "dchat-input",
+                              type: "text",
+                              value: form.status || "",
+                              placeholder: t("statusHint"),
+                              "aria-label": t("statusLabel"),
+                              maxLength: 80,
+                              onChange: (event) => updateForm({ status: event.target.value }),
+                            }),
+                            t("statusHint"),
+                          ),
+                          h(
+                            "div",
+                            { className: "dchat-field" },
+                            h("span", null, t("agentId")),
+                            h(
+                              "div",
+                              { className: "dchat-id-row" },
+                              h(
+                                "code",
+                                { className: "dchat-agentid" },
+                                formatAgentId(
+                                  (me && me.agentId) || (form && form.agentId) || "",
+                                ) || "········",
+                              ),
+                              h(
+                                "button",
+                                {
+                                  type: "button",
+                                  className: "dchat-small-btn ghost",
+                                  onClick: () =>
+                                    copyMessageText(
+                                      formatAgentId(
+                                        (me && me.agentId) || (form && form.agentId) || "",
+                                      ),
+                                    ),
+                                },
+                                t("copyId"),
                               ),
                             ),
-                        },
-                        t("copyId"),
-                      ),
-                    ),
-                    h("div", { className: "dchat-hint" }, t("agentIdHint")),
-                  ),
-                ]),
-                settingsSection(t("settingsChat"), [
-                  h(
-                    "div",
-                    { className: "dchat-settings-row" },
-                    h("input", {
-                      className: "dchat-input",
-                      type: "text",
-                      value: chatTitleDraft,
-                      placeholder: t("chatNamePlaceholder"),
-                      "aria-label": t("currentChat"),
-                      onChange: (event) => setChatTitleDraft(event.target.value),
-                    }),
-                    h(
-                      "button",
-                      {
-                        type: "button",
-                        className: "dchat-small-btn",
-                        disabled: !currentChat,
-                        onClick: renameCurrentChat,
-                      },
-                      t("rename"),
-                    ),
-                    h(
-                      "button",
-                      {
-                        type: "button",
-                        className: "dchat-small-btn ghost",
-                        disabled: !currentChat,
-                        onClick: leaveCurrentChat,
-                      },
-                      t("leaveChat"),
-                    ),
-                  ),
-                  h("div", { className: "dchat-hint" }, "当前房间 #" + (snapshot ? snapshot.room : "-")),
-                ]),
-                settingsSection(t("settingsAutomation"), [
-                  h(
-                    "label",
-                    { className: "dchat-check" },
-                    h("input", {
-                      type: "checkbox",
-                      checked: form.agentAutoReply === true,
-                      onChange: (event) => updateForm({ agentAutoReply: event.target.checked }),
-                    }),
-                    t("agentAutoReply"),
-                  ),
-                  h("div", { className: "dchat-hint" }, t("agentAutoReplyHint")),
-                ]),
-                settingsSection(t("settingsNotify"), [
-                  h(
-                    "label",
-                    { className: "dchat-check" },
-                    h("input", { type: "checkbox", checked: notifyEnabled, onChange: toggleNotify }),
-                    t("notifications"),
-                  ),
-                  h("div", { className: "dchat-hint" }, notifyError || t("notificationsHint")),
-                ]),
-                settingsSection(t("settingsRoom"), [
-                  h(
-                    "div",
-                    { className: "dchat-settings-grid" },
-                    h(
-                      "div",
-                      { className: "dchat-field" },
-                      h("span", null, t("roomName")),
-                      h("input", {
-                        className: "dchat-input",
-                        type: "text",
-                        value: form.room,
-                        placeholder: t("roomPlaceholder"),
-                        "aria-label": t("roomName"),
-                        maxLength: 64,
-                        onChange: (event) => updateForm({ room: event.target.value }),
-                      }),
-                    ),
-                    h(
-                      "div",
-                      { className: "dchat-field" },
-                      h("span", null, t("relayKind")),
-                      h(
-                        "select",
-                        {
-                          className: "dchat-select",
-                          value: form.relayKind,
-                          "aria-label": t("relayKind"),
-                          onChange: (event) => updateForm({ relayKind: event.target.value }),
-                        },
-                        h("option", { value: "ntfy" }, t("relayNtfy")),
-                        h("option", { value: "custom" }, t("relayCustom")),
-                      ),
-                    ),
-                    h(
-                      "div",
-                      { className: "dchat-field dchat-field-full" },
-                      h("span", null, t("passphrase")),
-                      h("input", {
-                        className: "dchat-input",
-                        type: "password",
-                        autoComplete: "new-password",
-                        value: form.passphrase,
-                        placeholder: form.passphraseSet ? t("passphraseSet") : t("passphraseEmpty"),
-                        "aria-label": t("passphrase"),
-                        disabled: form.clearPassphrase === true,
-                        onChange: (event) =>
-                          updateForm({ passphrase: event.target.value, clearPassphrase: false }),
-                      }),
-                      form.passphraseSet
-                        ? h(
-                            "label",
-                            { className: "dchat-check" },
-                            h("input", {
-                              type: "checkbox",
-                              checked: form.clearPassphrase === true,
-                              onChange: (event) =>
-                                updateForm({ clearPassphrase: event.target.checked }),
-                            }),
-                            t("clearPassphrase"),
-                          )
-                        : null,
-                    ),
-                    h(
-                      "div",
-                      { className: "dchat-field dchat-field-full" },
-                      h("span", null, t("relayUrl")),
-                      h("input", {
-                        className: "dchat-input",
-                        type: "text",
-                        value: form.relayUrl,
-                        placeholder: t("relayUrlPlaceholder"),
-                        "aria-label": t("relayUrl"),
-                        onChange: (event) => updateForm({ relayUrl: event.target.value }),
-                      }),
-                    ),
-                  ),
-                  h("div", { className: "dchat-hint" }, t("lobbyHint")),
-                ]),
-                settingsSection(t("settingsDiscover"), [
-                  h(
-                    "label",
-                    { className: "dchat-check" },
-                    h("input", {
-                      type: "checkbox",
-                      checked: social ? social.discoverable === true : false,
-                      onChange: toggleDiscoverable,
-                    }),
-                    t("discoverToggle"),
-                  ),
-                  h("div", { className: "dchat-hint" }, t("discoverHint")),
-                ]),
-                settingsSection(t("settingsAdvanced"), [
-                  h(
-                    "div",
-                    { className: "dchat-settings-row" },
-                    h(
-                      "button",
-                      {
-                        type: "button",
-                        className: "dchat-small-btn ghost",
-                        onClick: () => {
-                          setSettingsOpen(false);
-                          openOnboarding();
-                        },
-                      },
-                      t("settingsGuide"),
-                    ),
-                    h(
-                      "button",
-                      {
-                        type: "button",
-                        className: "dchat-small-btn ghost",
-                        onClick: openInvite,
-                      },
-                      t("settingsInvite"),
-                    ),
-                    h(
-                      "button",
-                      {
-                        type: "button",
-                        className: "dchat-small-btn ghost",
-                        disabled: diagnosticBusy,
-                        onClick: runDiagnostics,
-                      },
-                      diagnosticBusy ? t("diagnosticsTesting") : t("diagnostics"),
-                    ),
-                  ),
-                  diagnostic
-                    ? h(
-                        "div",
-                        { className: "dchat-diagnostics" },
-                        diagnostic.ok !== false && diagnostic.relay
-                          ? (diagnostic.relay.reachable ? "✓ " : "") +
-                            t("diagnosticsOk") +
-                            " · " +
-                            String(diagnostic.relay.kind) +
-                            " · " +
-                            String(diagnostic.relay.latencyMs) +
-                            "ms" +
-                            (diagnostic.relay.reachable ? "" : "（" + (diagnostic.relay.error || diagnostic.relay.status) + "）")
-                          : (diagnostic.error || t("diagnosticsFail")),
-                      )
-                    : null,
-                ]),
+                            h("div", { className: "dchat-hint" }, t("agentIdHint")),
+                          ),
+                        ]),
+                      ]
+                    : settingsTab === "chat"
+                      ? [
+                          settingsSection(t("settingsChat"), [
+                            h(
+                              "div",
+                              { className: "dchat-settings-row" },
+                              h("input", {
+                                className: "dchat-input",
+                                type: "text",
+                                value: chatTitleDraft,
+                                placeholder: t("chatNamePlaceholder"),
+                                "aria-label": t("currentChat"),
+                                onChange: (event) => setChatTitleDraft(event.target.value),
+                              }),
+                              h(
+                                "button",
+                                {
+                                  type: "button",
+                                  className: "dchat-small-btn",
+                                  disabled: !currentChat,
+                                  onClick: renameCurrentChat,
+                                },
+                                t("rename"),
+                              ),
+                              h(
+                                "button",
+                                {
+                                  type: "button",
+                                  className: "dchat-small-btn ghost",
+                                  disabled: !currentChat,
+                                  onClick: leaveCurrentChat,
+                                },
+                                t("leaveChat"),
+                              ),
+                            ),
+                            h(
+                              "div",
+                              { className: "dchat-hint" },
+                              t("currentChat") + " · #" + (snapshot ? snapshot.room : "-"),
+                            ),
+                          ]),
+                        ]
+                      : settingsTab === "notifications"
+                        ? [
+                            settingsSection(t("settingsAutomation"), [
+                              h(
+                                "label",
+                                { className: "dchat-check" },
+                                h("input", {
+                                  type: "checkbox",
+                                  checked: form.agentAutoReply === true,
+                                  onChange: (event) =>
+                                    updateForm({ agentAutoReply: event.target.checked }),
+                                }),
+                                t("agentAutoReply"),
+                              ),
+                              h("div", { className: "dchat-hint" }, t("agentAutoReplyHint")),
+                            ]),
+                            settingsSection(t("settingsNotify"), [
+                              h(
+                                "label",
+                                { className: "dchat-check" },
+                                h("input", {
+                                  type: "checkbox",
+                                  checked: notifyEnabled,
+                                  onChange: toggleNotify,
+                                }),
+                                t("notifications"),
+                              ),
+                              h("div", { className: "dchat-hint" }, notifyError || t("notificationsHint")),
+                            ]),
+                          ]
+                        : settingsTab === "privacy"
+                          ? [
+                              settingsSection(t("settingsDiscover"), [
+                                h(
+                                  "label",
+                                  { className: "dchat-check" },
+                                  h("input", {
+                                    type: "checkbox",
+                                    checked: social ? social.discoverable === true : false,
+                                    onChange: toggleDiscoverable,
+                                  }),
+                                  t("discoverToggle"),
+                                ),
+                                h("div", { className: "dchat-hint" }, t("discoverHint")),
+                                h("div", { className: "dchat-hint" }, t("agentIdHint")),
+                              ]),
+                            ]
+                          : settingsTab === "connection"
+                            ? [
+                                settingsSection(t("settingsRoom"), [
+                                  h(
+                                    "div",
+                                    { className: "dchat-settings-grid" },
+                                    settingsField(
+                                      t("roomName"),
+                                      h("input", {
+                                        className: "dchat-input",
+                                        type: "text",
+                                        value: form.room,
+                                        placeholder: t("roomPlaceholder"),
+                                        "aria-label": t("roomName"),
+                                        maxLength: 64,
+                                        onChange: (event) => updateForm({ room: event.target.value }),
+                                      }),
+                                    ),
+                                    settingsField(
+                                      t("relayKind"),
+                                      h(
+                                        "select",
+                                        {
+                                          className: "dchat-select",
+                                          value: form.relayKind,
+                                          "aria-label": t("relayKind"),
+                                          onChange: (event) =>
+                                            updateForm({ relayKind: event.target.value }),
+                                        },
+                                        h("option", { value: "ntfy" }, t("relayNtfy")),
+                                        h("option", { value: "custom" }, t("relayCustom")),
+                                      ),
+                                    ),
+                                    h(
+                                      "div",
+                                      { className: "dchat-field dchat-field-full" },
+                                      h("span", null, t("passphrase")),
+                                      h("input", {
+                                        className: "dchat-input",
+                                        type: "password",
+                                        autoComplete: "new-password",
+                                        value: form.passphrase,
+                                        placeholder: form.passphraseSet
+                                          ? t("passphraseSet")
+                                          : t("passphraseEmpty"),
+                                        "aria-label": t("passphrase"),
+                                        disabled: form.clearPassphrase === true,
+                                        onChange: (event) =>
+                                          updateForm({
+                                            passphrase: event.target.value,
+                                            clearPassphrase: false,
+                                          }),
+                                      }),
+                                      form.passphraseSet
+                                        ? h(
+                                            "label",
+                                            { className: "dchat-check" },
+                                            h("input", {
+                                              type: "checkbox",
+                                              checked: form.clearPassphrase === true,
+                                              onChange: (event) =>
+                                                updateForm({ clearPassphrase: event.target.checked }),
+                                            }),
+                                            t("clearPassphrase"),
+                                          )
+                                        : null,
+                                    ),
+                                    h(
+                                      "div",
+                                      { className: "dchat-field dchat-field-full" },
+                                      h("span", null, t("relayUrl")),
+                                      h("input", {
+                                        className: "dchat-input",
+                                        type: "text",
+                                        value: form.relayUrl,
+                                        placeholder: t("relayUrlPlaceholder"),
+                                        "aria-label": t("relayUrl"),
+                                        onChange: (event) => updateForm({ relayUrl: event.target.value }),
+                                      }),
+                                    ),
+                                  ),
+                                  h("div", { className: "dchat-hint" }, t("lobbyHint")),
+                                  h(
+                                    "div",
+                                    { className: "dchat-settings-row" },
+                                    h(
+                                      "button",
+                                      {
+                                        type: "button",
+                                        className: "dchat-small-btn ghost",
+                                        disabled: diagnosticBusy,
+                                        onClick: runDiagnostics,
+                                      },
+                                      diagnosticBusy ? t("diagnosticsTesting") : t("diagnostics"),
+                                    ),
+                                    diagnostic
+                                      ? h(
+                                          "span",
+                                          { className: "dchat-diagnostics" },
+                                          diagnostic.ok !== false && diagnostic.relay
+                                            ? (diagnostic.relay.reachable ? "✓ " : "") +
+                                              t("diagnosticsOk") +
+                                              " · " +
+                                              String(diagnostic.relay.kind) +
+                                              " · " +
+                                              String(diagnostic.relay.latencyMs) +
+                                              "ms"
+                                            : diagnostic.error || t("diagnosticsFail"),
+                                        )
+                                      : null,
+                                  ),
+                                ]),
+                              ]
+                            : [
+                                settingsSection(t("settingsAbout"), [
+                                  h(
+                                    "div",
+                                    { className: "dchat-settings-row" },
+                                    h(
+                                      "button",
+                                      {
+                                        type: "button",
+                                        className: "dchat-small-btn ghost",
+                                        onClick: () => {
+                                          setSettingsOpen(false);
+                                          openOnboarding();
+                                        },
+                                      },
+                                      t("settingsGuide"),
+                                    ),
+                                    h(
+                                      "button",
+                                      {
+                                        type: "button",
+                                        className: "dchat-small-btn ghost",
+                                        onClick: openInvite,
+                                      },
+                                      t("settingsInvite"),
+                                    ),
+                                  ),
+                                  h(
+                                    "div",
+                                    { className: "dchat-about" },
+                                    h("div", { className: "dchat-about-brand" }, h(BrandMark, { size: 28 }), h("span", null, t("aboutVersion"))),
+                                    h("div", { className: "dchat-hint" }, t("aboutHint")),
+                                  ),
+                                ]),
+                              ],
+                ),
               ),
               h(
                 "div",
@@ -4969,186 +6023,6 @@ window.__ModuleLoader__.load({
             )
           : null;
 
-      // 会话内搜索：只过滤展示，不改动真实消息顺序。
-      const searchActive = searchOpen && searchQuery.trim().length > 0;
-      const searchLower = searchQuery.trim().toLowerCase();
-      const listMessages = searchActive
-        ? messages.filter((message) => {
-            if (!message || typeof message !== "object") return false;
-            const haystack = [
-              message.text,
-              message.nick,
-              message.file && message.file.name,
-            ]
-              .filter(Boolean)
-              .join(" ")
-              .toLowerCase();
-            return haystack.includes(searchLower);
-          })
-        : messages;
-
-      // 消息列表 + 日期分隔 + 未读分隔线。
-      const messageChildren = [];
-      const msgMap = new Map();
-      for (const message of messages) {
-        if (message && message.id) msgMap.set(message.id, message);
-      }
-      if (snapshot) {
-        let lastDay = "";
-        let dividerInserted = false;
-        listMessages.forEach((message, index) => {
-          if (!message || typeof message !== "object") return;
-          const day = dayLabel(message.ts);
-          if (!searchActive && day && day !== lastDay) {
-            messageChildren.push(
-              h("div", { key: "day-" + day + "-" + index, className: "dchat-day" }, day),
-            );
-            lastDay = day;
-          }
-          const mine =
-            message.mine === true || Boolean(me && me.id && message.from === me.id);
-          const seq = message.seq;
-          const key =
-            seq == null
-              ? "msg-i-" + index
-              : "msg-s-" + String(seq) + (message.id ? "-" + String(message.id) : "");
-          const previous = index > 0 ? listMessages[index - 1] : null;
-          const grouped =
-            Boolean(previous) &&
-            (previous.mine === true) === (message.mine === true) &&
-            String(previous.nick || previous.from || "") === String(message.nick || message.from || "") &&
-            new Date(Number(previous.ts) || 0).toDateString() ===
-              new Date(Number(message.ts) || 0).toDateString() &&
-            Math.abs((Number(message.ts) || 0) - (Number(previous.ts) || 0)) < 5 * 60 * 1000;
-          const next = index + 1 < listMessages.length ? listMessages[index + 1] : null;
-          const nextGrouped =
-            Boolean(next) &&
-            (next.mine === true) === (message.mine === true) &&
-            String(next.nick || next.from || "") === String(message.nick || message.from || "") &&
-            new Date(Number(next.ts) || 0).toDateString() ===
-              new Date(Number(message.ts) || 0).toDateString() &&
-            Math.abs((Number(next.ts) || 0) - (Number(message.ts) || 0)) < 5 * 60 * 1000;
-          const readByPeer =
-            mine && snapshot && Number(snapshot.peerReadSeq) >= Number(seq) && Number(seq) > 0;
-          if (!searchActive && !dividerInserted && unreadAnchor > 0 && Number(seq) >= unreadAnchor) {
-            dividerInserted = true;
-            messageChildren.push(
-              h("div", { key: "unread-divider", className: "dchat-unread-divider" }, t("unreadDivider")),
-            );
-          }
-          messageChildren.push(
-            h(MessageRow, {
-              key,
-              message,
-              mine,
-              grouped,
-              showTime: !nextGrouped,
-              readByPeer,
-              quoted: message.replyTo ? msgMap.get(message.replyTo) : null,
-              reactions: snapshot.reactions ? snapshot.reactions[message.id] : null,
-              pickerOpen: reactionFor === message.id,
-              meNick: me ? me.nick : "",
-              onReply: startReply,
-              onTogglePicker: toggleReactionPicker,
-              onReact: reactTo,
-              onCopy: copyMessageText,
-              onOpenImage: setPreview,
-            }),
-          );
-        });
-      }
-
-      const searchView = searchOpen
-        ? h(
-            "div",
-            { className: "dchat-searchbar" },
-            h("span", { className: "dchat-searchbar-icon" }, SEARCH_ICON),
-            h("input", {
-              className: "dchat-input",
-              type: "text",
-              autoFocus: true,
-              value: searchQuery,
-              placeholder: t("searchPlaceholder"),
-              "aria-label": t("searchPlaceholder"),
-              onChange: (event) => setSearchQuery(event.target.value),
-              onKeyDown: (event) => {
-                if (event.key === "Escape") {
-                  event.stopPropagation();
-                  setSearchOpen(false);
-                  setSearchQuery("");
-                }
-              },
-            }),
-            h(
-              "span",
-              { className: "dchat-searchbar-count" },
-              searchActive
-                ? listMessages.length === 0
-                  ? t("searchNoResults")
-                  : String(listMessages.length) + " " + t("searchCount")
-                : "",
-            ),
-            h(
-              "button",
-              {
-                type: "button",
-                className: "dchat-icon-btn",
-                "aria-label": t("closeSearch"),
-                title: t("closeSearch"),
-                onClick: () => {
-                  setSearchOpen(false);
-                  setSearchQuery("");
-                },
-              },
-              CLOSE_ICON,
-            ),
-          )
-        : null;
-
-      const bodyView = snapshot
-        ? h(
-            "div",
-            { className: "dchat-body" },
-            h(
-              "div",
-              {
-                className: "dchat-list",
-                ref: listRef,
-                onScroll: handleScroll,
-                role: "log",
-                "aria-label": t("messagesAria"),
-              },
-              messages.length === 0
-                ? h(ChatEmpty, {
-                    onInvite: openInvite,
-                    onFindFriends: () => setFriendsOpen(true),
-                    joinCode,
-                    onJoinCode: setJoinCode,
-                    onJoin: joinByCode,
-                    joining,
-                    joinError,
-                  })
-                : messageChildren,
-            ),
-            showJump
-              ? h(
-                  "button",
-                  { type: "button", className: "dchat-jump", onClick: jumpToBottom },
-                  ARROW_DOWN_ICON,
-                  t("jumpToBottom"),
-                )
-              : null,
-          )
-        : hostMissing || loadError
-          ? h(OfflinePlaceholder, null)
-          : h(
-              "div",
-              { className: "dchat-loading" },
-              h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
-              t("loading"),
-            );
-
-
       const friendsView = friendsOpen
         ? (() => {
             const directoryList = social && Array.isArray(social.directory) ? social.directory : [];
@@ -5167,25 +6041,26 @@ window.__ModuleLoader__.load({
             );
             return h(
               "div",
-              { className: "dchat-friends", role: "dialog", "aria-label": t("friendsTitle"), onMouseDown: (event) => { if (event.target === event.currentTarget) setFriendsOpen(false); } },
+              { className: "dchat-friends dchat-page", role: "dialog", "aria-label": t("friendsTitle") },
               h(
                 "div",
-                { className: "dchat-friends-card" },
+                { className: "dchat-friends-card dchat-page-card" },
                 h(
                   "div",
-                  { className: "dchat-friends-head" },
-                  h("span", { className: "dchat-invite-title" }, t("friendsTitle")),
+                  { className: "dchat-page-head" },
                   h(
                     "button",
                     {
                       type: "button",
                       className: "dchat-icon-btn",
-                      "aria-label": t("inviteClose"),
-                      title: t("inviteClose"),
+                      "aria-label": t("back"),
+                      title: t("back"),
                       onClick: () => setFriendsOpen(false),
                     },
-                    CLOSE_ICON,
+                    BACK_ICON,
                   ),
+                  h("span", { className: "dchat-page-title" }, t("friendsTitle")),
+                  h("span", { className: "dchat-page-spacer" }),
                 ),
                 socialError ? h("div", { className: "dchat-invite-error" }, socialError) : null,
                 h(
@@ -5586,6 +6461,14 @@ window.__ModuleLoader__.load({
                 },
               },
               { key: "rename", label: t("renameChat"), onClick: openRename },
+              {
+                key: "mute",
+                label: currentChat && currentChat.muted ? t("unmute") : t("mute"),
+                onClick: () => {
+                  setMenuOpen(false);
+                  void toggleMuteChat();
+                },
+              },
               { key: "leave", label: t("leaveChat"), onClick: leaveFromMenu, danger: true },
             ].map((item) =>
               h(
@@ -5675,6 +6558,199 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const searchActive = searchOpen && searchQuery.trim().length > 0;
+      const searchLower = searchQuery.trim().toLowerCase();
+      const listMessages = searchActive
+        ? messages.filter((message) => {
+            if (!message || typeof message !== "object") return false;
+            const haystack = [
+              message.text,
+              message.nick,
+              message.file && message.file.name,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(searchLower);
+          })
+        : messages;
+
+      // 消息列表 + 日期分隔 + 未读分隔线。
+      const messageChildren = [];
+      const msgMap = new Map();
+      for (const message of messages) {
+        if (message && message.id) msgMap.set(message.id, message);
+      }
+      if (snapshot) {
+        let lastDay = "";
+        let dividerInserted = false;
+        listMessages.forEach((message, index) => {
+          if (!message || typeof message !== "object") return;
+          const day = dayLabel(message.ts);
+          if (!searchActive && day && day !== lastDay) {
+            messageChildren.push(
+              h("div", { key: "day-" + day + "-" + index, className: "dchat-day" }, day),
+            );
+            lastDay = day;
+          }
+          const mine =
+            message.mine === true || Boolean(me && me.id && message.from === me.id);
+          const seq = message.seq;
+          const key =
+            seq == null
+              ? "msg-i-" + index
+              : "msg-s-" + String(seq) + (message.id ? "-" + String(message.id) : "");
+          const previous = index > 0 ? listMessages[index - 1] : null;
+          const grouped =
+            Boolean(previous) &&
+            (previous.mine === true) === (message.mine === true) &&
+            String(previous.nick || previous.from || "") === String(message.nick || message.from || "") &&
+            new Date(Number(previous.ts) || 0).toDateString() ===
+              new Date(Number(message.ts) || 0).toDateString() &&
+            Math.abs((Number(message.ts) || 0) - (Number(previous.ts) || 0)) < 5 * 60 * 1000;
+          const next = index + 1 < listMessages.length ? listMessages[index + 1] : null;
+          const nextGrouped =
+            Boolean(next) &&
+            (next.mine === true) === (message.mine === true) &&
+            String(next.nick || next.from || "") === String(message.nick || message.from || "") &&
+            new Date(Number(next.ts) || 0).toDateString() ===
+              new Date(Number(message.ts) || 0).toDateString() &&
+            Math.abs((Number(next.ts) || 0) - (Number(message.ts) || 0)) < 5 * 60 * 1000;
+          const readByPeer =
+            mine && snapshot && Number(snapshot.peerReadSeq) >= Number(seq) && Number(seq) > 0;
+          if (!searchActive && !dividerInserted && unreadAnchor > 0 && Number(seq) >= unreadAnchor) {
+            dividerInserted = true;
+            messageChildren.push(
+              h("div", { key: "unread-divider", className: "dchat-unread-divider" }, t("unreadDivider")),
+            );
+          }
+          messageChildren.push(
+            h(MessageRow, {
+              key,
+              message,
+              mine,
+              grouped,
+              showTime: !nextGrouped,
+              readByPeer,
+              quoted: message.replyTo ? msgMap.get(message.replyTo) : null,
+              reactions: snapshot.reactions ? snapshot.reactions[message.id] : null,
+              pickerOpen: reactionFor === message.id,
+              meNick: me ? me.nick : "",
+              onReply: startReply,
+              onTogglePicker: toggleReactionPicker,
+              onReact: reactTo,
+              onCopy: copyMessageText,
+              onOpenImage: setPreview,
+              onEdit: startEdit,
+              onDelete: removeMessage,
+              onForward: startForward,
+              showAvatar: Boolean(currentChat && currentChat.kind === "dm"),
+              highlighted: highlightId === message.id,
+            }),
+          );
+        });
+      }
+
+      const searchView = searchOpen
+        ? h(
+            "div",
+            { className: "dchat-searchbar" },
+            h("span", { className: "dchat-searchbar-icon" }, SEARCH_ICON),
+            h("input", {
+              className: "dchat-input",
+              type: "text",
+              autoFocus: true,
+              value: searchQuery,
+              placeholder: t("searchPlaceholder"),
+              "aria-label": t("searchPlaceholder"),
+              onChange: (event) => setSearchQuery(event.target.value),
+              onKeyDown: (event) => {
+                if (event.key === "Escape") {
+                  event.stopPropagation();
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                }
+              },
+            }),
+            h(
+              "span",
+              { className: "dchat-searchbar-count" },
+              searchActive
+                ? listMessages.length === 0
+                  ? t("searchNoResults")
+                  : String(listMessages.length) + " " + t("searchCount")
+                : "",
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-icon-btn",
+                "aria-label": t("closeSearch"),
+                title: t("closeSearch"),
+                onClick: () => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
+                },
+              },
+              CLOSE_ICON,
+            ),
+          )
+        : null;
+
+      const bodyView = snapshot
+        ? h(
+            "div",
+            { className: "dchat-body" },
+            h(
+              "div",
+              {
+                className: "dchat-list",
+                ref: listRef,
+                onScroll: handleScroll,
+                role: "log",
+                "aria-label": t("messagesAria"),
+              },
+              messages.length === 0
+                ? h(ChatEmpty, {
+                    onInvite: openInvite,
+                    onFindFriends: () => setFriendsOpen(true),
+                    joinCode,
+                    onJoinCode: setJoinCode,
+                    onJoin: joinByCode,
+                    joining,
+                    joinError,
+                  })
+                : messageChildren,
+            ),
+            showJump
+              ? h(
+                  "button",
+                  { type: "button", className: "dchat-jump", onClick: jumpToBottom },
+                  ARROW_DOWN_ICON,
+                  t("jumpToBottom"),
+                )
+              : null,
+          )
+        : hostMissing || loadError
+          ? h(OfflinePlaceholder, null)
+          : h(
+              "div",
+              { className: "dchat-skeleton", "aria-hidden": "true" },
+              ...[0, 1, 2, 3, 4].map((index) =>
+                h(
+                  "div",
+                  { key: "sk-" + index, className: "dchat-skeleton-row " + (index % 2 === 1 ? "mine" : "theirs") },
+                  h("div", {
+                    className: "dchat-skeleton-bubble",
+                    style: { width: index % 2 === 1 ? "38%" : index % 3 === 0 ? "52%" : "34%" },
+                  }),
+                ),
+              ),
+            );
+
+
+
       const replyBar = replyTo
         ? h(
             "div",
@@ -5699,6 +6775,111 @@ window.__ModuleLoader__.load({
                 onClick: () => setReplyTo(null),
               },
               CLOSE_ICON,
+            ),
+          )
+        : null;
+
+      const editBar = editing
+        ? h(
+            "div",
+            { className: "dchat-reply-bar dchat-edit-bar" },
+            h(
+              "div",
+              { className: "dchat-reply-info" },
+              h("div", { className: "dchat-reply-name" }, t("editMessage")),
+              h("input", {
+                className: "dchat-input dchat-edit-input",
+                value: editing.text,
+                autoFocus: true,
+                onChange: (event) => setEditing({ ...editing, text: event.target.value }),
+                onKeyDown: (event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void submitEdit();
+                  }
+                  if (event.key === "Escape") {
+                    event.stopPropagation();
+                    setEditing(null);
+                  }
+                },
+              }),
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-small-btn",
+                disabled: !String(editing.text || "").trim(),
+                onClick: () => void submitEdit(),
+              },
+              t("saveEdit"),
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-icon-btn",
+                "aria-label": t("cancelEdit"),
+                title: t("cancelEdit"),
+                onClick: () => setEditing(null),
+              },
+              CLOSE_ICON,
+            ),
+          )
+        : null;
+
+      const forwardView = forwardFor
+        ? h(
+            "div",
+            {
+              className: "dchat-invite",
+              role: "dialog",
+              "aria-label": t("forwardTitle"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setForwardFor(null);
+              },
+            },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("forwardTitle")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setForwardFor(null),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-forward-list" },
+                ...((chats || []).map((chat) =>
+                  h(
+                    "button",
+                    {
+                      key: "fw-" + chat.id,
+                      type: "button",
+                      className: "dchat-forward-item",
+                      onClick: () => void doForward(chat.id),
+                    },
+                    h(Avatar, {
+                      nick: chat.title || chat.room,
+                      id: chat.id,
+                      size: 28,
+                    }),
+                    h("span", { className: "dchat-forward-name" }, String(chat.title || chat.room)),
+                    chat.active ? h("span", { className: "dchat-forward-current" }, t("currentChat")) : null,
+                  ),
+                )),
+              ),
             ),
           )
         : null;
@@ -5886,6 +7067,9 @@ window.__ModuleLoader__.load({
           h(
             "span",
             { className: "dchat-chat-meta" },
+            chat.muted
+              ? h("span", { className: "dchat-chat-muted", title: t("muted") }, MUTE_ICON)
+              : null,
             chat.unread > 0
               ? h("span", { className: "dchat-chat-unread" }, chat.unread > 99 ? "99+" : String(chat.unread))
               : chat.lastTs
@@ -5905,20 +7089,28 @@ window.__ModuleLoader__.load({
           h("span", { className: "dchat-side-title" }, t("title")),
           h(
             "button",
-            { type: "button", className: "dchat-icon-btn", "aria-label": t("invite"), title: t("invite"), onClick: openInvite },
-            INVITE_ICON,
+            {
+              type: "button",
+              className: "dchat-icon-btn",
+              "aria-label": t("search") + " (⌘K)",
+              title: t("search") + " · ⌘K",
+              onClick: () => setGlobalOpen(true),
+            },
+            SEARCH_ICON,
           ),
           h(
             "button",
             {
               type: "button",
               className: "dchat-icon-btn",
-              "aria-expanded": settingsOpen ? "true" : "false",
-              "aria-label": t("settings"),
-              title: t("settings"),
-              onClick: toggleSettings,
+              "aria-label": t("newChat"),
+              title: t("newChat"),
+              onClick: () => {
+                setNewChatTitle("");
+                setCreateOpen(true);
+              },
             },
-            SETTINGS_ICON,
+            PLUS_ICON,
           ),
         ),
         h(
@@ -5972,27 +7164,48 @@ window.__ModuleLoader__.load({
           "div",
           { className: "dchat-side-foot" },
           h(
-            "div",
-            { className: "dchat-side-actions" },
-            h(
-              "button",
-              { type: "button", className: "dchat-discover-btn", onClick: () => setFriendsOpen(true) },
-              h("span", { className: "dchat-btn-icon" }, COMPASS_ICON),
-              t("findFriends") + (pendingList.length > 0 ? " · " + pendingList.length : ""),
-            ),
-            h(
-              "button",
-              {
-                type: "button",
-                className: "dchat-discover-btn",
-                title: t("newChat"),
-                onClick: () => {
-                  setNewChatTitle("");
-                  setCreateOpen(true);
-                },
+            "button",
+            {
+              type: "button",
+              className: "dchat-contacts-entry",
+              onClick: () => {
+                setFriendsOpen(true);
+                setSettingsOpen(false);
               },
-              PLUS_ICON,
+            },
+            h("span", { className: "dchat-btn-icon" }, PEOPLE_ICON),
+            t("contacts"),
+            pendingList.length > 0
+              ? h("span", { className: "dchat-side-entry-badge" }, pendingList.length > 9 ? "9+" : String(pendingList.length))
+              : null,
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-profile-card",
+              onClick: () => {
+                setSettingsOpen(true);
+                setFriendsOpen(false);
+              },
+            },
+            h(Avatar, {
+              nick: me ? me.nick : "",
+              id: me ? me.id : "me",
+              src: me && me.avatar ? avatarUrlOf(me.avatar) : "",
+              size: 34,
+            }),
+            h(
+              "span",
+              { className: "dchat-profile-info" },
+              h("span", { className: "dchat-profile-name" }, me ? me.nick : t("me")),
+              h(
+                "span",
+                { className: "dchat-profile-sub" },
+                (me && me.status) || (me && me.agentId ? formatAgentId(me.agentId) : status.text),
+              ),
             ),
+            h("span", { className: "dchat-icon-btn", "aria-hidden": "true" }, SETTINGS_ICON),
           ),
           h(
             "span",
@@ -6064,7 +7277,10 @@ window.__ModuleLoader__.load({
               className: "dchat-icon-btn",
               "aria-label": t("friends"),
               title: t("friendsTitle"),
-              onClick: () => setFriendsOpen(true),
+              onClick: () => {
+                setSettingsOpen(false);
+                setFriendsOpen(true);
+              },
             },
             PEOPLE_ICON,
             pendingList.length > 0
@@ -6074,11 +7290,6 @@ window.__ModuleLoader__.load({
                   pendingList.length > 9 ? "9+" : String(pendingList.length),
                 )
               : null,
-          ),
-          h(
-            "button",
-            { type: "button", className: "dchat-icon-btn", "aria-label": t("invite"), title: t("invite"), onClick: openInvite },
-            INVITE_ICON,
           ),
           h(
             "button",
@@ -6094,6 +7305,120 @@ window.__ModuleLoader__.load({
           ),
         ),
       );
+
+      const globalSearchView = globalOpen
+        ? h(
+            "div",
+            {
+              className: "dchat-searchmodal",
+              role: "dialog",
+              "aria-label": t("search"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setGlobalOpen(false);
+              },
+            },
+            h(
+              "div",
+              {
+                className: "dchat-searchmodal-card",
+                onMouseDown: (event) => event.stopPropagation(),
+              },
+              h(
+                "div",
+                { className: "dchat-searchmodal-input" },
+                h("span", { className: "dchat-searchbar-icon" }, SEARCH_ICON),
+                h("input", {
+                  type: "text",
+                  autoFocus: true,
+                  value: globalQuery,
+                  placeholder: t("globalSearchPlaceholder"),
+                  "aria-label": t("globalSearchPlaceholder"),
+                  onChange: (event) => setGlobalQuery(event.target.value),
+                  onKeyDown: (event) => {
+                    if (event.key === "Escape") {
+                      event.stopPropagation();
+                      setGlobalOpen(false);
+                    }
+                  },
+                }),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setGlobalOpen(false),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-searchmodal-results" },
+                !globalQuery.trim()
+                  ? h("div", { className: "dchat-search-empty" }, t("searchHint"))
+                  : globalBusy
+                    ? h("div", { className: "dchat-search-empty" }, t("loading"))
+                    : globalResults.chats.length === 0 && globalResults.messages.length === 0
+                      ? h("div", { className: "dchat-search-empty" }, t("searchNoResults"))
+                      : [
+                          globalResults.chats.length > 0
+                            ? h("div", { key: "sec-chats", className: "dchat-search-section" }, t("searchConversations"))
+                            : null,
+                          ...globalResults.chats.map((chat) =>
+                            h(
+                              "button",
+                              {
+                                key: "sc-" + chat.id,
+                                type: "button",
+                                className: "dchat-search-result",
+                                onClick: () => {
+                                  void switchChat(chat.id);
+                                  setGlobalOpen(false);
+                                  setGlobalQuery("");
+                                },
+                              },
+                              h("span", { className: "dchat-search-result-title" }, String(chat.title || chat.room)),
+                              h("span", { className: "dchat-search-result-meta" }, "#" + String(chat.room || "")),
+                            ),
+                          ),
+                          globalResults.messages.length > 0
+                            ? h("div", { key: "sec-msgs", className: "dchat-search-section" }, t("searchMessages"))
+                            : null,
+                          ...globalResults.messages.slice(0, 30).map((message, index) =>
+                            h(
+                              "button",
+                              {
+                                key: "sm-" + (message.id || index),
+                                type: "button",
+                                className: "dchat-search-result",
+                                onClick: () => {
+                                  if (message.chatId) void switchChat(message.chatId);
+                                  if (message.id) setPendingJump({ id: message.id });
+                                  setGlobalOpen(false);
+                                  setGlobalQuery("");
+                                },
+                              },
+                              h(
+                                "span",
+                                { className: "dchat-search-result-meta" },
+                                String(message.chatTitle || message.room || "") +
+                                  " · " +
+                                  String(message.nick || ""),
+                              ),
+                              h(
+                                "span",
+                                { className: "dchat-search-result-text" },
+                                String(message.text || (message.file && message.file.name) || ""),
+                              ),
+                            ),
+                          ),
+                        ],
+              ),
+            ),
+          )
+        : null;
 
       return h(
         "div",
@@ -6126,12 +7451,16 @@ window.__ModuleLoader__.load({
           sideView,
           h(
             "main",
-            { className: "dchat-main" },
+            {
+              className:
+                "dchat-main" + (settingsOpen || friendsOpen ? " dchat-main-page" : ""),
+            },
+            settingsView,
+            friendsView,
             mainHead,
             searchView,
             banner,
             requestBanner,
-            settingsView,
             snapshot && peers.length > 1 ? peersView : null,
             bodyView,
             sendError
@@ -6162,6 +7491,7 @@ window.__ModuleLoader__.load({
                   t("uploading") + " " + uploading.name,
                 )
               : null,
+            editBar,
             replyBar,
             composer,
           ),
@@ -6177,11 +7507,12 @@ window.__ModuleLoader__.load({
         menuOpen ? h("div", { className: "dchat-menu-backdrop", onClick: () => setMenuOpen(false) }) : null,
         menuView,
         inviteView,
-        friendsView,
         createView,
         onboardingView,
         membersView,
         previewView,
+        forwardView,
+        globalSearchView,
         toast ? h("div", { className: "dchat-toast" }, toast) : null,
       );
     }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0 — 2026-10-31
+- 产品化外壳：侧栏资料卡、通讯录页面、设置页面（6 分区 + 左导航 + 底部保存）
+- 个人资料：头像上传/服务（/profile、/avatar）、个性签名、Agent ID
+- 全局搜索（⌘K）：Host /search 跨会话消息与标题，点击跳转并高亮原消息
+- 消息管理：编辑、撤回、转发、会话静音（getState 携带 edited/deleted/forwardedFrom/muted）
+- 加载骨架屏替代转圈；侧栏/头部/页面的信息层级重排
+- Host 新增 API：/profile、/avatar、/search、/edit、/delete、/forward、/chats/mute；smoke 87 项
+- 截图/README 更新
+
 ## 1.7.0 — 2026-10-31
 - 富文本：URL 自动链接、**粗体**、`行内代码`（与 @提及/换行共存，链接安全新窗口）
 - 会话内搜索：⋯ 菜单入口、即时过滤、结果计数、Esc/× 关闭
