@@ -186,6 +186,13 @@ window.__ModuleLoader__.load({
       download: "下载",
       imagePreview: "图片预览",
       closePreview: "关闭预览",
+      agentId: "Agent ID",
+      agentIdHint: "把这个 ID 发给朋友，对方在「发现」里按 ID 就能加你，不必开启发现目录。",
+      agentIdInvalid: "Agent ID 是 8 位字母数字，例如 K7M2-QX9T",
+      copyId: "复制 ID",
+      addById: "按 ID 添加",
+      addByIdHint: "对方没有出现在目录里？直接输入 TA 的 Agent ID。",
+      idAdded: "已发送连接请求",
       newChat: "新建群聊",
       newChatTitle: "创建一个群聊",
       newChatHint: "创建后会生成随机房间名和口令，用邀请码把朋友拉进来。",
@@ -347,6 +354,7 @@ window.__ModuleLoader__.load({
       return {
         me: {
           id: String(me.id == null ? "" : me.id),
+          agentId: String(me.agentId == null ? "" : me.agentId),
           nick: String(me.nick == null ? "" : me.nick),
         },
         room: typeof raw.room === "string" ? raw.room : "",
@@ -1511,6 +1519,45 @@ window.__ModuleLoader__.load({
 }
 
 /* ── 设置面板 ───────────────────────────────────────────────── */
+.dchat-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dchat-agentid {
+  padding: 3px 8px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: 7px;
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.06em;
+}
+.dchat-addbyid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--dchat-brand) 55%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--dchat-brand) 7%, transparent);
+}
+.dchat-addbyid-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.dchat-addbyid-title {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--dchat-brand);
+}
+.dchat-addbyid-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  margin: 2px 0;
+}
 .dchat-settings-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -2038,6 +2085,23 @@ window.__ModuleLoader__.load({
       return "/dsh-chat-plugin/api/file/" + encodeURIComponent(String(file.id));
     }
 
+    function normalizeAgentIdInput(value) {
+      const cleaned = String(value || "")
+        .toUpperCase()
+        .replace(/[^0-9A-Z]/g, "")
+        .replace(/[ILOU]/g, "");
+      if (cleaned.length !== 8) return "";
+      for (const char of cleaned) {
+        if (!"23456789ABCDEFGHJKLMNPQRSTUVWXYZ".includes(char)) return "";
+      }
+      return cleaned;
+    }
+
+    function formatAgentId(value) {
+      const id = normalizeAgentIdInput(value) || String(value || "");
+      return id.length === 8 ? id.slice(0, 4) + "-" + id.slice(4) : id;
+    }
+
     const ATTACH_ICON = h(
       "svg",
       {
@@ -2096,7 +2160,7 @@ window.__ModuleLoader__.load({
       h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
     );
 
-    /** 产品 Logo（圆角蓝底 + 白色 D/鲸尾，参考 DeepSeek 的极简蓝色风格）。 */
+    /** 产品 Logo（深蓝圆角底 + 白色对话气泡/鲸尾 + 波浪，参考 DeepSeek 的鲸鱼意象）。 */
     function LogoMark(props) {
       const size = Number(props && props.size) || 18;
       return h(
@@ -2115,21 +2179,25 @@ window.__ModuleLoader__.load({
           { key: "defs" },
           h(
             "linearGradient",
-            { id: "dshchat-logo-grad", x1: 8, y1: 4, x2: 58, y2: 62, gradientUnits: "userSpaceOnUse" },
-            h("stop", { key: "a", offset: 0, stopColor: "#5B8CFF" }),
-            h("stop", { key: "b", offset: 1, stopColor: "#3B5BDB" }),
+            { id: "dshchat-logo-grad", x1: 6, y1: 2, x2: 58, y2: 62, gradientUnits: "userSpaceOnUse" },
+            h("stop", { key: "a", offset: 0, stopColor: "#6A9BFF" }),
+            h("stop", { key: "b", offset: 1, stopColor: "#3350D8" }),
           ),
         ),
         h("rect", { key: "bg", x: 2, y: 2, width: 60, height: 60, rx: 16, fill: "url(#dshchat-logo-grad)" }),
+        h("rect", { key: "bubble", x: 14, y: 14, width: 36, height: 30, rx: 10, fill: "#FFFFFF" }),
         h("path", {
-          key: "d",
-          d: "M20 13h14c11 0 18.5 8.4 18.5 19S45 51 34 51H22c-1 5-4.6 8.6-10 10 3.2-4 3.6-8.4 2.2-12.5C13 46 12 42 12 37c0-5 1.4-9 3.8-12.6C17.4 20 18.6 16 20 13z",
+          key: "fin",
+          d: "M44 41c3 5 8 8 14 9-2-3-2-6 0-9-5 1-10-1-14-5z",
           fill: "#FFFFFF",
         }),
         h("path", {
-          key: "counter",
-          d: "M29 21h5c5.6 0 9.5 4.5 9.5 11s-3.9 11-9.5 11h-5z",
-          fill: "url(#dshchat-logo-grad)",
+          key: "wave",
+          d: "M22 26c2-2 4-2 6 0s4 2 6 0 4-2 6 0",
+          stroke: "url(#dshchat-logo-grad)",
+          strokeWidth: 3.4,
+          fill: "none",
+          strokeLinecap: "round",
         }),
       );
     }
@@ -2947,13 +3015,27 @@ window.__ModuleLoader__.load({
           if (!id || connectingId) return;
           setConnectingId(id);
           try {
-            await socialAction("/social/connect", { id });
+            const normalized = normalizeAgentIdInput(id);
+            await socialAction("/social/connect", normalized ? { agentId: normalized } : { id });
             setFriendsOpen(false);
           } finally {
             if (mountedRef.current) setConnectingId("");
           }
         },
         [connectingId, socialAction],
+      );
+
+      /** 好友抽屉里直接按 Agent ID 添加（不需要目录）。 */
+      const connectById = useCallback(
+        async (rawId) => {
+          const normalized = normalizeAgentIdInput(rawId);
+          if (!normalized) {
+            setSocialError(t("agentIdInvalid"));
+            return;
+          }
+          await connectTo(normalized);
+        },
+        [connectTo],
       );
 
       const acceptRequest = useCallback(async (id) => { await socialAction("/social/accept", { id }); }, [socialAction]);
@@ -3590,6 +3672,41 @@ window.__ModuleLoader__.load({
                     }),
                     h("div", { className: "dchat-hint" }, t("nicknameHelp")),
                   ),
+                  h(
+                    "div",
+                    { className: "dchat-field" },
+                    h("span", null, t("agentId")),
+                    h(
+                      "div",
+                      { className: "dchat-id-row" },
+                      h(
+                        "code",
+                        { className: "dchat-agentid" },
+                        formatAgentId(
+                          (snapshot && snapshot.me && snapshot.me.agentId) ||
+                            (form && form.agentId) ||
+                            "",
+                        ) || "········",
+                      ),
+                      h(
+                        "button",
+                        {
+                          type: "button",
+                          className: "dchat-small-btn ghost",
+                          onClick: () =>
+                            copyMessageText(
+                              formatAgentId(
+                                (snapshot && snapshot.me && snapshot.me.agentId) ||
+                                  (form && form.agentId) ||
+                                  "",
+                              ),
+                            ),
+                        },
+                        t("copyId"),
+                      ),
+                    ),
+                    h("div", { className: "dchat-hint" }, t("agentIdHint")),
+                  ),
                 ]),
                 settingsSection(t("settingsChat"), [
                   h(
@@ -3932,11 +4049,16 @@ window.__ModuleLoader__.load({
             const directoryList = social && Array.isArray(social.directory) ? social.directory : [];
             const contactsList = social && Array.isArray(social.contacts) ? social.contacts : [];
             const query = discoverQuery.trim().toLowerCase();
+            const queryId = normalizeAgentIdInput(discoverQuery);
             const visibleDirectory = directoryList.filter(
               (peer) =>
                 !query ||
                 String(peer.nick || "").toLowerCase().includes(query) ||
-                String(peer.id || "").toLowerCase().includes(query),
+                String(peer.agentId || "").toLowerCase().includes(query) ||
+                String(peer.peerId || peer.id || "").toLowerCase().includes(query),
+            );
+            const idInDirectory = Boolean(
+              queryId && directoryList.some((peer) => normalizeAgentIdInput(peer.agentId) === queryId),
             );
             return h(
               "div",
@@ -3980,6 +4102,31 @@ window.__ModuleLoader__.load({
                   "aria-label": t("discoverSearch"),
                   onChange: (event) => setDiscoverQuery(event.target.value),
                 }),
+                queryId && !idInDirectory
+                  ? h(
+                      "div",
+                      { className: "dchat-addbyid" },
+                      h(
+                        "div",
+                        { className: "dchat-addbyid-info" },
+                        h("div", { className: "dchat-addbyid-title" }, t("addById")),
+                        h("div", { className: "dchat-addbyid-id" }, formatAgentId(queryId)),
+                        h("div", { className: "dchat-hint" }, t("addByIdHint")),
+                      ),
+                      h(
+                        "button",
+                        {
+                          type: "button",
+                          className: "dchat-small-btn",
+                          disabled: connectingId === queryId,
+                          onClick: () => connectById(queryId),
+                        },
+                        connectingId === queryId ? t("connecting") : t("connect"),
+                      ),
+                    )
+                  : query && !queryId && query.length >= 4
+                    ? h("div", { className: "dchat-hint" }, t("agentIdInvalid"))
+                    : null,
                 h(
                   "div",
                   { className: "dchat-friends-section" },
@@ -3989,12 +4136,12 @@ window.__ModuleLoader__.load({
                     : visibleDirectory.map((peer) =>
                         h(
                           "div",
-                          { key: "dir-" + peer.id, className: "dchat-dir-row" },
+                          { key: "dir-" + (peer.agentId || peer.id), className: "dchat-dir-row" },
                           h(
                             "span",
                             {
                               className: "dchat-avatar",
-                              style: { background: avatarColor(peer.id) },
+                              style: { background: avatarColor(peer.agentId || peer.id) },
                               "aria-hidden": "true",
                             },
                             initialsOf(peer.nick),
@@ -4006,7 +4153,7 @@ window.__ModuleLoader__.load({
                               "div",
                               { className: "dchat-dir-nick" },
                               String(peer.nick || t("anonymous")),
-                              h("span", { className: "dchat-dir-id" }, " · " + String(peer.id || "").slice(0, 6)),
+                              h("span", { className: "dchat-dir-id" }, " · " + formatAgentId(peer.agentId)),
                             ),
                             h("div", { className: "dchat-dir-meta" }, t("lastSeenShort") + " " + formatTime(peer.at)),
                           ),
@@ -4015,10 +4162,10 @@ window.__ModuleLoader__.load({
                             {
                               type: "button",
                               className: "dchat-small-btn",
-                              disabled: connectingId === peer.id,
-                              onClick: () => connectTo(peer.id),
+                              disabled: connectingId === (peer.agentId || peer.id),
+                              onClick: () => connectTo(peer.agentId || peer.id),
                             },
-                            connectingId === peer.id ? t("connecting") : t("connect"),
+                            connectingId === (peer.agentId || peer.id) ? t("connecting") : t("connect"),
                           ),
                         ),
                       ),
@@ -4046,7 +4193,12 @@ window.__ModuleLoader__.load({
                             "div",
                             { className: "dchat-dir-info" },
                             h("div", { className: "dchat-dir-nick" }, String(contact.nick || t("anonymous"))),
-                            h("div", { className: "dchat-dir-meta" }, "房间 " + contact.room),
+                            h(
+                              "div",
+                              { className: "dchat-dir-meta" },
+                              contact.agentId ? formatAgentId(contact.agentId) + " · " : "",
+                              "房间 " + contact.room,
+                            ),
                           ),
                           h(
                             "button",
@@ -4153,6 +4305,27 @@ window.__ModuleLoader__.load({
                   onChange: (event) => setObNickname(event.target.value),
                 }),
                 h("div", { className: "dchat-hint" }, t("onboardNicknameHint")),
+                h(
+                  "div",
+                  { className: "dchat-id-row" },
+                  h(
+                    "code",
+                    { className: "dchat-agentid" },
+                    formatAgentId((snapshot && snapshot.me && snapshot.me.agentId) || ""),
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-small-btn ghost",
+                      onClick: () =>
+                        copyMessageText(
+                          formatAgentId((snapshot && snapshot.me && snapshot.me.agentId) || ""),
+                        ),
+                    },
+                    t("copyId"),
+                  ),
+                ),
               ),
               h(
                 "div",
