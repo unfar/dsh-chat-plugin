@@ -37,7 +37,7 @@ window.__ModuleLoader__.load({
       statusConnecting: "连接中…",
       statusError: "连接失败",
       statusOff: "未连接",
-      encrypted: "🔒 端到端加密",
+      encrypted: "端到端加密",
       plain: "🔓 明文",
       settings: "设置",
       settingsTitle: "设置",
@@ -1934,6 +1934,538 @@ window.__ModuleLoader__.load({
   }
 }
 
+
+/* ══ Design system v1.5 ──────────────────────────────────────────────
+   统一 token / 基础件 / 动效。所有后续规则只使用这里的变量，
+   避免各处出现 7px、9px、11px 之类的"一次性数值"。 */
+
+.dchat-root {
+  --dchat-space-1: 4px;
+  --dchat-space-2: 8px;
+  --dchat-space-3: 12px;
+  --dchat-space-4: 16px;
+  --dchat-space-5: 20px;
+  --dchat-space-6: 24px;
+  --dchat-radius-xs: 6px;
+  --dchat-radius-sm: 8px;
+  --dchat-radius-md: 10px;
+  --dchat-radius-lg: 14px;
+  --dchat-radius-xl: 16px;
+  --dchat-radius-pill: 999px;
+  --dchat-font-xs: 10.5px;
+  --dchat-font-sm: 11.5px;
+  --dchat-font-md: 12.5px;
+  --dchat-font-lg: 14px;
+  --dchat-font-xl: 16px;
+  --dchat-weight-medium: 550;
+  --dchat-weight-semibold: 650;
+  --dchat-dur-1: 120ms;
+  --dchat-dur-2: 160ms;
+  --dchat-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --dchat-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --dchat-shadow-2: 0 10px 28px rgba(0, 0, 0, 0.14);
+  --dchat-shadow-3: 0 24px 64px rgba(0, 0, 0, 0.32);
+  --dchat-ring: 0 0 0 2px color-mix(in srgb, var(--dchat-brand) 55%, transparent);
+  font-size: var(--dchat-font-md);
+}
+
+/* 交互基态：统一过渡、按压、禁用、键盘焦点 */
+.dchat-root button,
+.dchat-root a,
+.dchat-root input,
+.dchat-root textarea,
+.dchat-root select {
+  transition:
+    background-color var(--dchat-dur-1) var(--dchat-ease),
+    border-color var(--dchat-dur-1) var(--dchat-ease),
+    color var(--dchat-dur-1) var(--dchat-ease),
+    box-shadow var(--dchat-dur-1) var(--dchat-ease),
+    transform var(--dchat-dur-1) var(--dchat-ease),
+    opacity var(--dchat-dur-1) var(--dchat-ease);
+}
+.dchat-root button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.dchat-root button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.dchat-root :is(button, a, input, textarea, select):focus-visible {
+  outline: none;
+  box-shadow: var(--dchat-ring);
+  border-color: color-mix(in srgb, var(--dchat-brand) 65%, transparent);
+}
+
+/* 按钮：primary / ghost / quiet，尺寸 md(32) / sm(28) */
+.dchat-root .dchat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--dchat-radius-sm);
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-family: inherit;
+  font-size: var(--dchat-font-md);
+  font-weight: var(--dchat-weight-semibold);
+  white-space: nowrap;
+}
+.dchat-root .dchat-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--dchat-brand) 88%, #000 12%);
+}
+.dchat-root .dchat-btn.ghost {
+  background: transparent;
+  border-color: var(--dchat-border-l1);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-btn.ghost:hover:not(:disabled) {
+  background: var(--dchat-layer-1);
+  border-color: var(--dchat-border-l2);
+}
+.dchat-root .dchat-small-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-sm);
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+  font-family: inherit;
+  font-size: var(--dchat-font-sm);
+  font-weight: var(--dchat-weight-medium);
+  white-space: nowrap;
+}
+.dchat-root .dchat-small-btn:hover:not(:disabled) {
+  background: var(--dchat-layer-2);
+  border-color: var(--dchat-border-l2);
+}
+.dchat-root .dchat-small-btn.ghost {
+  background: transparent;
+  border-color: var(--dchat-border-l1);
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-small-btn.ghost:hover:not(:disabled) {
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-icon-btn:hover:not(:disabled) {
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+/* 输入：对话框/设置用方角 10px，聊天搜索与输入条保持 pill */
+.dchat-root .dchat-input,
+.dchat-root .dchat-select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-md);
+  background: var(--dchat-bg);
+  color: var(--dchat-label);
+  font-family: inherit;
+  font-size: var(--dchat-font-md);
+}
+.dchat-root .dchat-input::placeholder {
+  color: var(--dchat-label-2);
+}
+.dchat-root textarea.dchat-input {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.5;
+  resize: none;
+}
+.dchat-root .dchat-side-search .dchat-input,
+.dchat-root .dchat-composer textarea.dchat-input {
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-composer textarea.dchat-input {
+  height: 36px;
+  min-height: 36px;
+  padding: 8px 14px;
+}
+
+/* 开关与复选框 */
+.dchat-root .dchat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--dchat-font-sm);
+  color: var(--dchat-label);
+  cursor: pointer;
+}
+.dchat-root .dchat-toggle input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-border-l2);
+  border: 0;
+  cursor: pointer;
+  flex: none;
+}
+.dchat-root .dchat-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform var(--dchat-dur-1) var(--dchat-ease);
+}
+.dchat-root .dchat-toggle input[type="checkbox"]:checked {
+  background: var(--dchat-brand);
+}
+.dchat-root .dchat-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(14px);
+}
+.dchat-root .dchat-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--dchat-font-sm);
+  color: var(--dchat-label);
+  cursor: pointer;
+}
+.dchat-root .dchat-check input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--dchat-border-l2);
+  border-radius: 4px;
+  background: var(--dchat-bg);
+  flex: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dchat-root .dchat-check input[type="checkbox"]:checked {
+  background: var(--dchat-brand);
+  border-color: var(--dchat-brand);
+}
+.dchat-root .dchat-check input[type="checkbox"]:checked::after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  border: solid var(--dchat-brand-fg);
+  border-width: 0 1.8px 1.8px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+
+/* 标题 / 行 / 标签 */
+.dchat-root :is(.dchat-settings-section-title, .dchat-friends-title) {
+  font-size: var(--dchat-font-xs);
+  font-weight: var(--dchat-weight-semibold);
+  letter-spacing: 0.06em;
+  color: var(--dchat-label-2);
+  opacity: 0.85;
+}
+.dchat-root :is(.dchat-dir-row, .dchat-member-row) {
+  padding: 8px 10px;
+  border-radius: var(--dchat-radius-md);
+  border-bottom: 0;
+}
+.dchat-root :is(.dchat-dir-row, .dchat-member-row):hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-chat-row {
+  border-radius: var(--dchat-radius-md);
+  margin: 1px 0;
+}
+.dchat-root .dchat-hint {
+  font-size: var(--dchat-font-sm);
+  line-height: 1.5;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--dchat-font-sm);
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dchat-root .dchat-agentid {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--dchat-font-sm);
+}
+
+/* 统一浮层：backdrop + 卡片 + 头部 + 粘性底部 */
+@keyframes dchat-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dchat-pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.dchat-root :is(.dchat-invite, .dchat-friends) {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--dchat-space-4);
+  background: rgba(10, 12, 16, 0.44);
+  backdrop-filter: blur(3px);
+  animation: dchat-fade var(--dchat-dur-2) var(--dchat-ease);
+}
+.dchat-root :is(.dchat-invite-card, .dchat-friends-card) {
+  width: min(420px, 100%);
+  max-height: min(86%, 760px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dchat-space-3);
+  padding: var(--dchat-space-4);
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-xl);
+  background: var(--dchat-overlay);
+  box-shadow: var(--dchat-shadow-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: dchat-pop var(--dchat-dur-2) var(--dchat-ease);
+}
+.dchat-root .dchat-friends-card {
+  width: min(540px, 100%);
+}
+.dchat-root .dchat-invite-card.dchat-onboard {
+  width: min(460px, 100%);
+}
+.dchat-root :is(.dchat-invite-head, .dchat-friends-head) {
+  display: flex;
+  align-items: center;
+  gap: var(--dchat-space-2);
+  padding: 0 0 var(--dchat-space-3);
+  margin: 0;
+  border-bottom: 1px solid var(--dchat-border-l1);
+}
+.dchat-root .dchat-invite-title {
+  flex: 1 1 auto;
+  font-size: var(--dchat-font-lg);
+  font-weight: var(--dchat-weight-semibold);
+  letter-spacing: -0.01em;
+}
+.dchat-root .dchat-invite-actions {
+  position: sticky;
+  bottom: calc(-1 * var(--dchat-space-4));
+  margin: var(--dchat-space-1) calc(-1 * var(--dchat-space-4)) calc(-1 * var(--dchat-space-4));
+  padding: var(--dchat-space-3) var(--dchat-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--dchat-space-2);
+  border-top: 1px solid var(--dchat-border-l1);
+  background: var(--dchat-overlay);
+  border-radius: 0 0 var(--dchat-radius-xl) var(--dchat-radius-xl);
+}
+.dchat-root .dchat-invite-error {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--dchat-radius-sm);
+  background: color-mix(in srgb, var(--dchat-err) 12%, transparent);
+  color: var(--dchat-err);
+  font-size: var(--dchat-font-sm);
+}
+
+/* 设置面板：与浮层同一套头部/间距，内容居中成列 */
+.dchat-root .dchat-settings {
+  padding: var(--dchat-space-5) max(var(--dchat-space-5), 7vw);
+  background: var(--dchat-bg);
+}
+.dchat-root .dchat-settings-head {
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 0 var(--dchat-space-3);
+}
+.dchat-root .dchat-settings-title {
+  flex: 1 1 auto;
+  font-size: var(--dchat-font-xl);
+  font-weight: var(--dchat-weight-semibold);
+  letter-spacing: -0.01em;
+}
+.dchat-root .dchat-settings-body {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  gap: var(--dchat-space-5);
+}
+.dchat-root .dchat-settings-actions {
+  width: 100%;
+  max-width: 640px;
+  margin: var(--dchat-space-3) auto 0;
+  padding-top: var(--dchat-space-3);
+}
+.dchat-root .dchat-settings-section {
+  gap: var(--dchat-space-2);
+}
+.dchat-root .dchat-settings-section-title {
+  padding-bottom: 6px;
+}
+
+/* 头部与输入区共享的节奏 */
+.dchat-root .dchat-side-head,
+.dchat-root .dchat-main-head {
+  min-height: 52px;
+  padding: 0 var(--dchat-space-3);
+  box-sizing: border-box;
+}
+.dchat-root .dchat-side-search {
+  padding: var(--dchat-space-2) var(--dchat-space-3) var(--dchat-space-1);
+}
+.dchat-root .dchat-side-search .dchat-input {
+  height: 34px;
+}
+.dchat-root .dchat-composer {
+  gap: var(--dchat-space-2);
+  padding: var(--dchat-space-2) var(--dchat-space-3) var(--dchat-space-3);
+}
+.dchat-root .dchat-menu {
+  top: 54px;
+  right: var(--dchat-space-3);
+  padding: var(--dchat-space-1);
+  border-radius: var(--dchat-radius-md);
+  box-shadow: var(--dchat-shadow-2);
+}
+.dchat-root .dchat-menu-item {
+  padding: 8px 10px;
+  border-radius: var(--dchat-radius-sm);
+  font-size: var(--dchat-font-md);
+}
+.dchat-root .dchat-toast {
+  bottom: 92px;
+  padding: 7px 14px;
+  font-size: var(--dchat-font-sm);
+  box-shadow: var(--dchat-shadow-2);
+}
+.dchat-root .dchat-empty {
+  gap: var(--dchat-space-3);
+}
+
+/* 移动端：浮层统一成底部 sheet */
+@media (max-width: 720px) {
+  .dchat-root :is(.dchat-invite, .dchat-friends) {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .dchat-root :is(.dchat-invite-card, .dchat-friends-card),
+  .dchat-root .dchat-invite-card.dchat-onboard {
+    width: 100%;
+    max-height: 88%;
+    border-radius: var(--dchat-radius-xl) var(--dchat-radius-xl) 0 0;
+    padding: var(--dchat-space-4);
+    animation: dchat-sheet var(--dchat-dur-2) var(--dchat-ease);
+  }
+  .dchat-root .dchat-invite-actions {
+    bottom: calc(-1 * var(--dchat-space-4));
+    margin: var(--dchat-space-1) calc(-1 * var(--dchat-space-4)) calc(-1 * var(--dchat-space-4));
+    border-radius: 0;
+  }
+}
+@keyframes dchat-sheet {
+  from { opacity: 0.6; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 所有布尔项统一为 switch（与发现目录开关一致） */
+.dchat-root .dchat-check input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-border-l2);
+  cursor: pointer;
+  flex: none;
+}
+.dchat-root .dchat-check input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform var(--dchat-dur-1) var(--dchat-ease);
+}
+.dchat-root .dchat-check input[type="checkbox"]:checked {
+  background: var(--dchat-brand);
+  border: 0;
+}
+.dchat-root .dchat-check input[type="checkbox"]:checked::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 0;
+  background: #fff;
+  transform: translateX(14px);
+  rotate: 0deg;
+}
+.dchat-root .dchat-toggle input[type="checkbox"]:focus-visible,
+.dchat-root .dchat-check input[type="checkbox"]:focus-visible {
+  box-shadow: var(--dchat-ring);
+}
+.dchat-root .dchat-chip,
+.dchat-root .dchat-unread-divider {
+  border-radius: var(--dchat-radius-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dchat-root *,
+  .dchat-root *::before,
+  .dchat-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -2118,6 +2650,41 @@ window.__ModuleLoader__.load({
         style: { display: "block" },
       },
       h("path", { key: "a", d: "M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8-8a3.4 3.4 0 0 1 4.8 4.8l-8 8a1.8 1.8 0 0 1-2.6-2.6l7.3-7.3" }),
+    );
+
+    const CLOSE_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M6 6l12 12" }),
+      h("path", { key: "b", d: "M18 6L6 18" }),
+    );
+
+    const COMPASS_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("circle", { key: "a", cx: 12, cy: 12, r: 8.5 }),
+      h("path", { key: "b", d: "M15.2 8.8l-2.1 4.3-4.3 2.1 2.1-4.3 4.3-2.1z" }),
+    );
+
+    const BOT_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("rect", { key: "a", x: 4, y: 8, width: 16, height: 11, rx: 3 }),
+      h("path", { key: "b", d: "M12 8V5M9 13h.01M15 13h.01M9 16c.9.8 1.9 1.2 3 1.2s2.1-.4 3-1.2" }),
+    );
+
+    const FILE_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 18, height: 18, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M7 3h7l4 4v14H7z" }),
+      h("path", { key: "b", d: "M14 3v4h4" }),
+    );
+
+    const LOCK_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 12, height: 12, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("rect", { key: "a", x: 5, y: 10, width: 14, height: 10, rx: 2.5 }),
+      h("path", { key: "b", d: "M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" }),
     );
 
     const SEND_ICON = h(
@@ -2374,7 +2941,7 @@ window.__ModuleLoader__.load({
                   : h(
                       "a",
                       { className: "dchat-file-card", href: fileUrlOf(file), download: file.name },
-                      h("span", { className: "dchat-file-icon", "aria-hidden": "true" }, "📄"),
+                      h("span", { className: "dchat-file-icon", "aria-hidden": "true" }, FILE_ICON),
                       h(
                         "span",
                         { className: "dchat-file-info" },
@@ -2479,7 +3046,8 @@ window.__ModuleLoader__.load({
           h(
             "button",
             { type: "button", className: "dchat-btn ghost", onClick: options.onFindFriends },
-            "🧭 " + t("findFriends"),
+            h("span", { className: "dchat-btn-icon" }, COMPASS_ICON),
+            t("findFriends"),
           ),
         ),
         h("div", { className: "dchat-empty-or" }, t("onboardingOr")),
@@ -3618,7 +4186,8 @@ window.__ModuleLoader__.load({
                 className: "dchat-agent-badge",
                 title: t("agentAutoReplyHint"),
               },
-              "🤖 " + t("agentOn") + (snapshot.agent.busy ? " · " + t("agentBusy") : ""),
+              h("span", { className: "dchat-btn-icon" }, BOT_ICON),
+              t("agentOn") + (snapshot.agent.busy ? " · " + t("agentBusy") : ""),
             )
           : null,
       );
@@ -3650,7 +4219,7 @@ window.__ModuleLoader__.load({
                     onClick: toggleSettings,
                     style: { marginLeft: "auto" },
                   },
-                  COLLAPSE_ICON,
+                  CLOSE_ICON,
                 ),
               ),
               h(
@@ -4062,7 +4631,7 @@ window.__ModuleLoader__.load({
             );
             return h(
               "div",
-              { className: "dchat-friends", role: "dialog", "aria-label": t("friendsTitle") },
+              { className: "dchat-friends", role: "dialog", "aria-label": t("friendsTitle"), onMouseDown: (event) => { if (event.target === event.currentTarget) setFriendsOpen(false); } },
               h(
                 "div",
                 { className: "dchat-friends-card" },
@@ -4079,7 +4648,7 @@ window.__ModuleLoader__.load({
                       title: t("inviteClose"),
                       onClick: () => setFriendsOpen(false),
                     },
-                    COLLAPSE_ICON,
+                    CLOSE_ICON,
                   ),
                 ),
                 socialError ? h("div", { className: "dchat-invite-error" }, "⚠️ " + socialError) : null,
@@ -4221,7 +4790,7 @@ window.__ModuleLoader__.load({
       const inviteView = inviteOpen
         ? h(
             "div",
-            { className: "dchat-invite", role: "dialog", "aria-label": t("inviteTitle") },
+            { className: "dchat-invite", role: "dialog", "aria-label": t("inviteTitle"), onMouseDown: (event) => { if (event.target === event.currentTarget) setInviteOpen(false); } },
             h(
               "div",
               { className: "dchat-invite-card" },
@@ -4238,7 +4807,7 @@ window.__ModuleLoader__.load({
                     title: t("inviteClose"),
                     onClick: () => setInviteOpen(false),
                   },
-                  COLLAPSE_ICON,
+                  CLOSE_ICON,
                 ),
               ),
               inviteError
@@ -4285,7 +4854,7 @@ window.__ModuleLoader__.load({
       const onboardingView = onboardingOpen
         ? h(
             "div",
-            { className: "dchat-invite", role: "dialog", "aria-label": t("onboardTitle") },
+            { className: "dchat-invite", role: "dialog", "aria-label": t("onboardTitle"), onMouseDown: (event) => { if (event.target === event.currentTarget) setOnboardingOpen(false); } },
             h(
               "div",
               { className: "dchat-invite-card dchat-onboard" },
@@ -4387,7 +4956,7 @@ window.__ModuleLoader__.load({
       const createView = createOpen
         ? h(
             "div",
-            { className: "dchat-invite", role: "dialog", "aria-label": t("newChatTitle") },
+            { className: "dchat-invite", role: "dialog", "aria-label": t("newChatTitle"), onMouseDown: (event) => { if (event.target === event.currentTarget) setCreateOpen(false); } },
             h(
               "div",
               { className: "dchat-invite-card" },
@@ -4404,7 +4973,7 @@ window.__ModuleLoader__.load({
                     title: t("inviteClose"),
                     onClick: () => setCreateOpen(false),
                   },
-                  COLLAPSE_ICON,
+                  CLOSE_ICON,
                 ),
               ),
               h("input", {
@@ -4478,7 +5047,7 @@ window.__ModuleLoader__.load({
       const membersView = membersOpen
         ? h(
             "div",
-            { className: "dchat-invite", role: "dialog", "aria-label": t("membersTitle") },
+            { className: "dchat-invite", role: "dialog", "aria-label": t("membersTitle"), onMouseDown: (event) => { if (event.target === event.currentTarget) setMembersOpen(false); } },
             h(
               "div",
               { className: "dchat-invite-card" },
@@ -4495,7 +5064,7 @@ window.__ModuleLoader__.load({
                     title: t("close"),
                     onClick: () => setMembersOpen(false),
                   },
-                  COLLAPSE_ICON,
+                  CLOSE_ICON,
                 ),
               ),
               h(
@@ -4570,7 +5139,7 @@ window.__ModuleLoader__.load({
                 title: t("cancelReply"),
                 onClick: () => setReplyTo(null),
               },
-              COLLAPSE_ICON,
+              CLOSE_ICON,
             ),
           )
         : null;
@@ -4674,19 +5243,24 @@ window.__ModuleLoader__.load({
           : t("title");
       const lockBadge = relay
         ? relay.encrypted
-          ? "🔒 " + t("encrypted")
-          : "🔓 " + t("plain")
+          ? h("span", { className: "dchat-status-lock" }, LOCK_ICON, t("encrypted"))
+          : h("span", { className: "dchat-status-lock" }, t("plain"))
         : "";
+      const headSubParts = [
+        status.text,
+        lockBadge,
+        snapshot ? t("peers") + " " + peers.length + (peersOnline > 0 ? " · " + t("online") + " " + peersOnline : "") : "",
+        snapshot && snapshot.room ? "# " + snapshot.room : "",
+      ].filter(Boolean);
       const headSub =
         typingLabel ||
-        [
-          status.text,
-          lockBadge,
-          snapshot ? t("peers") + " " + peers.length + (peersOnline > 0 ? " · " + t("online") + " " + peersOnline : "") : "",
-          snapshot && snapshot.room ? "# " + snapshot.room : "",
-        ]
-          .filter(Boolean)
-          .join(" · ");
+        h(
+          "span",
+          { className: "dchat-head-sub-parts" },
+          ...headSubParts.flatMap((part, index) =>
+            index === 0 ? [part] : [" · ", part],
+          ),
+        );
       const chatList = chats && Array.isArray(chats) ? chats : [];
       const sideQuery = discoverQuery.trim().toLowerCase();
       const visibleChats = chatList.filter(
@@ -4833,7 +5407,8 @@ window.__ModuleLoader__.load({
             h(
               "button",
               { type: "button", className: "dchat-discover-btn", onClick: () => setFriendsOpen(true) },
-              "🧭 " + t("findFriends") + (pendingList.length > 0 ? " · " + pendingList.length : ""),
+              h("span", { className: "dchat-btn-icon" }, COMPASS_ICON),
+              t("findFriends") + (pendingList.length > 0 ? " · " + pendingList.length : ""),
             ),
             h(
               "button",
@@ -4892,7 +5467,7 @@ window.__ModuleLoader__.load({
             { className: "dchat-head-name", title: headName },
             headName,
             snapshot && snapshot.agent && snapshot.agent.autoReply
-              ? h("span", { className: "dchat-head-agent", title: t("agentOn") }, " 🤖")
+              ? h("span", { className: "dchat-head-agent", title: t("agentOn"), "aria-label": t("agentOn") }, BOT_ICON)
               : null,
           ),
           h("div", { className: "dchat-head-sub" }, headSub),

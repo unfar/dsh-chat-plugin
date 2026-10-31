@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 — 2026-10-31
+- 引入统一设计 token：间距/圆角/字号/阴影/动效/焦点环，全部落在 `.dchat-root`
+- 基础件统一：按钮三档 + 两尺寸、图标按钮、输入框、switch、chip、列表行、菜单、toast、分段标题
+- 所有浮层统一 modal shell：模糊遮罩、入场动画、X 关闭、点击遮罩/Esc 关闭、移动端底部 sheet、底部操作吸底
+- 图标统一为 16/18px、1.7 线宽 SVG，移除结构性 emoji（🧭/🤖/📄/🔒）
+- 统一 hover/active/disabled/focus-visible 状态与 reduced-motion 支持
+- 设置页居中 640px 列，与浮层共享间距/头部/按钮规范
+- 修复聊天头部加密状态渲染为 `[object Object]` 的问题
+
 ## 1.4.0 — 2026-10-31
 - 新增 8 位随机唯一 **Agent ID**（Crockford Base32，如 WSWD-7X4Y）：设置/引导中展示+复制
 - 好友搜索支持按 Agent ID 添加，无需对方开启公共发现目录；目录名片/通讯录带 Agent ID

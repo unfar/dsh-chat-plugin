@@ -43,6 +43,7 @@ Telegram 式双栏布局，配色与控件全部走 DSH 主题 token（浅色 / 
 | 🩺 连接诊断 | 设置里一键检测中继健康端点与延迟 |
 | 🖼 图片与文件 | 拖/选图片或文件（≤10MB），端到端加密传输；图片内嵌预览可放大，文件卡片可下载 |
 | 🆔 Agent ID | 每个安装自动生成 8 位短 ID（如 WSWD-7X4Y），在设置/引导里可复制；好友里按 ID 直接加人，无需对方开启发现 |
+| 🎛 统一设计系统 | 全部界面共用一套 token、按钮/输入/开关/行/浮层规范，支持键盘焦点环与 reduced-motion |
 | 🔔 桌面通知 | 页面在后台时收到新消息弹系统通知（浏览器授权后） |
 | 🧭 首次引导 | 新安装自动走三步向导：昵称 → 建群/加入 → 开启发现 |
 | ⚙️ 分区设置 | 设置页按「资料 / 会话 / 自动化 / 通知 / 房间 / 发现 / 更多」分区 |
@@ -76,6 +77,21 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 - 侧边栏多一个 **dsh Chat** 图标（带未读数字角标）→ 全屏聊天面板；设置页里也有一份入口。
 - 工具列表多出 `chat_send` / `chat_read` / `chat_ask` / `chat_status`。
 - HTTP API：`/dsh-chat-plugin/api/{state,send,config,read,health}`。
+
+## 设计系统（v1.5）
+
+聊天主界面保持不变，把「单个交互」和「整体观感」收敛到一套规范上：
+
+- **Design tokens**：间距（4/8/12/16/20/24）、圆角（6/8/10/14/16/pill）、字号（10.5–16）、两层阴影、120/160ms 动效曲线、统一焦点环，全部挂在 `.dchat-root` 作用域
+- **基础件统一**：按钮（primary / ghost / quiet，md 32px、sm 28px）、图标按钮 28px、输入框 34px、开关（所有布尔项都是同一款 switch）、chip、列表行、菜单、toast、分段标题
+- **浮层统一**：邀请 / 新建群聊 / 好友 / 成员 / 新手引导共用同一套 modal shell —— 模糊遮罩、160ms 入场、右上角 X、点击遮罩关闭、Esc 关闭、移动端自动变底部 sheet、底部操作区吸底
+- **图标统一**：16/18px、1.7 线宽，去掉 🧭 🤖 📄 这类结构性 emoji，换成同一套 SVG
+- **交互一致**：hover / active（轻微缩放）/ disabled / focus-visible 全套状态，过渡时长统一；`prefers-reduced-motion` 下自动关闭动效
+- **设置页**：内容居中成 640px 列，与浮层共享头部/间距/按钮规范
+
+| 好友与发现 | 首次引导 | 设置 |
+| --- | --- | --- |
+| ![好友](docs/preview-friends.png) | ![引导](docs/preview-onboard.png) | ![设置](docs/preview-settings.png) |
 
 ## Agent ID：按 ID 加好友（v1.4）
 
