@@ -161,6 +161,12 @@ check(store.loadChats().find((chat) => chat.id === 'dm:peer-x')?.pinned === true
 const archivedSnap = chats.setArchived('dm:peer-x', true)
 check(archivedSnap.chats.find((chat) => chat.id === 'dm:peer-x')?.archived === true, 'archive is exposed in snapshot')
 check(chats.clearHistory('dm:peer-x').chats.length >= 1, 'clear history keeps the chat entry')
+const groupSnap = chats.setGroupInfo('dm:peer-x', { title: 'Renamed group', description: 'Friday release' })
+const groupChat = groupSnap.chats.find((chat) => chat.id === 'dm:peer-x')
+check(groupChat?.title === 'Renamed group' && groupChat?.description === 'Friday release', 'group info is exposed in snapshot')
+const groupRoom = chats.list.find((chat) => chat.id === 'dm:peer-x')?.room
+chats.applyRemoteGroupInfo({ room: groupRoom, title: 'Remote title', description: 'Remote announce' })
+check(chats.get('dm:peer-x')?.title === 'Remote title', 'remote group info updates local entry')
 assert.throws(() => chats.setMuted('nope', true), /会话不存在/)
 check(true, 'setMuted rejects unknown chats')
 chats.setMuted('dm:peer-x', false)

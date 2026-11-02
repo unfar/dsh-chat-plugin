@@ -220,6 +220,25 @@ window.__ModuleLoader__.load({
       openChat: "打开会话",
       removeContact: "移除联系人",
       writeMessage: "发消息",
+      selectMessages: "选择消息",
+      selectedCount: "已选",
+      selectAll: "全选",
+      cancelSelect: "取消",
+      deleteSelected: "删除",
+      forwardSelected: "转发",
+      copySelected: "复制",
+      groupInfo: "群资料",
+      groupTitleLabel: "群名称",
+      groupAnnouncement: "群公告",
+      groupAnnouncementHint: "群公告会同步给房间里所有人",
+      saveGroupInfo: "保存群资料",
+      shortcuts: "快捷键",
+      shortcutSearch: "全局搜索",
+      shortcutFind: "会话内搜索",
+      shortcutClose: "关闭浮层 / 取消",
+      shortcutSend: "发送消息",
+      shortcutNewline: "换行",
+      shortcutHelp: "打开快捷键面板",
       aboutVersion: "dsh Chat v2.1",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
@@ -493,6 +512,25 @@ window.__ModuleLoader__.load({
       openChat: "Open chat",
       removeContact: "Remove contact",
       writeMessage: "Send message",
+      selectMessages: "Select messages",
+      selectedCount: "Selected",
+      selectAll: "Select all",
+      cancelSelect: "Cancel",
+      deleteSelected: "Delete",
+      forwardSelected: "Forward",
+      copySelected: "Copy",
+      groupInfo: "Group info",
+      groupTitleLabel: "Group name",
+      groupAnnouncement: "Announcement",
+      groupAnnouncementHint: "The announcement is shared with everyone in the room",
+      saveGroupInfo: "Save group info",
+      shortcuts: "Shortcuts",
+      shortcutSearch: "Global search",
+      shortcutFind: "Search in chat",
+      shortcutClose: "Close overlay / cancel",
+      shortcutSend: "Send message",
+      shortcutNewline: "New line",
+      shortcutHelp: "Open shortcuts panel",
     };
 
     /** 取中文文案；未知 key 原样返回，永不抛错。 */
@@ -3789,6 +3827,87 @@ window.__ModuleLoader__.load({
   flex-wrap: wrap;
   padding-top: 6px;
 }
+
+/* ══ v2.2 多选 / 群资料 / 快捷键 ══════════════════════════════════════ */
+.dchat-root .dchat-selectbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--dchat-border-l1);
+  background: color-mix(in srgb, var(--dchat-brand) 7%, var(--dchat-bg));
+}
+.dchat-root .dchat-selectbar-count {
+  font-size: 12px;
+  font-weight: 620;
+  color: var(--dchat-brand);
+}
+.dchat-root.dchat-selecting .dchat-composer,
+.dchat-root.dchat-selecting .dchat-reply-bar,
+.dchat-root.dchat-selecting .dchat-edit-bar,
+.dchat-root.dchat-selecting .dchat-uploading,
+.dchat-root.dchat-selecting .dchat-send-error {
+  display: none;
+}
+.dchat-root .dchat-select-dot {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0 4px 4px;
+  border: 1.5px solid var(--dchat-border-l2);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--dchat-brand-fg);
+  background: transparent;
+}
+.dchat-root .dchat-select-dot.selected {
+  border-color: var(--dchat-brand);
+  background: var(--dchat-brand);
+}
+.dchat-root.dchat-selecting .dchat-row {
+  cursor: pointer;
+}
+.dchat-root.dchat-selecting .dchat-row:hover .dchat-bubble {
+  filter: brightness(0.98);
+}
+.dchat-root .dchat-textarea {
+  height: auto;
+  min-height: 84px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+.dchat-root .dchat-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dchat-root .dchat-shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--dchat-radius-sm);
+  font-size: 12px;
+}
+.dchat-root .dchat-shortcut-row:nth-child(odd) {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-kbd {
+  min-width: 88px;
+  padding: 3px 7px;
+  border: 1px solid var(--dchat-border-l1);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--dchat-bg);
+  color: var(--dchat-label);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  text-align: center;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4302,7 +4421,15 @@ window.__ModuleLoader__.load({
             (props.highlighted ? " highlighted" : ""),
           "data-message-id": message.id,
           "data-seq": message.seq,
+          onClick: props.selectMode ? () => props.onToggleSelect && props.onToggleSelect(message) : undefined,
         },
+        props.selectMode
+          ? h(
+              "span",
+              { className: "dchat-select-dot" + (props.selected ? " selected" : ""), "aria-hidden": "true" },
+              props.selected ? "✓" : "",
+            )
+          : null,
         props.showAvatar && !mine && !grouped
           ? h(
               "span",
@@ -4332,7 +4459,7 @@ window.__ModuleLoader__.load({
           h(
             "div",
             { className: "dchat-bubble-wrap" },
-            deleted
+            deleted || props.selectMode
               ? null
               : h(
               "div",
@@ -4443,7 +4570,13 @@ window.__ModuleLoader__.load({
                       src: fileUrlOf(file),
                       alt: file.name,
                       loading: "lazy",
-                      onClick: () => props.onOpenImage && props.onOpenImage({ url: fileUrlOf(file), name: file.name }),
+                      onClick: () => {
+                        if (props.selectMode) {
+                          props.onToggleSelect && props.onToggleSelect(message);
+                          return;
+                        }
+                        props.onOpenImage && props.onOpenImage({ url: fileUrlOf(file), name: file.name });
+                      },
                     })
                   : h(
                       "a",
@@ -4718,10 +4851,16 @@ window.__ModuleLoader__.load({
       const [pendingJump, setPendingJump] = useState(null);
       const [highlightId, setHighlightId] = useState("");
       const [editing, setEditing] = useState(null);
-      const [forwardFor, setForwardFor] = useState(null);
       const [chatFilter, setChatFilter] = useState("all");
       const [chatMenuFor, setChatMenuFor] = useState(null);
       const [profileCard, setProfileCard] = useState(null);
+      const [selectMode, setSelectMode] = useState(false);
+      const [selectedIds, setSelectedIds] = useState([]);
+      const [forwardIds, setForwardIds] = useState(null);
+      const [groupEditOpen, setGroupEditOpen] = useState(false);
+      const [groupTitleDraft, setGroupTitleDraft] = useState("");
+      const [groupDescDraft, setGroupDescDraft] = useState("");
+      const [shortcutsOpen, setShortcutsOpen] = useState(false);
       const [searchQuery, setSearchQuery] = useState("");
       const [dragActive, setDragActive] = useState(false);
       const [uploading, setUploading] = useState(null);
@@ -5700,6 +5839,11 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         if (typeof window === "undefined") return;
         const onKeyDown = (event) => {
+          if ((event.metaKey || event.ctrlKey) && String(event.key).toLowerCase() === "f") {
+            event.preventDefault();
+            setSearchOpen(true);
+            return;
+          }
           if ((event.metaKey || event.ctrlKey) && String(event.key).toLowerCase() === "k") {
             event.preventDefault();
             setGlobalOpen((open) => !open);
@@ -5859,23 +6003,32 @@ window.__ModuleLoader__.load({
 
       const startForward = useCallback((message) => {
         if (!message || message.deleted) return;
-        setForwardFor(message);
+        setForwardIds([message.id]);
       }, []);
 
       const doForward = useCallback(
         async (chatId) => {
-          if (!forwardFor || !chatId) return;
+          if (!forwardIds || forwardIds.length === 0 || !chatId) return;
           try {
-            const data = await request("/forward", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ id: forwardFor.id, chatId }),
-            });
+            const data =
+              forwardIds.length === 1
+                ? await request("/forward", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ id: forwardIds[0], chatId }),
+                  })
+                : await request("/forward-batch", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ ids: forwardIds, chatId }),
+                  });
             if (data && data.state) {
               const next = normalizeSnapshot(data.state);
               if (next) setSnapshot(next);
             }
-            setForwardFor(null);
+            setForwardIds(null);
+            setSelectedIds([]);
+            setSelectMode(false);
             setEditing(null);
             await loadChats();
             void refresh();
@@ -5885,8 +6038,111 @@ window.__ModuleLoader__.load({
             }
           }
         },
-        [forwardFor, loadChats, refresh],
+        [forwardIds, loadChats, refresh],
       );
+
+      /** 多选：进入/退出、全选、批量删除/复制/转发。 */
+      const toggleSelectMode = useCallback(() => {
+        setSelectMode((active) => !active);
+        setSelectedIds([]);
+      }, []);
+
+      const toggleSelected = useCallback((message) => {
+        if (!message || message.deleted) return;
+        setSelectedIds((previous) =>
+          previous.includes(message.id)
+            ? previous.filter((id) => id !== message.id)
+            : [...previous, message.id],
+        );
+      }, []);
+
+      const selectAllMessages = useCallback(() => {
+        setSelectedIds((messages || []).filter((message) => !message.deleted).map((message) => message.id));
+      }, [messages]);
+
+      const batchDelete = useCallback(async () => {
+        if (selectedIds.length === 0) return;
+        if (
+          typeof window !== "undefined" &&
+          typeof window.confirm === "function" &&
+          !window.confirm(t("deleteConfirm"))
+        ) {
+          return;
+        }
+        setSelectMode(false);
+        const ids = [...selectedIds];
+        setSelectedIds([]);
+        for (const id of ids) {
+          try {
+            await request("/delete", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id }),
+            });
+          } catch {
+            /* 逐条尽力删除 */
+          }
+        }
+        void refresh();
+      }, [selectedIds, refresh]);
+
+      const batchCopy = useCallback(async () => {
+        const text = (messages || [])
+          .filter((message) => selectedIds.includes(message.id) && !message.deleted)
+          .map((message) => String(message.text || ''))
+          .filter(Boolean)
+          .join("\n");
+        if (text) await copyMessageText(text);
+        setSelectMode(false);
+        setSelectedIds([]);
+      }, [messages, selectedIds, copyMessageText]);
+
+      /** 群资料（标题 / 公告）保存并广播。 */
+      const saveGroupInfo = useCallback(async () => {
+        if (!chatMenuFor) return;
+        try {
+          const data = await request("/chats/group-info", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              id: chatMenuFor.id,
+              title: groupTitleDraft,
+              description: groupDescDraft,
+            }),
+          });
+          if (data && data.state) {
+            const next = normalizeSnapshot(data.state);
+            if (next) setSnapshot(next);
+          }
+          setGroupEditOpen(false);
+          setChatMenuFor(null);
+          await loadChats();
+          void refresh();
+        } catch (error) {
+          if (mountedRef.current) {
+            setSendError((error && error.message) || t("saveFailed"));
+          }
+        }
+      }, [chatMenuFor, groupTitleDraft, groupDescDraft, loadChats, refresh]);
+
+      // 快捷键：? 打开面板（输入框里不触发），Esc 关闭。
+      useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const onKeyDown = (event) => {
+          const target = event.target;
+          const typing =
+            target &&
+            (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+          if (typing) return;
+          if (event.key === "?") {
+            event.preventDefault();
+            setShortcutsOpen((open) => !open);
+          }
+          if (event.key === "Escape") setShortcutsOpen(false);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+      }, []);
 
       const toggleMuteChat = useCallback(async () => {
         if (!currentChat) return;
@@ -6954,6 +7210,14 @@ window.__ModuleLoader__.load({
                   setSearchOpen(true);
                 },
               },
+              {
+                key: "select",
+                label: selectMode ? t("cancelSelect") : t("selectMessages"),
+                onClick: () => {
+                  setMenuOpen(false);
+                  toggleSelectMode();
+                },
+              },
               { key: "members", label: t("members"), onClick: openMembers },
               {
                 key: "invite",
@@ -7149,6 +7413,9 @@ window.__ModuleLoader__.load({
               onForward: startForward,
               showAvatar: Boolean(currentChat && currentChat.kind === "dm"),
               highlighted: highlightId === message.id,
+              selectMode,
+              selected: selectedIds.includes(message.id),
+              onToggleSelect: toggleSelected,
             }),
           );
         });
@@ -7331,7 +7598,7 @@ window.__ModuleLoader__.load({
           )
         : null;
 
-      const forwardView = forwardFor
+      const forwardView = forwardIds && forwardIds.length > 0
         ? h(
             "div",
             {
@@ -7339,7 +7606,7 @@ window.__ModuleLoader__.load({
               role: "dialog",
               "aria-label": t("forwardTitle"),
               onMouseDown: (event) => {
-                if (event.target === event.currentTarget) setForwardFor(null);
+                if (event.target === event.currentTarget) setForwardIds(null);
               },
             },
             h(
@@ -7348,7 +7615,11 @@ window.__ModuleLoader__.load({
               h(
                 "div",
                 { className: "dchat-invite-head" },
-                h("span", { className: "dchat-invite-title" }, t("forwardTitle")),
+                h(
+                  "span",
+                  { className: "dchat-invite-title" },
+                  t("forwardTitle") + (forwardIds.length > 1 ? " · " + forwardIds.length : ""),
+                ),
                 h(
                   "button",
                   {
@@ -7356,7 +7627,7 @@ window.__ModuleLoader__.load({
                     className: "dchat-icon-btn",
                     "aria-label": t("close"),
                     title: t("close"),
-                    onClick: () => setForwardFor(null),
+                    onClick: () => setForwardIds(null),
                   },
                   CLOSE_ICON,
                 ),
@@ -7440,6 +7711,21 @@ window.__ModuleLoader__.load({
                   { type: "button", className: "dchat-small-btn ghost", onClick: () => clearChatHistory(chatMenuFor) },
                   t("clearHistory"),
                 ),
+                chatMenuFor.kind !== "dm"
+                  ? h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-small-btn",
+                        onClick: () => {
+                          setGroupTitleDraft(String(chatMenuFor.title || ""));
+                          setGroupDescDraft(String(chatMenuFor.description || ""));
+                          setGroupEditOpen(true);
+                        },
+                      },
+                      t("groupInfo"),
+                    )
+                  : null,
               ),
             ),
           )
@@ -7534,6 +7820,192 @@ window.__ModuleLoader__.load({
                       t("removeContact"),
                     )
                   : null,
+              ),
+            ),
+          )
+        : null;
+
+      const selectBar = selectMode
+        ? h(
+            "div",
+            { className: "dchat-selectbar" },
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-icon-btn",
+                "aria-label": t("cancelSelect"),
+                title: t("cancelSelect"),
+                onClick: () => {
+                  setSelectMode(false);
+                  setSelectedIds([]);
+                },
+              },
+              CLOSE_ICON,
+            ),
+            h("span", { className: "dchat-selectbar-count" }, t("selectedCount") + " " + selectedIds.length),
+            h("span", { className: "dchat-page-spacer" }),
+            h("button", { type: "button", className: "dchat-small-btn ghost", onClick: selectAllMessages }, t("selectAll")),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-small-btn",
+                disabled: selectedIds.length === 0,
+                onClick: () => setForwardIds(selectedIds.slice()),
+              },
+              t("forwardSelected"),
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-small-btn",
+                disabled: selectedIds.length === 0,
+                onClick: () => void batchCopy(),
+              },
+              t("copySelected"),
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-small-btn ghost",
+                disabled: selectedIds.length === 0,
+                onClick: () => void batchDelete(),
+              },
+              t("deleteSelected"),
+            ),
+          )
+        : null;
+
+      const groupEditView = groupEditOpen
+        ? h(
+            "div",
+            {
+              className: "dchat-invite",
+              role: "dialog",
+              "aria-label": t("groupInfo"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setGroupEditOpen(false);
+              },
+            },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("groupInfo")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setGroupEditOpen(false),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              settingsField(
+                t("groupTitleLabel"),
+                h("input", {
+                  className: "dchat-input",
+                  type: "text",
+                  value: groupTitleDraft,
+                  maxLength: 40,
+                  "aria-label": t("groupTitleLabel"),
+                  onChange: (event) => setGroupTitleDraft(event.target.value),
+                }),
+              ),
+              settingsField(
+                t("groupAnnouncement"),
+                h("textarea", {
+                  className: "dchat-input dchat-textarea",
+                  rows: 3,
+                  value: groupDescDraft,
+                  maxLength: 200,
+                  "aria-label": t("groupAnnouncement"),
+                  onChange: (event) => setGroupDescDraft(event.target.value),
+                }),
+                t("groupAnnouncementHint"),
+              ),
+              h(
+                "div",
+                { className: "dchat-invite-actions" },
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-small-btn ghost",
+                    onClick: () => {
+                      setGroupEditOpen(false);
+                      setChatMenuFor(null);
+                      openMembers();
+                    },
+                  },
+                  t("members"),
+                ),
+                h(
+                  "button",
+                  { type: "button", className: "dchat-btn", onClick: () => void saveGroupInfo() },
+                  t("saveGroupInfo"),
+                ),
+              ),
+            ),
+          )
+        : null;
+
+      const shortcutsView = shortcutsOpen
+        ? h(
+            "div",
+            {
+              className: "dchat-invite",
+              role: "dialog",
+              "aria-label": t("shortcuts"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setShortcutsOpen(false);
+              },
+            },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("shortcuts")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setShortcutsOpen(false),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-shortcuts" },
+                ...[
+                  ["⌘K / Ctrl+K", t("shortcutSearch")],
+                  ["⌘F / Ctrl+F", t("shortcutFind")],
+                  ["Enter", t("shortcutSend")],
+                  ["Shift+Enter", t("shortcutNewline")],
+                  ["Esc", t("shortcutClose")],
+                  ["?", t("shortcutHelp")],
+                ].map(([key, label]) =>
+                  h(
+                    "div",
+                    { key, className: "dchat-shortcut-row" },
+                    h("kbd", { className: "dchat-kbd" }, key),
+                    h("span", null, label),
+                  ),
+                ),
               ),
             ),
           )
@@ -8137,7 +8609,10 @@ window.__ModuleLoader__.load({
       return h(
         "div",
         {
-          className: "dchat-root" + (inSettings ? " dchat-in-settings" : ""),
+          className:
+            "dchat-root" +
+            (inSettings ? " dchat-in-settings" : "") +
+            (selectMode ? " dchat-selecting" : ""),
           onDragEnter: (event) => {
             if (event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files")) {
               event.preventDefault();
@@ -8173,6 +8648,7 @@ window.__ModuleLoader__.load({
             friendsView,
             mainHead,
             searchView,
+            selectBar,
             banner,
             requestBanner,
             snapshot && peers.length > 1 ? peersView : null,
@@ -8227,6 +8703,8 @@ window.__ModuleLoader__.load({
         previewView,
         forwardView,
         chatSettingsView,
+        groupEditView,
+        shortcutsView,
         profileView,
         globalSearchView,
         toast ? h("div", { className: "dchat-toast" }, toast) : null,

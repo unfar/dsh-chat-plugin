@@ -29,6 +29,7 @@ export function apply(ctx, config) {
   const app = new PeerChat({ ctx, config })
   const replier = new AgentReplier({ ctx, app })
   const chats = new Chats({ app, store: app.store })
+  app.onGroupInfo = (info) => chats.applyRemoteGroupInfo(info)
   const social = new Social({ ctx, app, store: app.store, chats })
   app.onConfigChanged = () => social.restart()
 
