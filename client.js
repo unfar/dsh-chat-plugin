@@ -30,7 +30,7 @@ window.__ModuleLoader__.load({
     const NEAR_BOTTOM_PX = 80;
 
     // ── 文案（Simplified Chinese；集中在这里，方便以后接 i18n）─────────────
-    const STRINGS = {
+    const STRINGS_ZH = {
       title: "dsh Chat",
       subtitle: "dsh 之间的信使，人与 agent 都能收发消息",
       statusOnline: "已连接",
@@ -201,7 +201,26 @@ window.__ModuleLoader__.load({
       statusLabel: "个性签名",
       statusHint: "一句话介绍自己，会显示在你的资料卡里",
       settingsAbout: "关于",
-      aboutVersion: "dsh Chat v2.0",
+      language: "界面语言",
+      groupPrefix: "群聊",
+      reactionsCount: "个回应",
+      filterAll: "全部",
+      filterUnread: "未读",
+      filterGroups: "群组",
+      filterArchived: "已归档",
+      chatSettings: "会话设置",
+      pin: "置顶",
+      unpin: "取消置顶",
+      archive: "归档",
+      unarchive: "取消归档",
+      clearHistory: "清空聊天记录",
+      clearConfirm: "确定清空本机会话记录？其他设备不受影响。",
+      archivedTag: "已归档",
+      profileTitle: "资料卡",
+      openChat: "打开会话",
+      removeContact: "移除联系人",
+      writeMessage: "发消息",
+      aboutVersion: "dsh Chat v2.1",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -247,8 +266,245 @@ window.__ModuleLoader__.load({
       notificationsEnabled: "通知已开启",
     };
 
+    const STRINGS_EN = {
+      title: "dsh Chat",
+      subtitle: "Messaging between dsh installs — humans and agents",
+      statusOnline: "Connected",
+      statusConnecting: "Connecting…",
+      statusError: "Connection failed",
+      statusOff: "Disconnected",
+      encrypted: "End-to-end encrypted",
+      plain: "Plaintext",
+      settings: "Settings",
+      settingsTitle: "Settings",
+      settingsProfile: "Profile",
+      settingsChat: "Current chat",
+      settingsAutomation: "Agent automation",
+      settingsNotify: "Notifications",
+      settingsRoom: "Room & relay",
+      settingsDiscover: "Privacy & discovery",
+      settingsAdvanced: "More",
+      settingsGuide: "Replay onboarding",
+      settingsInvite: "View invite code",
+      onboardTitle: "Welcome to dsh Chat",
+      onboardLead: "Three steps: pick a name, create a room (or join a friend's), and start chatting with another dsh.",
+      onboardStep1: "Your nickname",
+      onboardNicknameHint: "This is what peers see in the member list — change it anytime.",
+      onboardStep2: "Room",
+      onboardCreateLabel: "New group name",
+      onboardJoinLabel: "Or paste a friend's invite code",
+      onboardStep3: "Discovery",
+      onboardDiscoverHint: "When enabled, other dsh Chat users can find you in Discover and start a private chat.",
+      onboardFinish: "Get started",
+      onboardSkip: "Later",
+      onboardWorking: "Preparing…",
+      members: "Members",
+      membersTitle: "Group members",
+      inviteMembers: "Invite members",
+      renameChat: "Rename chat",
+      more: "More",
+      close: "Close",
+      menu: "Chat menu",
+      sideToggle: "Chat list",
+      me: "Me",
+      offline: "Offline",
+      room: "Room",
+      roomName: "Room name",
+      roomPlaceholder: "lobby",
+      peers: "Members",
+      online: "Online",
+      lastSeen: "Last seen",
+      you: "You",
+      noPeers: "No one else here yet",
+      empty: "No messages yet — say hello",
+      placeholder: "Type a message. Enter to send, Shift+Enter for a new line.",
+      placeholderShort: "Type a message…",
+      send: "Send",
+      sending: "Sending…",
+      sendingFailed: "Send failed",
+      jumpToBottom: "Jump to latest",
+      loading: "Connecting…",
+      retrying: "Retrying…",
+      unreachable: "Can't reach the host",
+      hostMissing: "Host plugin not loaded. Make sure dsh-chat-plugin is enabled in this profile (retrying automatically).",
+      offlineTitle: "Can't reach the host",
+      offlineHint: "It recovers automatically once the plugin is enabled. You can also open Settings to check the room configuration.",
+      hostMissingSend: "Host not loaded — message not sent.",
+      hostMissingSave: "Host not loaded — settings not saved.",
+      relayError: "Relay connection problem",
+      nickname: "Nickname",
+      nicknameHint: "Leave empty to use the hostname",
+      nicknameHelp: "This is what other members see.",
+      passphrase: "Room passphrase (optional, enables end-to-end encryption)",
+      passphraseSet: "Set — leave empty to keep",
+      passphraseEmpty: "Not set — leave empty to keep",
+      clearPassphrase: "Clear saved passphrase",
+      relayKind: "Relay type",
+      relayNtfy: "Public ntfy.sh (zero setup)",
+      relayCustom: "Self-hosted relay (relay.mjs)",
+      relayUrl: "Relay URL",
+      relayUrlPlaceholder: "https://ntfy.sh",
+      save: "Save & reconnect",
+      saved: "Saved",
+      saving: "Saving…",
+      saveFailed: "Save failed",
+      collapse: "Collapse",
+      lobbyHint: "Public lobby: dsh installs with the same room name and passphrase land in the same room. A passphrase is recommended.",
+      agentAutoReply: "Enable agent auto-reply (triggered by @chat)",
+      agentAutoReplyHint: "When enabled, a background agent session replies automatically when someone sends \"@chat …\" in the room. Off by default.",
+      agentOn: "Auto-reply",
+      agentBusy: "Agent is replying…",
+      today: "Today",
+      yesterday: "Yesterday",
+      anonymous: "Anonymous",
+      messagesAria: "Chat messages",
+      composerAria: "Message composer",
+      invite: "Invite",
+      inviteTitle: "Invite someone",
+      inviteHint: "Send this invite code to a friend and let them paste it into \"Join a room\". The code contains the room passphrase — share it only with people you trust.",
+      inviteCopy: "Copy invite code",
+      inviteCopied: "Copied",
+      inviteClose: "Close",
+      inviteLoading: "Generating invite code…",
+      joinTitle: "Join someone's room",
+      joinPlaceholder: "Paste an invite code, e.g. dshchat1:…",
+      joinButton: "Join",
+      joining: "Joining…",
+      joinFailed: "Join failed",
+      onboardingTitle: "Start chatting with another dsh",
+      onboardingText: "You need to be in the same room first: send your invite code to the other person, or paste theirs.",
+      onboardingOr: "or",
+      typing: "typing…",
+      friends: "Friends",
+      friendsTitle: "Friends & discovery",
+      discover: "Discover",
+      discoverHint: "When enabled you appear in the public directory so other dsh Chat users can find you and connect.",
+      discoverOff: "Not in the public directory",
+      discoverToggle: "Show me in the public directory",
+      discoverSearch: "Search name or ID…",
+      discoverEmpty: "Nobody here yet. Ask the other person to enable Discover, or just send an invite code.",
+      contacts: "Contacts",
+      contactsEmpty: "No contacts yet. Find someone in Discover, or paste an invite code to join a room.",
+      connect: "Connect",
+      connecting: "Connecting…",
+      joinRoom: "Open",
+      remove: "Remove",
+      accept: "Accept",
+      dismiss: "Dismiss",
+      requestTitle: "Connection request",
+      requestBody: "wants to chat with you",
+      selfTag: "Me",
+      findFriends: "Find friends",
+      onlineNow: "Online",
+      lastSeenShort: "Last seen",
+      reply: "Reply",
+      replyTo: "Replying to",
+      cancelReply: "Cancel reply",
+      copyText: "Copy",
+      copied: "Copied",
+      react: "React",
+      unreadDivider: "Unread messages",
+      diagnostics: "Run diagnostics",
+      diagnosticsTesting: "Checking…",
+      diagnosticsOk: "Relay reachable",
+      diagnosticsFail: "Relay unreachable",
+      quoteUnavailable: "Quoted message isn't in the local window",
+      attach: "Send image or file",
+      uploading: "Uploading…",
+      uploadFailed: "Upload failed",
+      fileTooLarge: "File is too large (10 MB max)",
+      download: "Download",
+      imagePreview: "Image preview",
+      closePreview: "Close preview",
+      search: "Search messages",
+      searchPlaceholder: "Search this chat…",
+      searchNoResults: "No matching messages",
+      searchCount: "results",
+      closeSearch: "Close search",
+      dropHint: "Drop to send images or files",
+      retry: "Retry",
+      back: "Back",
+      changeAvatar: "Change avatar",
+      avatarHint: "PNG / JPG / WebP / GIF — square recommended",
+      avatarType: "Avatar must be an image file",
+      statusLabel: "Status",
+      statusHint: "One line about you, shown on your profile",
+      settingsAbout: "About",
+      aboutVersion: "dsh Chat v2.1",
+      globalSearchPlaceholder: "Search chats and messages…",
+      searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
+      searchConversations: "Chats",
+      searchMessages: "Messages",
+      edit: "Edit",
+      editMessage: "Edit message",
+      saveEdit: "Save",
+      cancelEdit: "Cancel",
+      delete: "Delete",
+      deleteConfirm: "Recall this message? The other side will see a recall notice.",
+      messageDeleted: "This message was recalled",
+      editedTag: "edited",
+      forwardedFrom: "Forwarded from",
+      forward: "Forward",
+      forwardTitle: "Forward to",
+      mute: "Mute",
+      unmute: "Unmute",
+      muted: "Muted",
+      aboutHint: "An end-to-end encrypted peer chat plugin for dsh. Messages and files are only visible to you and the other side; the relay only sees ciphertext.",
+      linkHint: "Link",
+      agentId: "Agent ID",
+      agentIdHint: "Share this ID with friends; they can add you by ID in Discover without enabling the public directory.",
+      agentIdInvalid: "Agent ID is 8 letters/digits, e.g. K7M2-QX9T",
+      copyId: "Copy ID",
+      addById: "Add by ID",
+      addByIdHint: "Not in the directory? Enter their Agent ID directly.",
+      idAdded: "Connection request sent",
+      newChat: "New group",
+      newChatTitle: "Create a group",
+      newChatHint: "A random room name and passphrase are generated. Share the invite code to bring friends in.",
+      chatName: "Group name",
+      chatNamePlaceholder: "e.g. Project team",
+      create: "Create",
+      creating: "Creating…",
+      currentChat: "Current chat",
+      rename: "Save name",
+      leaveChat: "Leave this chat",
+      leaveConfirm: "Leave this chat? History stays on this device.",
+      unreadDot: "Unread",
+      notifications: "Desktop notifications",
+      notificationsHint: "Show a system notification when a message arrives while the page is in the background (requires permission).",
+      notificationsDenied: "Notification permission denied",
+      notificationsEnabled: "Notifications enabled",
+      language: "Language",
+      groupPrefix: "Group",
+      reactionsCount: "reactions",
+      filterAll: "All",
+      filterUnread: "Unread",
+      filterGroups: "Groups",
+      filterArchived: "Archived",
+      chatSettings: "Chat settings",
+      pin: "Pin",
+      unpin: "Unpin",
+      archive: "Archive",
+      unarchive: "Unarchive",
+      clearHistory: "Clear history",
+      clearConfirm: "Clear this chat's local history? Other devices are unaffected.",
+      archivedTag: "Archived",
+      profileTitle: "Profile",
+      openChat: "Open chat",
+      removeContact: "Remove contact",
+      writeMessage: "Send message",
+    };
+
     /** 取中文文案；未知 key 原样返回，永不抛错。 */
-    const t = (key) => (Object.prototype.hasOwnProperty.call(STRINGS, key) ? STRINGS[key] : String(key));
+    /** 界面语言：zh / en；由 ChatPanel 的 lang 状态同步。 */
+    let ACTIVE_LANG = "zh";
+    const DICTS = { zh: STRINGS_ZH, en: STRINGS_EN };
+    const t = (key) => {
+      const dict = DICTS[ACTIVE_LANG] || STRINGS_ZH;
+      if (Object.prototype.hasOwnProperty.call(dict, key)) return dict[key];
+      if (Object.prototype.hasOwnProperty.call(STRINGS_ZH, key)) return STRINGS_ZH[key];
+      return String(key);
+    };
 
     // ── 小工具（纯函数，无 hooks）────────────────────────────────────────
     function safeArray(value) {
@@ -299,6 +555,14 @@ window.__ModuleLoader__.load({
       if (target === ymdOf(now)) return t("today");
       const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
       if (target === ymdOf(yesterday)) return t("yesterday");
+      if (ACTIVE_LANG === "en") {
+        const sameYear = date.getFullYear() === now.getFullYear();
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          ...(sameYear ? {} : { year: "numeric" }),
+        });
+      }
       if (date.getFullYear() === now.getFullYear()) {
         return date.getMonth() + 1 + "月" + date.getDate() + "日";
       }
@@ -2087,6 +2351,12 @@ window.__ModuleLoader__.load({
   background: var(--dchat-layer-2);
   border-color: var(--dchat-border-l2);
 }
+.dchat-root .dchat-small-btn.active {
+  background: color-mix(in srgb, var(--dchat-brand) 14%, transparent);
+  border-color: color-mix(in srgb, var(--dchat-brand) 55%, transparent);
+  color: var(--dchat-brand);
+  font-weight: 620;
+}
 .dchat-root .dchat-small-btn.ghost {
   background: transparent;
   border-color: var(--dchat-border-l1);
@@ -3410,6 +3680,115 @@ window.__ModuleLoader__.load({
   0% { background-position: 100% 50%; }
   100% { background-position: 0 50%; }
 }
+
+/* 会话筛选 + 行内管理入口 */
+.dchat-root .dchat-chat-filters {
+  display: flex;
+  gap: 2px;
+  padding: 2px 10px 6px;
+  flex: none;
+}
+.dchat-root .dchat-chat-filter {
+  flex: 1 1 auto;
+  height: 26px;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: var(--dchat-label-2);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.dchat-root .dchat-chat-filter:hover {
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-chat-filter.active {
+  background: color-mix(in srgb, var(--dchat-brand) 13%, transparent);
+  color: var(--dchat-brand);
+  font-weight: 620;
+}
+.dchat-root .dchat-chat-row {
+  position: relative;
+  cursor: pointer;
+  padding-right: 30px;
+}
+.dchat-root .dchat-chat-row.archived {
+  opacity: 0.72;
+}
+.dchat-root .dchat-chat-more {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dchat-radius-xs);
+  background: var(--dchat-overlay);
+  color: var(--dchat-label-2);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--dchat-dur-1) var(--dchat-ease);
+  box-shadow: var(--dchat-shadow-1);
+}
+.dchat-root .dchat-chat-row:hover .dchat-chat-more,
+.dchat-root .dchat-chat-row:focus-within .dchat-chat-more {
+  opacity: 1;
+}
+.dchat-root .dchat-chat-more:hover {
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-chat-pin {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  color: var(--dchat-brand);
+  vertical-align: -1px;
+}
+.dchat-root .dchat-chat-meta {
+  padding-right: 0;
+}
+.dchat-root .dchat-chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dchat-root .dchat-dir-row.dchat-clickable {
+  cursor: pointer;
+}
+.dchat-root .dchat-profile-dialog {
+  align-items: center;
+  text-align: center;
+}
+.dchat-root .dchat-profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+.dchat-root .dchat-profile-hero .dchat-avatar-img,
+.dchat-root .dchat-profile-hero .dchat-avatar {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dchat-brand) 16%, transparent);
+}
+.dchat-root .dchat-profile-hero-name {
+  font-size: 16px;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+}
+.dchat-root .dchat-profile-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -3450,8 +3829,8 @@ window.__ModuleLoader__.load({
               "span",
               {
                 className: "dchat-icon-badge",
-                "aria-label": unread + " 条未读消息",
-                title: unread + " 条未读消息",
+                "aria-label": t("unreadDot") + " " + unread,
+                title: t("unreadDot") + " " + unread,
               },
               unread > 99 ? "99+" : String(unread),
             )
@@ -3514,6 +3893,13 @@ window.__ModuleLoader__.load({
       "svg",
       { viewBox: "0 0 24 24", width: 14, height: 14, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
       h("path", { key: "a", d: "M4 12l16-7-4 16-4-6-8-3z" }),
+    );
+
+    const PIN_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 12, height: 12, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M9 4h6l-1 6 4 3H6l4-3-1-6z" }),
+      h("path", { key: "b", d: "M12 13v7" }),
     );
 
     const MUTE_ICON = h(
@@ -4127,7 +4513,7 @@ window.__ModuleLoader__.load({
                       key: chip.emoji,
                       type: "button",
                       className: "dchat-chip" + (chip.mine ? " mine" : ""),
-                      title: chip.count + " 个回应",
+                      title: chip.count + " " + t("reactionsCount"),
                       onClick: () => props.onReact && props.onReact(message.id, chip.emoji),
                     },
                     String(chip.emoji) + " " + String(chip.count),
@@ -4311,6 +4697,17 @@ window.__ModuleLoader__.load({
       const [diagnostic, setDiagnostic] = useState(null);
       const [diagnosticBusy, setDiagnosticBusy] = useState(false);
       const [toast, setToast] = useState(null);
+      const [lang, setLang] = useState(() => {
+        try {
+          const stored = window.localStorage.getItem("dshchat.lang");
+          if (stored === "en" || stored === "zh") return stored;
+          const nav = typeof navigator !== "undefined" ? String(navigator.language || "") : "";
+          return /^en/i.test(nav) ? "en" : "zh";
+        } catch {
+          return "zh";
+        }
+      });
+      ACTIVE_LANG = lang;
       const [searchOpen, setSearchOpen] = useState(false);
       const [settingsTab, setSettingsTab] = useState("profile");
       const [avatarBusy, setAvatarBusy] = useState(false);
@@ -4322,6 +4719,9 @@ window.__ModuleLoader__.load({
       const [highlightId, setHighlightId] = useState("");
       const [editing, setEditing] = useState(null);
       const [forwardFor, setForwardFor] = useState(null);
+      const [chatFilter, setChatFilter] = useState("all");
+      const [chatMenuFor, setChatMenuFor] = useState(null);
+      const [profileCard, setProfileCard] = useState(null);
       const [searchQuery, setSearchQuery] = useState("");
       const [dragActive, setDragActive] = useState(false);
       const [uploading, setUploading] = useState(null);
@@ -5274,6 +5674,16 @@ window.__ModuleLoader__.load({
         }
       }, [draft, snapshot && snapshot.room]);
 
+      useEffect(() => {
+        ACTIVE_LANG = lang;
+        try {
+          window.localStorage.setItem("dshchat.lang", lang);
+          document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
+        } catch {
+          /* ignore */
+        }
+      }, [lang]);
+
       // 未读数同步到页面标题，方便切到别的标签页时也知道有新消息。
       const baseTitleRef = useRef(typeof document === "undefined" ? "" : document.title);
       useEffect(() => {
@@ -5493,6 +5903,55 @@ window.__ModuleLoader__.load({
           }
         }
       }, [currentChat, loadChats]);
+
+      /** 会话设置动作（置顶/归档/清空/静音）。 */
+      const chatAction = useCallback(
+        async (path, body) => {
+          try {
+            const data = await request(path, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify(body || {}),
+            });
+            if (data && data.state) {
+              const next = normalizeSnapshot(data.state);
+              if (next) setSnapshot(next);
+            }
+            setChatMenuFor(null);
+            await loadChats();
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) {
+              setSendError((error && error.message) || t("unreachable"));
+            }
+          }
+        },
+        [loadChats, refresh],
+      );
+
+      const toggleChatPin = useCallback(
+        (chat) => void chatAction("/chats/pin", { id: chat.id, pinned: !(chat && chat.pinned) }),
+        [chatAction],
+      );
+      const toggleChatArchive = useCallback(
+        (chat) => void chatAction("/chats/archive", { id: chat.id, archived: !(chat && chat.archived) }),
+        [chatAction],
+      );
+      const clearChatHistory = useCallback((chat) => {
+        if (!chat) return;
+        if (
+          typeof window !== "undefined" &&
+          typeof window.confirm === "function" &&
+          !window.confirm(t("clearConfirm"))
+        ) {
+          return;
+        }
+        void chatAction("/chats/clear", { id: chat.id });
+      }, [chatAction]);
+      const toggleChatMute = useCallback(
+        (chat) => void chatAction("/chats/mute", { id: chat.id, muted: !(chat && chat.muted) }),
+        [chatAction],
+      );
 
       const banner = hostMissing
         ? h("div", { className: "dchat-banner" }, t("hostMissing"))
@@ -5994,6 +6453,32 @@ window.__ModuleLoader__.load({
                                       t("settingsInvite"),
                                     ),
                                   ),
+                                  settingsSection(t("language"), [
+                                    h(
+                                      "div",
+                                      { className: "dchat-settings-row" },
+                                      h(
+                                        "button",
+                                        {
+                                          type: "button",
+                                          className:
+                                            "dchat-small-btn" + (lang === "zh" ? " active" : ""),
+                                          onClick: () => setLang("zh"),
+                                        },
+                                        "中文",
+                                      ),
+                                      h(
+                                        "button",
+                                        {
+                                          type: "button",
+                                          className:
+                                            "dchat-small-btn" + (lang === "en" ? " active" : ""),
+                                          onClick: () => setLang("en"),
+                                        },
+                                        "English",
+                                      ),
+                                    ),
+                                  ]),
                                   h(
                                     "div",
                                     { className: "dchat-about" },
@@ -6116,7 +6601,11 @@ window.__ModuleLoader__.load({
                     : visibleDirectory.map((peer) =>
                         h(
                           "div",
-                          { key: "dir-" + (peer.agentId || peer.id), className: "dchat-dir-row" },
+                          {
+                            key: "dir-" + (peer.agentId || peer.id),
+                            className: "dchat-dir-row dchat-clickable",
+                            onClick: () => setProfileCard({ kind: "directory", ...peer }),
+                          },
                           h(
                             "span",
                             {
@@ -6143,7 +6632,10 @@ window.__ModuleLoader__.load({
                               type: "button",
                               className: "dchat-small-btn",
                               disabled: connectingId === (peer.agentId || peer.id),
-                              onClick: () => connectTo(peer.agentId || peer.id),
+                              onClick: (event) => {
+                                event.stopPropagation();
+                                connectTo(peer.agentId || peer.id);
+                              },
                             },
                             connectingId === (peer.agentId || peer.id) ? t("connecting") : t("connect"),
                           ),
@@ -6159,7 +6651,11 @@ window.__ModuleLoader__.load({
                     : contactsList.map((contact) =>
                         h(
                           "div",
-                          { key: "contact-" + contact.id, className: "dchat-dir-row" },
+                          {
+                            key: "contact-" + contact.id,
+                            className: "dchat-dir-row dchat-clickable",
+                            onClick: () => setProfileCard({ kind: "contact", ...contact }),
+                          },
                           h(
                             "span",
                             {
@@ -6177,12 +6673,19 @@ window.__ModuleLoader__.load({
                               "div",
                               { className: "dchat-dir-meta" },
                               contact.agentId ? formatAgentId(contact.agentId) + " · " : "",
-                              "房间 " + contact.room,
+                              t("room") + " " + contact.room,
                             ),
                           ),
                           h(
                             "button",
-                            { type: "button", className: "dchat-small-btn", onClick: () => joinContact(contact.id) },
+                            {
+                              type: "button",
+                              className: "dchat-small-btn",
+                              onClick: (event) => {
+                                event.stopPropagation();
+                                joinContact(contact.id);
+                              },
+                            },
                             t("joinRoom"),
                           ),
                           h(
@@ -6519,7 +7022,7 @@ window.__ModuleLoader__.load({
                     style: { background: "var(--dchat-brand)" },
                     "aria-hidden": "true",
                   },
-                  me ? initialsOf(me.nick) : "我",
+                  me ? initialsOf(me.nick) : t("me"),
                 ),
                 h("span", { className: "dchat-member-name" }, me ? me.nick : t("me")),
                 h("span", { className: "dchat-member-tag" }, t("you")),
@@ -6884,6 +7387,158 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const chatSettingsView = chatMenuFor
+        ? h(
+            "div",
+            {
+              className: "dchat-invite",
+              role: "dialog",
+              "aria-label": t("chatSettings"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setChatMenuFor(null);
+              },
+            },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, String(chatMenuFor.title || chatMenuFor.room)),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setChatMenuFor(null),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-chat-actions" },
+                h(
+                  "button",
+                  { type: "button", className: "dchat-small-btn", onClick: () => toggleChatPin(chatMenuFor) },
+                  chatMenuFor.pinned ? t("unpin") : t("pin"),
+                ),
+                h(
+                  "button",
+                  { type: "button", className: "dchat-small-btn", onClick: () => toggleChatMute(chatMenuFor) },
+                  chatMenuFor.muted ? t("unmute") : t("mute"),
+                ),
+                h(
+                  "button",
+                  { type: "button", className: "dchat-small-btn", onClick: () => toggleChatArchive(chatMenuFor) },
+                  chatMenuFor.archived ? t("unarchive") : t("archive"),
+                ),
+                h(
+                  "button",
+                  { type: "button", className: "dchat-small-btn ghost", onClick: () => clearChatHistory(chatMenuFor) },
+                  t("clearHistory"),
+                ),
+              ),
+            ),
+          )
+        : null;
+
+      const profileView = profileCard
+        ? h(
+            "div",
+            {
+              className: "dchat-invite",
+              role: "dialog",
+              "aria-label": t("profileTitle"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setProfileCard(null);
+              },
+            },
+            h(
+              "div",
+              { className: "dchat-invite-card dchat-profile-dialog" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("profileTitle")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setProfileCard(null),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-profile-hero" },
+                h(Avatar, {
+                  nick: profileCard.nick,
+                  id: profileCard.agentId || profileCard.peerId || profileCard.id,
+                  size: 64,
+                }),
+                h("div", { className: "dchat-profile-hero-name" }, String(profileCard.nick || t("anonymous"))),
+                profileCard.agentId
+                  ? h("code", { className: "dchat-agentid" }, formatAgentId(profileCard.agentId))
+                  : null,
+                profileCard.status
+                  ? h("div", { className: "dchat-hint" }, String(profileCard.status))
+                  : null,
+              ),
+              h(
+                "div",
+                { className: "dchat-profile-actions" },
+                profileCard.kind === "directory"
+                  ? h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-btn",
+                        onClick: () => {
+                          setProfileCard(null);
+                          connectTo(profileCard.agentId || profileCard.peerId);
+                        },
+                      },
+                      t("connect"),
+                    )
+                  : h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-btn",
+                        onClick: () => {
+                          setProfileCard(null);
+                          joinContact(profileCard.id);
+                        },
+                      },
+                      t("openChat"),
+                    ),
+                profileCard.kind === "contact"
+                  ? h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-small-btn ghost",
+                        onClick: () => {
+                          const id = profileCard.id;
+                          setProfileCard(null);
+                          removeContact(id);
+                        },
+                      },
+                      t("removeContact"),
+                    )
+                  : null,
+              ),
+            ),
+          )
+        : null;
+
       const previewView = preview
         ? h(
             "div",
@@ -7014,7 +7669,14 @@ window.__ModuleLoader__.load({
         );
       const chatList = chats && Array.isArray(chats) ? chats : [];
       const sideQuery = discoverQuery.trim().toLowerCase();
-      const visibleChats = chatList.filter(
+      const filteredChats = chatList.filter((chat) => {
+        if (chatFilter === "archived") return chat.archived === true;
+        if (chat.archived === true) return false;
+        if (chatFilter === "unread") return Number(chat.unread) > 0;
+        if (chatFilter === "groups") return chat.kind !== "dm";
+        return true;
+      });
+      const visibleChats = filteredChats.filter(
         (chat) =>
           !sideQuery ||
           String(chat.title || "").toLowerCase().includes(sideQuery) ||
@@ -7035,13 +7697,23 @@ window.__ModuleLoader__.load({
       const chatRows = visibleChats.map((chat) => {
         const isDm = chat.kind === "dm";
         return h(
-          "button",
+          "div",
           {
             key: "chat-" + chat.id,
-            type: "button",
-            className: "dchat-chat-row" + (chat.active ? " active" : ""),
-            title: (isDm ? "" : "群聊 · ") + chat.room,
+            className:
+              "dchat-chat-row" +
+              (chat.active ? " active" : "") +
+              (chat.archived ? " archived" : ""),
+            role: "button",
+            tabIndex: 0,
+            title: (isDm ? "" : t("groupPrefix") + " · ") + chat.room,
             onClick: () => switchChat(chat.id),
+            onKeyDown: (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void switchChat(chat.id);
+              }
+            },
           },
           h(
             "span",
@@ -7055,13 +7727,20 @@ window.__ModuleLoader__.load({
           h(
             "span",
             { className: "dchat-chat-body" },
-            h("span", { className: "dchat-chat-name" }, String(chat.title || chat.room)),
+            h(
+              "span",
+              { className: "dchat-chat-name" },
+              String(chat.title || chat.room),
+              chat.pinned ? h("span", { className: "dchat-chat-pin", title: t("pin") }, PIN_ICON) : null,
+            ),
             h(
               "span",
               { className: "dchat-chat-preview" },
               chat.lastText
                 ? (chat.lastMine ? t("you") + ": " : "") + chat.lastText
-                : t("empty"),
+                : chat.archived
+                  ? t("archivedTag")
+                  : t("empty"),
             ),
           ),
           h(
@@ -7075,6 +7754,20 @@ window.__ModuleLoader__.load({
               : chat.lastTs
                 ? h("span", { className: "dchat-chat-time" }, formatTime(chat.lastTs))
                 : null,
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-chat-more",
+              "aria-label": t("chatSettings"),
+              title: t("chatSettings"),
+              onClick: (event) => {
+                event.stopPropagation();
+                setChatMenuFor(chat);
+              },
+            },
+            MORE_ICON,
           ),
         );
       });
@@ -7124,6 +7817,27 @@ window.__ModuleLoader__.load({
             "aria-label": t("discoverSearch"),
             onChange: (event) => setDiscoverQuery(event.target.value),
           }),
+        ),
+        h(
+          "div",
+          { className: "dchat-chat-filters" },
+          ...[
+            ["all", t("filterAll")],
+            ["unread", t("filterUnread")],
+            ["groups", t("filterGroups")],
+            ["archived", t("filterArchived")],
+          ].map(([id, label]) =>
+            h(
+              "button",
+              {
+                key: id,
+                type: "button",
+                className: "dchat-chat-filter" + (chatFilter === id ? " active" : ""),
+                onClick: () => setChatFilter(id),
+              },
+              label,
+            ),
+          ),
         ),
         h(
           "div",
@@ -7512,6 +8226,8 @@ window.__ModuleLoader__.load({
         membersView,
         previewView,
         forwardView,
+        chatSettingsView,
+        profileView,
         globalSearchView,
         toast ? h("div", { className: "dchat-toast" }, toast) : null,
       );
