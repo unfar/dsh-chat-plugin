@@ -306,6 +306,12 @@ window.__ModuleLoader__.load({
       notificationsHint: "页面在后台时收到新消息，弹系统通知（需浏览器授权）。",
       notificationsDenied: "通知权限被拒绝",
       notificationsEnabled: "通知已开启",
+      soundLabel: "新消息提示音",
+      soundHint: "窗口在后台或未聚焦时播放一声轻提示",
+      justNow: "刚刚",
+      minutesShort: "分钟前",
+      hoursShort: "小时前",
+      inAppToastTitle: "新消息",
     };
 
     const STRINGS_EN = {
@@ -516,6 +522,12 @@ window.__ModuleLoader__.load({
       notificationsHint: "Show a system notification when a message arrives while the page is in the background (requires permission).",
       notificationsDenied: "Notification permission denied",
       notificationsEnabled: "Notifications enabled",
+      soundLabel: "Notification sound",
+      soundHint: "Play a soft chime when the window is in the background or unfocused",
+      justNow: "just now",
+      minutesShort: "min ago",
+      hoursShort: "h ago",
+      inAppToastTitle: "New message",
       language: "Language",
       groupPrefix: "Group",
       reactionsCount: "reactions",
@@ -651,6 +663,49 @@ window.__ModuleLoader__.load({
         return date.getMonth() + 1 + "月" + date.getDate() + "日";
       }
       return date.getFullYear() + "年" + (date.getMonth() + 1) + "月" + date.getDate() + "日";
+    }
+
+    /** 相对时间：刚刚 / N 分钟前 / N 小时前 / 具体时间。 */
+    function relativeTime(value) {
+      const ts = Number(value) || 0;
+      if (!ts) return "";
+      const diff = Date.now() - ts;
+      if (diff < 60 * 1000) return t("justNow");
+      if (diff < 60 * 60 * 1000) return Math.floor(diff / 60000) + " " + t("minutesShort");
+      if (diff < 24 * 60 * 60 * 1000) return Math.floor(diff / 3600000) + " " + t("hoursShort");
+      return formatTime(ts);
+    }
+
+    /** 播放一声轻提示音（WebAudio，无需音频资源）。 */
+    function playChime() {
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        const ctx = new Ctx();
+        const now = ctx.currentTime;
+        [880, 660].forEach((freq, index) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, now + index * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.08, now + index * 0.12 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.12 + 0.18);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + index * 0.12);
+          osc.stop(now + index * 0.12 + 0.2);
+        });
+        setTimeout(() => {
+          try {
+            ctx.close();
+          } catch {
+            /* ignore */
+          }
+        }, 700);
+      } catch {
+        /* 音频不可用时静默 */
+      }
     }
 
     /** 由 peer id 稳定映射到一个头像颜色（两种主题下都够醒目）。 */
@@ -4154,6 +4209,53 @@ window.__ModuleLoader__.load({
   max-height: 52vh;
   overflow-y: auto;
 }
+
+/* 应用内新消息 toast */
+.dchat-root .dchat-notify-toast {
+  position: absolute;
+  right: 18px;
+  bottom: 92px;
+  z-index: 29;
+  width: min(320px, calc(100% - 36px));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-lg);
+  background: var(--dchat-overlay);
+  box-shadow: var(--dchat-shadow-3);
+  color: var(--dchat-label);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  animation: dchat-pop var(--dchat-dur-2) var(--dchat-ease);
+}
+.dchat-root .dchat-notify-toast:hover {
+  border-color: var(--dchat-border-l2);
+}
+.dchat-root .dchat-notify-toast-title {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--dchat-brand);
+  letter-spacing: 0.05em;
+}
+.dchat-root .dchat-notify-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.dchat-root .dchat-notify-toast-body strong {
+  font-weight: 620;
+}
+.dchat-root .dchat-notify-toast-body span {
+  color: var(--dchat-label-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -5077,6 +5179,14 @@ window.__ModuleLoader__.load({
       const [newChatTitle, setNewChatTitle] = useState("");
       const [chatTitleDraft, setChatTitleDraft] = useState("");
       const [notifyEnabled, setNotifyEnabled] = useState(false);
+      const [soundEnabled, setSoundEnabled] = useState(() => {
+        try {
+          return typeof window !== "undefined" && window.localStorage.getItem("dshchat.sound") === "1";
+        } catch {
+          return false;
+        }
+      });
+      const [notifyToast, setNotifyToast] = useState(null);
       const [notifyError, setNotifyError] = useState("");
       const [onboardingOpen, setOnboardingOpen] = useState(false);
       const [onboardSeen, setOnboardSeen] = useState(false);
@@ -5155,6 +5265,8 @@ window.__ModuleLoader__.load({
       const lastReadSentRef = useRef(0);
       const typingSentRef = useRef(0);
       const lastNotifiedSeqRef = useRef(0);
+      const notifyInitRef = useRef(false);
+      const soundEnabledRef = useRef(false);
       const notifyEnabledRef = useRef(false);
       const draftSavedRef = useRef("");
       const [unreadAnchor, setUnreadAnchor] = useState(0);
@@ -6066,24 +6178,65 @@ window.__ModuleLoader__.load({
         }
       }, [notifyEnabled]);
 
-      // 新消息 → 后台弹系统通知（只在页面 hidden 时）。
       useEffect(() => {
-        if (!snapshot || !notifyEnabledRef.current) return;
-        if (typeof document === "undefined" || document.visibilityState !== "hidden") return;
+        soundEnabledRef.current = soundEnabled;
+      }, [soundEnabled]);
+
+      // 提示音开关变化时持久化，并在开启时试听。
+      useEffect(() => {
+        try {
+          window.localStorage.setItem("dshchat.sound", soundEnabled ? "1" : "0");
+        } catch {
+          /* ignore */
+        }
+        if (soundEnabled) playChime();
+      }, [soundEnabled]);
+
+      // 应用内通知 toast 自动消失。
+      useEffect(() => {
+        if (!notifyToast) return undefined;
+        const timer = setTimeout(() => setNotifyToast(null), 6000);
+        return () => clearTimeout(timer);
+      }, [notifyToast]);
+
+      // 新消息 → 后台系统通知 / 未聚焦应用内 toast / 提示音。
+      useEffect(() => {
+        if (!snapshot) return;
         const latest = Number(snapshot.latestSeq) || 0;
+        if (!notifyInitRef.current) {
+          notifyInitRef.current = true;
+          lastNotifiedSeqRef.current = latest;
+          return;
+        }
         if (latest <= lastNotifiedSeqRef.current) return;
         lastNotifiedSeqRef.current = latest;
         const last = messages.length > 0 ? messages[messages.length - 1] : null;
         if (!last || last.mine) return;
-        try {
-          new Notification(t("title"), {
-            body: `${last.nick || t("anonymous")}: ${String(last.text || "").slice(0, 80)}`,
-            tag: "dsh-chat",
-          });
-        } catch {
-          /* ignore */
+        const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+        const unfocused =
+          typeof document !== "undefined" &&
+          document.visibilityState === "visible" &&
+          typeof document.hasFocus === "function" &&
+          !document.hasFocus();
+        if (hidden && notifyEnabledRef.current) {
+          try {
+            new Notification(t("title"), {
+              body: `${last.nick || t("anonymous")}: ${String(last.text || "").slice(0, 80)}`,
+              tag: "dsh-chat",
+            });
+          } catch {
+            /* ignore */
+          }
         }
-      }, [snapshot]);
+        if ((hidden || unfocused) && soundEnabledRef.current) playChime();
+        if (unfocused) {
+          setNotifyToast({
+            id: last.id,
+            nick: String(last.nick || t("anonymous")),
+            text: String(last.text || (last.file && last.file.name) || ""),
+          });
+        }
+      }, [snapshot, messages]);
 
       // 全新安装（未完成引导且没有昵称）时自动弹一次引导；老用户不会被打扰。
       useEffect(() => {
@@ -6788,7 +6941,7 @@ window.__ModuleLoader__.load({
           ? label + " · " + t("online")
           : label +
             (peer && peer.lastSeen
-              ? " · " + t("lastSeen") + " " + formatTime(peer.lastSeen)
+              ? " · " + t("lastSeen") + " " + relativeTime(peer.lastSeen)
               : "");
         return h(
           "span",
@@ -7192,6 +7345,17 @@ window.__ModuleLoader__.load({
                                 t("notifications"),
                               ),
                               h("div", { className: "dchat-hint" }, notifyError || t("notificationsHint")),
+                              h(
+                                "label",
+                                { className: "dchat-check" },
+                                h("input", {
+                                  type: "checkbox",
+                                  checked: soundEnabled,
+                                  onChange: (event) => setSoundEnabled(event.target.checked),
+                                }),
+                                t("soundLabel"),
+                              ),
+                              h("div", { className: "dchat-hint" }, t("soundHint")),
                             ]),
                           ]
                         : settingsTab === "privacy"
@@ -7980,7 +8144,15 @@ window.__ModuleLoader__.load({
                       : null,
                   ),
                   h("span", { className: "dchat-peer-state" + (peer.online ? " online" : "") }),
-                  h("span", { className: "dchat-member-tag" }, peer.online ? t("online") : t("offline")),
+                  h(
+                    "span",
+                    { className: "dchat-member-tag" },
+                    peer.online
+                      ? t("online")
+                      : peer.lastSeen
+                        ? t("lastSeen") + " " + relativeTime(peer.lastSeen)
+                        : t("offline"),
+                  ),
                   canPromote
                     ? h(
                         "button",
@@ -8499,6 +8671,13 @@ window.__ModuleLoader__.load({
                 profileCard.status
                   ? h("div", { className: "dchat-hint" }, String(profileCard.status))
                   : null,
+                profileCard.at || profileCard.lastSeen
+                  ? h(
+                      "div",
+                      { className: "dchat-hint" },
+                      t("lastSeen") + " " + relativeTime(profileCard.at || profileCard.lastSeen),
+                    )
+                  : null,
               ),
               h(
                 "div",
@@ -8834,6 +9013,32 @@ window.__ModuleLoader__.load({
                   ),
                 ),
               ),
+            ),
+          )
+        : null;
+
+      const notifyToastView = notifyToast
+        ? h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-notify-toast",
+              onClick: () => {
+                setNotifyToast(null);
+                try {
+                  if (typeof window !== "undefined" && typeof window.focus === "function") window.focus();
+                } catch {
+                  /* ignore */
+                }
+                if (notifyToast.id) setPendingJump({ id: notifyToast.id });
+              },
+            },
+            h("span", { className: "dchat-notify-toast-title" }, t("inAppToastTitle")),
+            h(
+              "span",
+              { className: "dchat-notify-toast-body" },
+              h("strong", null, notifyToast.nick),
+              h("span", null, notifyToast.text.slice(0, 120)),
             ),
           )
         : null;
@@ -9613,6 +9818,7 @@ window.__ModuleLoader__.load({
         chatSettingsView,
         groupEditView,
         dayJumpView,
+        notifyToastView,
         shortcutsView,
         profileView,
         globalSearchView,
