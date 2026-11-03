@@ -4658,7 +4658,7 @@ window.__ModuleLoader__.load({
       h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
     );
 
-    /** 产品 Logo（深蓝渐变圆角底 + 白色鲸鱼 + 负空间腹部，参考 DeepSeek 的鲸鱼意象）。 */
+    /** 产品 Logo（深蓝渐变圆角底 + 几何「d」字形，碗部嵌一道浪，DeepSeek 蓝）。 */
     function LogoMark(props) {
       const size = Number(props && props.size) || 18;
       return h(
@@ -4683,20 +4683,16 @@ window.__ModuleLoader__.load({
           ),
         ),
         h("rect", { key: "bg", x: 2, y: 2, width: 60, height: 60, rx: 16, fill: "url(#dshchat-logo-grad)" }),
+        h("circle", { key: "bowl", cx: 29, cy: 32, r: 17, fill: "#FFFFFF" }),
+        h("rect", { key: "stem", x: 40, y: 13, width: 9, height: 38, rx: 4.5, fill: "#FFFFFF" }),
         h("path", {
-          key: "whale",
-          d: "M9 40C9 26 21 15 35 15C46 15 53 21 55 30L61 21C62 30 61 36 57 40L51 35C48 45 40 51 29 51C18 51 9 47 9 40Z",
-          fill: "#FFFFFF",
-        }),
-        h("path", {
-          key: "belly",
-          d: "M16 41c5-6 12-8 20-7 5 1 9 3 12 6",
+          key: "wave",
+          d: "M19 30c4-4 8-4 12 0s8 4 12 0",
           stroke: "url(#dshchat-logo-grad)",
           strokeWidth: 3.4,
-          strokeLinecap: "round",
           fill: "none",
+          strokeLinecap: "round",
         }),
-        h("circle", { key: "eye", cx: 22, cy: 28, r: 2.2, fill: "url(#dshchat-logo-grad)" }),
       );
     }
 

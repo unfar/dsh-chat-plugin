@@ -276,13 +276,14 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 
 ![附件](docs/preview-attachments.png)
 
-## 品牌 Logo（v1.3）
+## 品牌 Logo（几何字标）
 
 <img src="docs/logo.png" width="96" alt="logo" />
 
-- 设计语言参考 DeepSeek：深蓝渐变圆角方块 + 极简白色字形，去掉多余描边与文字
-- 字形改为 DeepSeek 风格的负空间鲸鱼：深蓝渐变圆角底 + 白色鲸身、蓝色腹部弧线与眼睛、右上分叉尾鳍；比纯白剪影更有层次，也更接近 DeepSeek 的鲸鱼语言
+- 方向从「卡通鲸鱼」换成**几何字标**：深蓝渐变圆角底 + 白色小写「d」（圆碗 + 圆角竖干），碗内嵌一道「浪」
+- 「d」= dsh，浪 = DeepSeek 的深海意象；整体抽象、克制，不再依赖表情/剪影
 - 同一套图形用于：插件图标（`icon.svg`）、侧边栏入口与面板头部（内联 SVG，任意尺寸清晰）
+- 备选方向见 `docs/logo-options.png`（C2 字标 / B2 气泡浪 / C3 气泡碗 / A2 鲸尾）
 - 源文件：`docs/logo.png`（512px）、`icon.svg`（矢量）
 
 ## 消息交互与可靠性（v1.2）

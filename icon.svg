@@ -6,7 +6,7 @@
     </linearGradient>
   </defs>
   <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#dshchat-logo)"/>
-  <path d="M9 40C9 26 21 15 35 15C46 15 53 21 55 30L61 21C62 30 61 36 57 40L51 35C48 45 40 51 29 51C18 51 9 47 9 40Z" fill="#FFFFFF"/>
-  <path d="M16 41c5-6 12-8 20-7 5 1 9 3 12 6" stroke="url(#dshchat-logo)" stroke-width="3.4" fill="none" stroke-linecap="round"/>
-  <circle cx="22" cy="28" r="2.2" fill="url(#dshchat-logo)"/>
+  <circle cx="29" cy="32" r="17" fill="#FFFFFF"/>
+  <rect x="40" y="13" width="9" height="38" rx="4.5" fill="#FFFFFF"/>
+  <path d="M19 30c4-4 8-4 12 0s8 4 12 0" stroke="url(#dshchat-logo)" stroke-width="3.4" fill="none" stroke-linecap="round"/>
 </svg>

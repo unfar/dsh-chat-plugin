@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.3 — 2026-11-03
+- Logo 第 4 版：放弃卡通鲸鱼，改为几何字标「d + 浪」（深蓝渐变底、白色圆碗/竖干、碗内一道浪）
+- 备选方向 C2/B2/C3/A2 见 docs/logo-options.png；同步 icon.svg / LogoMark / docs/logo.png / 截图
+
 ## 3.0.2 — 2026-11-03
 - Logo 第 3 版：DeepSeek 风格负空间鲸鱼（白色鲸身 + 蓝色腹部弧线/眼睛 + 右上尾鳍）
 - 备选 A/B/C 图见 docs/logo-options.png；同步 icon.svg / LogoMark / docs/logo.png / 截图
