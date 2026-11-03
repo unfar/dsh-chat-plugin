@@ -239,6 +239,12 @@ window.__ModuleLoader__.load({
       shortcutSend: "发送消息",
       shortcutNewline: "换行",
       shortcutHelp: "打开快捷键面板",
+      notificationsCenter: "通知中心",
+      mentions: "提到我",
+      noNotifications: "没有未读消息或提及",
+      unreadChats: "未读会话",
+      viewAll: "查看全部",
+      markAllRead: "全部已读",
       aboutVersion: "dsh Chat v2.1",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
@@ -531,6 +537,12 @@ window.__ModuleLoader__.load({
       shortcutSend: "Send message",
       shortcutNewline: "New line",
       shortcutHelp: "Open shortcuts panel",
+      notificationsCenter: "Notifications",
+      mentions: "Mentions",
+      noNotifications: "No unread messages or mentions",
+      unreadChats: "Unread chats",
+      viewAll: "View all",
+      markAllRead: "Mark all read",
     };
 
     /** 取中文文案；未知 key 原样返回，永不抛错。 */
@@ -3908,6 +3920,104 @@ window.__ModuleLoader__.load({
   font-size: 11px;
   text-align: center;
 }
+
+/* 通知中心 */
+.dchat-root .dchat-bell {
+  position: relative;
+}
+.dchat-root .dchat-bell .dchat-icon-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+}
+.dchat-root .dchat-notifications {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--dchat-bg);
+}
+.dchat-root .dchat-main.dchat-main-page > .dchat-notifications.dchat-page {
+  display: flex;
+}
+.dchat-root .dchat-main.dchat-main-page > :not(.dchat-settings):not(.dchat-friends):not(.dchat-notifications) {
+  display: none;
+}
+.dchat-root .dchat-notifications-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.dchat-root .dchat-notifications-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dchat-root .dchat-notification-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--dchat-radius-md);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-notification-row:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-notification-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dchat-root .dchat-notification-title {
+  font-size: 12.5px;
+  font-weight: 620;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-notification-text {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-mention-dot {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--dchat-brand) 14%, transparent);
+  color: var(--dchat-brand);
+  font-weight: 700;
+  font-size: 13px;
+}
+.dchat-root .dchat-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4223,6 +4333,13 @@ window.__ModuleLoader__.load({
       "svg",
       { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
       h("path", { key: "a", d: "M15 5l-7 7 7 7" }),
+    );
+
+    const BELL_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("path", { key: "a", d: "M6 10a6 6 0 0 1 12 0c0 4 1.5 6 2 6H4c.5 0 2-2 2-6z" }),
+      h("path", { key: "b", d: "M10 19.5a2 2 0 0 0 4 0" }),
     );
 
     const SEARCH_ICON = h(
@@ -4787,7 +4904,7 @@ window.__ModuleLoader__.load({
       const [draft, setDraft] = useState("");
       const [sending, setSending] = useState(false);
       const [sendError, setSendError] = useState("");
-      const [settingsOpen, setSettingsOpen] = useState(false);
+      const [settingsOpen, setSettingsOpen] = useState(inSettings);
       const [form, setForm] = useState(null);
       const [saving, setSaving] = useState(false);
       const [saveNotice, setSaveNotice] = useState(null);
@@ -4861,6 +4978,9 @@ window.__ModuleLoader__.load({
       const [groupTitleDraft, setGroupTitleDraft] = useState("");
       const [groupDescDraft, setGroupDescDraft] = useState("");
       const [shortcutsOpen, setShortcutsOpen] = useState(false);
+      const [notificationsOpen, setNotificationsOpen] = useState(false);
+      const [notificationsData, setNotificationsData] = useState(null);
+      const [notificationsBusy, setNotificationsBusy] = useState(false);
       const [searchQuery, setSearchQuery] = useState("");
       const [dragActive, setDragActive] = useState(false);
       const [uploading, setUploading] = useState(null);
@@ -4975,6 +5095,22 @@ window.__ModuleLoader__.load({
       }, [refresh]);
 
       // 好友/发现状态：面板打开时高频刷新，平时低频刷新（用于未读请求角标）。
+      const loadNotifications = useCallback(async () => {
+        setNotificationsBusy(true);
+        try {
+          const data = await request("/notifications", {
+            method: "GET",
+            headers: { accept: "application/json" },
+            cache: "no-store",
+          });
+          if (mountedRef.current) setNotificationsData(data || null);
+        } catch {
+          if (mountedRef.current) setNotificationsData(null);
+        } finally {
+          if (mountedRef.current) setNotificationsBusy(false);
+        }
+      }, []);
+
       const loadChats = useCallback(async () => {
         try {
           const data = await request("/chats", { method: "GET", headers: { accept: "application/json" }, cache: "no-store" });
@@ -5109,6 +5245,12 @@ window.__ModuleLoader__.load({
           setChatTitleDraft(active ? active.title : (snapshot && snapshot.room) || "");
         }
       }, [settingsOpen, snapshot, chats]);
+
+      // 设置页首次打开（含 settings slot 直接以设置页启动）时补一份表单草稿。
+      useEffect(() => {
+        if (!settingsOpen || !snapshot) return;
+        setForm((previous) => previous || formFromSnapshot(snapshot));
+      }, [settingsOpen, snapshot]);
 
       const updateForm = useCallback(
         (patch) => {
@@ -5835,6 +5977,39 @@ window.__ModuleLoader__.load({
         };
       }, [snapshot && snapshot.unread]);
 
+      useEffect(() => {
+        if (notificationsOpen) void loadNotifications();
+      }, [notificationsOpen, loadNotifications]);
+
+      // 浮层焦点陷阱：Tab 在打开的对话框内循环，避免焦点跑到背景。
+      useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+        const onKeyDown = (event) => {
+          if (event.key !== "Tab") return;
+          const dialogs = [...document.querySelectorAll('[role="dialog"]')].filter((node) => {
+            const rect = node.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          });
+          const dialog = dialogs[dialogs.length - 1];
+          if (!dialog) return;
+          const focusables = [...dialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(
+            (node) => !node.disabled && node.offsetParent !== null,
+          );
+          if (focusables.length === 0) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+      }, []);
+
       // ⌘K / Ctrl+K 打开全局搜索；Esc 关闭。
       useEffect(() => {
         if (typeof window === "undefined") return;
@@ -5945,6 +6120,7 @@ window.__ModuleLoader__.load({
           setSearchOpen(false);
           setSearchQuery("");
           setGlobalOpen(false);
+          setNotificationsOpen(false);
           if (settingsOpen) setSettingsOpen(false);
         };
         window.addEventListener("keydown", onKeyDown);
@@ -6333,6 +6509,123 @@ window.__ModuleLoader__.load({
         { id: "about", label: t("settingsAbout") },
       ];
 
+      const unreadChats = (chats || []).filter((chat) => Number(chat.unread) > 0 && chat.archived !== true);
+      const notificationsView = notificationsOpen
+        ? h(
+            "div",
+            { className: "dchat-notifications dchat-page" },
+            h(
+              "div",
+              { className: "dchat-page-head" },
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-icon-btn",
+                  "aria-label": t("back"),
+                  title: t("back"),
+                  onClick: () => setNotificationsOpen(false),
+                },
+                BACK_ICON,
+              ),
+              h("span", { className: "dchat-page-title" }, t("notificationsCenter")),
+              h("span", { className: "dchat-page-spacer" }),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-small-btn ghost",
+                  onClick: () => {
+                    for (const chat of unreadChats) void switchChat(chat.id);
+                    setNotificationsOpen(false);
+                  },
+                },
+                t("markAllRead"),
+              ),
+            ),
+            h(
+              "div",
+              { className: "dchat-notifications-body" },
+              h(
+                "div",
+                { className: "dchat-notifications-section" },
+                h("div", { className: "dchat-friends-title" }, t("unreadChats")),
+                notificationsBusy
+                  ? h("div", { className: "dchat-hint" }, t("loading"))
+                  : unreadChats.length === 0
+                    ? h("div", { className: "dchat-hint" }, t("noNotifications"))
+                    : unreadChats.map((chat) =>
+                        h(
+                          "button",
+                          {
+                            key: "nc-" + chat.id,
+                            type: "button",
+                            className: "dchat-notification-row",
+                            onClick: () => {
+                              setNotificationsOpen(false);
+                              void switchChat(chat.id);
+                            },
+                          },
+                          h(Avatar, {
+                            nick: chat.title || chat.room,
+                            id: chat.id,
+                            size: 32,
+                          }),
+                          h(
+                            "span",
+                            { className: "dchat-notification-main" },
+                            h("span", { className: "dchat-notification-title" }, String(chat.title || chat.room)),
+                            h(
+                              "span",
+                              { className: "dchat-notification-text" },
+                              String(chat.lastText || ""),
+                            ),
+                          ),
+                          h("span", { className: "dchat-chat-unread" }, chat.unread > 99 ? "99+" : String(chat.unread)),
+                        ),
+                      ),
+              ),
+              h(
+                "div",
+                { className: "dchat-notifications-section" },
+                h("div", { className: "dchat-friends-title" }, t("mentions")),
+                !notificationsData || !Array.isArray(notificationsData.mentions) || notificationsData.mentions.length === 0
+                  ? h("div", { className: "dchat-hint" }, t("noNotifications"))
+                  : notificationsData.mentions.map((mention) =>
+                      h(
+                        "button",
+                        {
+                          key: "nm-" + mention.id,
+                          type: "button",
+                          className: "dchat-notification-row",
+                          onClick: () => {
+                            setNotificationsOpen(false);
+                            if (mention.chatId) void switchChat(mention.chatId);
+                            if (mention.id) setPendingJump({ id: mention.id });
+                          },
+                        },
+                        h("span", { className: "dchat-mention-dot", "aria-hidden": "true" }, "@"),
+                        h(
+                          "span",
+                          { className: "dchat-notification-main" },
+                          h(
+                            "span",
+                            { className: "dchat-notification-title" },
+                            String(mention.nick || "") + " · " + String(mention.title || mention.room || ""),
+                          ),
+                          h(
+                            "span",
+                            { className: "dchat-notification-text" },
+                            String(mention.text || ""),
+                          ),
+                        ),
+                      ),
+                  ),
+              ),
+            ),
+          )
+        : null;
+
       const settingsView =
         settingsOpen && form
           ? h(
@@ -6341,17 +6634,19 @@ window.__ModuleLoader__.load({
               h(
                 "div",
                 { className: "dchat-page-head" },
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    className: "dchat-icon-btn",
-                    "aria-label": t("back"),
-                    title: t("back"),
-                    onClick: () => setSettingsOpen(false),
-                  },
-                  BACK_ICON,
-                ),
+                inSettings
+                  ? null
+                  : h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-icon-btn",
+                        "aria-label": t("back"),
+                        title: t("back"),
+                        onClick: () => setSettingsOpen(false),
+                      },
+                      BACK_ICON,
+                    ),
                 h("span", { className: "dchat-page-title" }, t("settingsTitle")),
                 h("span", { className: "dchat-page-spacer" }),
                 h("span", { className: "dchat-settings-version" }, t("aboutVersion")),
@@ -8256,6 +8551,28 @@ window.__ModuleLoader__.load({
             "button",
             {
               type: "button",
+              className: "dchat-icon-btn dchat-bell",
+              "aria-label": t("notificationsCenter"),
+              title: t("notificationsCenter"),
+              onClick: () => {
+                setSettingsOpen(false);
+                setFriendsOpen(false);
+                setNotificationsOpen(true);
+              },
+            },
+            BELL_ICON,
+            (chats || []).reduce((sum, chat) => sum + (Number(chat.unread) || 0), 0) > 0
+              ? h(
+                  "span",
+                  { className: "dchat-icon-badge" },
+                  String((chats || []).reduce((sum, chat) => sum + (Number(chat.unread) || 0), 0)),
+                )
+              : null,
+          ),
+          h(
+            "button",
+            {
+              type: "button",
               className: "dchat-icon-btn",
               "aria-label": t("search") + " (⌘K)",
               title: t("search") + " · ⌘K",
@@ -8355,6 +8672,7 @@ window.__ModuleLoader__.load({
               type: "button",
               className: "dchat-contacts-entry",
               onClick: () => {
+                setNotificationsOpen(false);
                 setFriendsOpen(true);
                 setSettingsOpen(false);
               },
@@ -8371,6 +8689,7 @@ window.__ModuleLoader__.load({
               type: "button",
               className: "dchat-profile-card",
               onClick: () => {
+                setNotificationsOpen(false);
                 setSettingsOpen(true);
                 setFriendsOpen(false);
               },
@@ -8642,8 +8961,9 @@ window.__ModuleLoader__.load({
             "main",
             {
               className:
-                "dchat-main" + (settingsOpen || friendsOpen ? " dchat-main-page" : ""),
+                "dchat-main" + (settingsOpen || friendsOpen || notificationsOpen ? " dchat-main-page" : ""),
             },
+            notificationsView,
             settingsView,
             friendsView,
             mainHead,
@@ -8707,6 +9027,14 @@ window.__ModuleLoader__.load({
         shortcutsView,
         profileView,
         globalSearchView,
+        h(
+          "div",
+          { className: "dchat-sr-only", role: "status", "aria-live": "polite" },
+          (() => {
+            const incoming = [...(messages || [])].reverse().find((message) => !message.mine && !message.deleted);
+            return incoming ? String(incoming.nick || "") + ": " + String(incoming.text || "") : "";
+          })(),
+        ),
         toast ? h("div", { className: "dchat-toast" }, toast) : null,
       );
     }
