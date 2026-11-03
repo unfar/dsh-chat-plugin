@@ -249,6 +249,8 @@ window.__ModuleLoader__.load({
       loadingOlder: "正在加载更早消息…",
       noMoreHistory: "没有更早的消息了",
       uploadCancel: "取消上传",
+      uploadProgress: "上传进度",
+      retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
       aboutVersion: "dsh Chat v2.1",
       globalSearchPlaceholder: "搜索会话或消息…",
@@ -552,6 +554,8 @@ window.__ModuleLoader__.load({
       loadingOlder: "Loading earlier messages…",
       noMoreHistory: "No earlier messages",
       uploadCancel: "Cancel upload",
+      uploadProgress: "Upload progress",
+      retryUpload: "Retry upload",
       uploadCancelled: "Upload cancelled",
     };
 
@@ -4058,6 +4062,45 @@ window.__ModuleLoader__.load({
   font-size: 10.5px;
   color: var(--dchat-label-2);
 }
+
+/* 上传进度条 */
+.dchat-root .dchat-uploading {
+  flex-wrap: nowrap;
+}
+.dchat-root .dchat-upload-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dchat-root .dchat-upload-percent {
+  flex: none;
+  min-width: 30px;
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+  font-variant-numeric: tabular-nums;
+}
+.dchat-root .dchat-upload-bar {
+  flex: 1 1 80px;
+  min-width: 60px;
+  height: 4px;
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-layer-2);
+  overflow: hidden;
+}
+.dchat-root .dchat-upload-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--dchat-brand),
+    color-mix(in srgb, var(--dchat-brand) 70%, #141a35)
+  );
+  transition: width 160ms var(--dchat-ease);
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -5049,6 +5092,7 @@ window.__ModuleLoader__.load({
       const fileInputRef = useRef(null);
       const avatarInputRef = useRef(null);
       const uploadAbortRef = useRef(null);
+      const failedUploadRef = useRef(null);
       const saveNoticeTimerRef = useRef(null);
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
@@ -5687,38 +5731,73 @@ window.__ModuleLoader__.load({
           if (!file) return;
           if (file.size > 10 * 1024 * 1024) {
             setSendError(t("fileTooLarge"));
+            failedUploadRef.current = null;
             if (fileInputRef.current) fileInputRef.current.value = "";
             return;
           }
-          setUploading({ name: file.name, size: file.size });
+          setUploading({ name: file.name, size: file.size, progress: 0 });
           setSendError("");
           const controller = typeof AbortController === "function" ? new AbortController() : null;
           uploadAbortRef.current = controller;
           try {
-            const response = await fetch("/dsh-chat-plugin/api/upload", {
-              method: "POST",
-              signal: controller ? controller.signal : undefined,
-              headers: {
-                "x-file-name": encodeURIComponent(file.name),
-                "x-file-type": file.type || "application/octet-stream",
-              },
-              body: file,
+            const data = await new Promise((resolve, reject) => {
+              if (typeof XMLHttpRequest === "undefined") {
+                reject(new Error(t("uploadFailed")));
+                return;
+              }
+              const xhr = new XMLHttpRequest();
+              xhr.open("POST", "/dsh-chat-plugin/api/upload");
+              xhr.setRequestHeader("x-file-name", encodeURIComponent(file.name));
+              xhr.setRequestHeader("x-file-type", file.type || "application/octet-stream");
+              if (xhr.upload) {
+                xhr.upload.onprogress = (event) => {
+                  if (!event || !event.lengthComputable) return;
+                  const percent = Math.max(
+                    0,
+                    Math.min(100, Math.round((Number(event.loaded) / Number(event.total)) * 100)),
+                  );
+                  if (mountedRef.current && Number.isFinite(percent)) {
+                    setUploading((previous) =>
+                      previous ? { ...previous, progress: percent } : previous,
+                    );
+                  }
+                };
+              }
+              xhr.onload = () => {
+                let payload = null;
+                try {
+                  payload = JSON.parse(xhr.responseText || "{}");
+                } catch {
+                  payload = null;
+                }
+                if (xhr.status >= 400 || !payload || payload.ok === false) {
+                  reject(new Error((payload && payload.error) || t("uploadFailed")));
+                } else {
+                  resolve(payload);
+                }
+              };
+              xhr.onerror = () => reject(new Error(t("uploadFailed")));
+              xhr.onabort = () => reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+              if (controller) {
+                controller.signal.addEventListener("abort", () => xhr.abort());
+              }
+              xhr.send(file);
             });
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || data.ok === false) {
-              throw new Error(data.error || t("uploadFailed"));
-            }
             if (!mountedRef.current) return;
-            if (data.message) {
+            failedUploadRef.current = null;
+            if (data && data.message) {
               setSnapshot((previous) => appendMessage(previous, data.message));
               forceScrollRef.current = true;
             }
             void refresh();
           } catch (error) {
-            if (error && error.name === "AbortError") {
-              if (mountedRef.current) setSendError(t("uploadCancelled"));
-            } else if (mountedRef.current) {
-              setSendError((error && error.message) || t("uploadFailed"));
+            if (mountedRef.current) {
+              failedUploadRef.current = file;
+              if (error && error.name === "AbortError") {
+                setSendError(t("uploadCancelled"));
+              } else {
+                setSendError((error && error.message) || t("uploadFailed"));
+              }
             }
           } finally {
             uploadAbortRef.current = null;
@@ -9101,13 +9180,19 @@ window.__ModuleLoader__.load({
                     {
                       type: "button",
                       className: "dchat-small-btn",
-                      disabled: sending || !draft.trim(),
+                      disabled: sending || (!draft.trim() && !failedUploadRef.current),
                       onClick: () => {
+                        const failedFile = failedUploadRef.current;
                         setSendError("");
-                        void submit();
+                        if (failedFile) {
+                          failedUploadRef.current = null;
+                          void uploadFile(failedFile);
+                        } else {
+                          void submit();
+                        }
                       },
                     },
-                    t("retry"),
+                    failedUploadRef.current ? t("retryUpload") : t("retry"),
                   ),
                 )
               : null,
@@ -9116,7 +9201,24 @@ window.__ModuleLoader__.load({
                   "div",
                   { className: "dchat-uploading" },
                   h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
-                  t("uploading") + " " + uploading.name,
+                  h(
+                    "span",
+                    { className: "dchat-upload-text" },
+                    t("uploading") + " " + uploading.name,
+                  ),
+                  h(
+                    "span",
+                    { className: "dchat-upload-percent" },
+                    uploading.progress > 0 ? uploading.progress + "%" : "",
+                  ),
+                  h(
+                    "span",
+                    { className: "dchat-upload-bar", role: "progressbar", "aria-label": t("uploadProgress") },
+                    h("span", {
+                      className: "dchat-upload-fill",
+                      style: { width: Math.max(4, Number(uploading.progress) || 0) + "%" },
+                    }),
+                  ),
                   h(
                     "button",
                     {
