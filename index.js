@@ -30,6 +30,7 @@ export function apply(ctx, config) {
   const replier = new AgentReplier({ ctx, app })
   const chats = new Chats({ app, store: app.store })
   app.onGroupInfo = (info) => chats.applyRemoteGroupInfo(info)
+  app.onGroupAvatar = ({ room, file }) => chats.applyRemoteGroupAvatar({ room, file })
   const social = new Social({ ctx, app, store: app.store, chats })
   app.onConfigChanged = () => social.restart()
 

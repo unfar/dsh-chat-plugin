@@ -132,6 +132,7 @@ check(emptyHits.messages.length === 0 && emptyHits.chats.length === 0, 'global s
 // ---------- chats ----------
 const chatsApp = {
   room: 'room-a',
+  me: { id: 'me-smoke', nick: 'Smoke' },
   config: { passphrase: 'pw', relayKind: 'ntfy', relayUrl: 'https://ntfy.sh' },
   async updateConfig(patch) {
     Object.assign(this.config, patch)
@@ -167,6 +168,19 @@ check(groupChat?.title === 'Renamed group' && groupChat?.description === 'Friday
 const groupRoom = chats.list.find((chat) => chat.id === 'dm:peer-x')?.room
 chats.applyRemoteGroupInfo({ room: groupRoom, title: 'Remote title', description: 'Remote announce' })
 check(chats.get('dm:peer-x')?.title === 'Remote title', 'remote group info updates local entry')
+const ownerGroup = await chats.createGroup('Owner group')
+check(ownerGroup.ownerId === 'me-smoke' && Array.isArray(ownerGroup.admins), 'created group records advisory owner')
+chats.setMemberRole(ownerGroup.id, 'peer-y', 'admin')
+check(chats.get(ownerGroup.id).admins.includes('peer-y'), 'setMemberRole adds admin')
+chats.setMemberRole(ownerGroup.id, 'peer-y', 'member')
+check(!chats.get(ownerGroup.id).admins.includes('peer-y'), 'setMemberRole removes admin')
+const groupAvatarFile = { id: 'av-1', url: '/blob/x', name: 'group-avatar', mime: 'image/png', size: 10, encrypted: false }
+chats.setGroupAvatar(ownerGroup.id, groupAvatarFile)
+check(chats.get(ownerGroup.id).avatar?.id === 'av-1', 'setGroupAvatar persists meta')
+chats.applyRemoteGroupAvatar({ room: ownerGroup.room, file: { ...groupAvatarFile, id: 'av-2' } })
+check(chats.get(ownerGroup.id).avatar?.id === 'av-2', 'remote group avatar applies')
+chats.applyRemoteGroupInfo({ room: ownerGroup.room, ownerId: 'owner-9', admins: ['owner-9', 'admin-2'] })
+check(chats.get(ownerGroup.id).ownerId === 'owner-9' && chats.get(ownerGroup.id).admins.length === 2, 'remote roles apply')
 assert.throws(() => chats.setMuted('nope', true), /会话不存在/)
 check(true, 'setMuted rejects unknown chats')
 chats.setMuted('dm:peer-x', false)

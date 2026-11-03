@@ -231,6 +231,13 @@ window.__ModuleLoader__.load({
       groupTitleLabel: "群名称",
       groupAnnouncement: "群公告",
       groupAnnouncementHint: "群公告会同步给房间里所有人",
+      groupAvatar: "群头像",
+      changeGroupAvatar: "更换群头像",
+      ownerRole: "群主",
+      adminRole: "管理员",
+      makeAdmin: "设为管理员",
+      removeAdmin: "取消管理员",
+      groupAvatarHint: "支持 PNG / JPG / WebP，建议正方形（≤2MB）",
       saveGroupInfo: "保存群资料",
       shortcuts: "快捷键",
       shortcutSearch: "全局搜索",
@@ -536,6 +543,13 @@ window.__ModuleLoader__.load({
       groupTitleLabel: "Group name",
       groupAnnouncement: "Announcement",
       groupAnnouncementHint: "The announcement is shared with everyone in the room",
+      groupAvatar: "Group avatar",
+      changeGroupAvatar: "Change group avatar",
+      ownerRole: "Owner",
+      adminRole: "Admin",
+      makeAdmin: "Make admin",
+      removeAdmin: "Remove admin",
+      groupAvatarHint: "PNG / JPG / WebP, square recommended (≤2MB)",
       saveGroupInfo: "Save group info",
       shortcuts: "Shortcuts",
       shortcutSearch: "Global search",
@@ -4101,6 +4115,31 @@ window.__ModuleLoader__.load({
   );
   transition: width 160ms var(--dchat-ease);
 }
+
+/* 群头像 / 角色标签 */
+.dchat-root .dchat-role-tag {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--dchat-radius-pill);
+  background: color-mix(in srgb, var(--dchat-brand) 12%, transparent);
+  color: var(--dchat-brand);
+  font-size: 9.5px;
+  font-weight: 650;
+  vertical-align: 1px;
+}
+.dchat-root .dchat-member-tag.dchat-role-tag {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--dchat-brand) 12%, transparent);
+  color: var(--dchat-brand);
+}
+.dchat-root .dchat-member-row .dchat-small-btn {
+  margin-left: 6px;
+}
+.dchat-root .dchat-head-avatar {
+  object-fit: cover;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4308,6 +4347,19 @@ window.__ModuleLoader__.load({
       const value = String(file);
       if (/^data:/i.test(value)) return value;
       return "/dsh-chat-plugin/api/avatar?v=" + encodeURIComponent(value);
+    }
+
+    function groupAvatarUrl(chat) {
+      if (!chat || !chat.avatar || !chat.avatar.id) return "";
+      if (typeof chat.avatar.url === "string" && /^data:/i.test(chat.avatar.url)) {
+        return chat.avatar.url;
+      }
+      return (
+        "/dsh-chat-plugin/api/chats/avatar?id=" +
+        encodeURIComponent(String(chat.id)) +
+        "&v=" +
+        encodeURIComponent(String(chat.avatar.id))
+      );
     }
 
     function Avatar(props) {
@@ -5060,6 +5112,7 @@ window.__ModuleLoader__.load({
       const [groupEditOpen, setGroupEditOpen] = useState(false);
       const [groupTitleDraft, setGroupTitleDraft] = useState("");
       const [groupDescDraft, setGroupDescDraft] = useState("");
+      const [groupAvatarBusy, setGroupAvatarBusy] = useState(false);
       const [shortcutsOpen, setShortcutsOpen] = useState(false);
       const [notificationsOpen, setNotificationsOpen] = useState(false);
       const [notificationsData, setNotificationsData] = useState(null);
@@ -5092,6 +5145,7 @@ window.__ModuleLoader__.load({
       const fileInputRef = useRef(null);
       const avatarInputRef = useRef(null);
       const uploadAbortRef = useRef(null);
+      const groupAvatarInputRef = useRef(null);
       const failedUploadRef = useRef(null);
       const saveNoticeTimerRef = useRef(null);
       const forceScrollRef = useRef(false);
@@ -6481,6 +6535,57 @@ window.__ModuleLoader__.load({
         }
       }, [chatMenuFor, groupTitleDraft, groupDescDraft, loadChats, refresh]);
 
+      /** 上传群头像（Host 加密后广播，成员按需下载）。 */
+      const uploadGroupAvatar = useCallback(
+        async (file) => {
+          if (!file || !chatMenuFor) return;
+          if (!/^image\//i.test(file.type || "")) return;
+          setGroupAvatarBusy(true);
+          try {
+            const response = await fetch(
+              "/dsh-chat-plugin/api/chats/avatar",
+              {
+                method: "POST",
+                headers: {
+                  "x-chat-id": chatMenuFor.id,
+                  "x-file-type": file.type || "image/png",
+                },
+                body: file,
+              },
+            );
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.ok === false) throw new Error(data.error || t("uploadFailed"));
+            await loadChats();
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) setSendError((error && error.message) || t("uploadFailed"));
+          } finally {
+            if (mountedRef.current) setGroupAvatarBusy(false);
+            if (groupAvatarInputRef.current) groupAvatarInputRef.current.value = "";
+          }
+        },
+        [chatMenuFor, loadChats, refresh],
+      );
+
+      /** 设置成员角色（advisory，仅广播标签）。 */
+      const setMemberRole = useCallback(
+        async (peerId, role) => {
+          if (!currentChat) return;
+          try {
+            await request("/chats/role", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: currentChat.id, peerId, role }),
+            });
+            await loadChats();
+            void refresh();
+          } catch (error) {
+            if (mountedRef.current) setSendError((error && error.message) || t("unreachable"));
+          }
+        },
+        [currentChat, loadChats, refresh],
+      );
+
       // 快捷键：? 打开面板（输入框里不触发），Esc 关闭。
       useEffect(() => {
         if (typeof window === "undefined") return undefined;
@@ -7764,10 +7869,27 @@ window.__ModuleLoader__.load({
                   me ? initialsOf(me.nick) : t("me"),
                 ),
                 h("span", { className: "dchat-member-name" }, me ? me.nick : t("me")),
-                h("span", { className: "dchat-member-tag" }, t("you")),
-              ),
-              ...peers.map((peer) =>
                 h(
+                  "span",
+                  { className: "dchat-member-tag dchat-role-tag" },
+                  currentChat && me && currentChat.ownerId === me.id
+                    ? t("ownerRole")
+                    : currentChat && me && Array.isArray(currentChat.admins) && currentChat.admins.includes(me.id)
+                      ? t("adminRole")
+                      : t("you"),
+                ),
+              ),
+              ...peers.map((peer) => {
+                const isOwnerRole = Boolean(currentChat && currentChat.ownerId === peer.id);
+                const isAdminRole = Boolean(
+                  currentChat &&
+                    Array.isArray(currentChat.admins) &&
+                    currentChat.admins.includes(peer.id),
+                );
+                const canPromote = Boolean(
+                  currentChat && me && currentChat.ownerId === me.id && !isOwnerRole,
+                );
+                return h(
                   "div",
                   { key: "member-" + peer.id, className: "dchat-member-row" },
                   h(
@@ -7775,11 +7897,33 @@ window.__ModuleLoader__.load({
                     { className: "dchat-avatar", style: { background: avatarColor(peer.id) }, "aria-hidden": "true" },
                     initialsOf(peer.nick),
                   ),
-                  h("span", { className: "dchat-member-name" }, String(peer.label || peer.nick || t("anonymous"))),
+                  h(
+                    "span",
+                    { className: "dchat-member-name" },
+                    String(peer.label || peer.nick || t("anonymous")),
+                    isOwnerRole || isAdminRole
+                      ? h(
+                          "span",
+                          { className: "dchat-role-tag" },
+                          isOwnerRole ? t("ownerRole") : t("adminRole"),
+                        )
+                      : null,
+                  ),
                   h("span", { className: "dchat-peer-state" + (peer.online ? " online" : "") }),
                   h("span", { className: "dchat-member-tag" }, peer.online ? t("online") : t("offline")),
-                ),
-              ),
+                  canPromote
+                    ? h(
+                        "button",
+                        {
+                          type: "button",
+                          className: "dchat-small-btn ghost",
+                          onClick: () => void setMemberRole(peer.id, isAdminRole ? "member" : "admin"),
+                        },
+                        isAdminRole ? t("removeAdmin") : t("makeAdmin"),
+                      )
+                    : null,
+                );
+              }),
               h(
                 "div",
                 { className: "dchat-invite-actions" },
@@ -8401,6 +8545,42 @@ window.__ModuleLoader__.load({
                   CLOSE_ICON,
                 ),
               ),
+              h(
+                "div",
+                { className: "dchat-avatar-edit" },
+                h(Avatar, {
+                  nick: chatMenuFor.title,
+                  id: chatMenuFor.id,
+                  src: groupAvatarUrl(chatMenuFor),
+                  size: 56,
+                }),
+                h(
+                  "div",
+                  { className: "dchat-avatar-edit-info" },
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-small-btn",
+                      disabled: groupAvatarBusy,
+                      onClick: () =>
+                        groupAvatarInputRef.current && groupAvatarInputRef.current.click(),
+                    },
+                    groupAvatarBusy ? t("uploading") : t("changeGroupAvatar"),
+                  ),
+                  h("div", { className: "dchat-hint" }, t("groupAvatarHint")),
+                ),
+                h("input", {
+                  ref: groupAvatarInputRef,
+                  type: "file",
+                  accept: "image/*",
+                  style: { display: "none" },
+                  onChange: (event) => {
+                    const file = event.target.files && event.target.files[0];
+                    if (file) void uploadGroupAvatar(file);
+                  },
+                }),
+              ),
               settingsField(
                 t("groupTitleLabel"),
                 h("input", {
@@ -8679,15 +8859,29 @@ window.__ModuleLoader__.load({
               }
             },
           },
-          h(
-            "span",
-            {
-              className: "dchat-chat-avatar" + (isDm ? "" : " is-group"),
-              style: isDm ? { background: avatarColor(chat.id) } : undefined,
-              "aria-hidden": "true",
-            },
-            isDm ? initialsOf(chat.title) : "#",
-          ),
+          isDm
+            ? h(Avatar, {
+                nick: chat.title,
+                id: chat.id,
+                size: 40,
+                className: "dchat-chat-avatar",
+              })
+            : groupAvatarUrl(chat)
+              ? h(Avatar, {
+                  nick: chat.title,
+                  id: chat.id,
+                  src: groupAvatarUrl(chat),
+                  size: 40,
+                  className: "dchat-chat-avatar",
+                })
+              : h(
+                  "span",
+                  {
+                    className: "dchat-chat-avatar is-group",
+                    "aria-hidden": "true",
+                  },
+                  "#",
+                ),
           h(
             "span",
             { className: "dchat-chat-body" },
@@ -8933,17 +9127,25 @@ window.__ModuleLoader__.load({
           },
           MENU_ICON,
         ),
-        h(
-          "span",
-          {
-            className: "dchat-head-avatar",
-            style: displayPeer
-              ? { background: avatarColor(displayPeer.id) }
-              : { background: "var(--dchat-brand)", color: "var(--dchat-brand-fg)" },
-            "aria-hidden": "true",
-          },
-          displayPeer ? initialsOf(displayPeer.nick) : "#",
-        ),
+        currentChat && currentChat.kind !== "dm" && groupAvatarUrl(currentChat)
+          ? h(Avatar, {
+              nick: headName,
+              id: currentChat.id,
+              src: groupAvatarUrl(currentChat),
+              size: 34,
+              className: "dchat-head-avatar",
+            })
+          : h(
+              "span",
+              {
+                className: "dchat-head-avatar",
+                style: displayPeer
+                  ? { background: avatarColor(displayPeer.id) }
+                  : { background: "var(--dchat-brand)", color: "var(--dchat-brand-fg)" },
+                "aria-hidden": "true",
+              },
+              displayPeer ? initialsOf(displayPeer.nick) : "#",
+            ),
         h(
           "div",
           { className: "dchat-head-text" },
