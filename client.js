@@ -77,7 +77,6 @@ window.__ModuleLoader__.load({
       roomPlaceholder: "lobby",
       peers: "成员",
       online: "在线",
-      offline: "离线",
       lastSeen: "最后出现",
       you: "我",
       noPeers: "还没有发现其他人",
@@ -91,6 +90,9 @@ window.__ModuleLoader__.load({
       loading: "连接中…",
       retrying: "正在重试…",
       unreachable: "无法连接 Host 端",
+      hostMissingShort: "Host 端未加载",
+      requestFailed: "请求失败",
+      parseFailed: "Host 端返回了无法解析的数据",
       hostMissing:
         "Host 端未加载：请确认 dsh-chat-plugin 插件已在当前 profile 中启用（会自动重试）。",
       offlineTitle: "无法连接 Host 端",
@@ -113,7 +115,6 @@ window.__ModuleLoader__.load({
       save: "保存并重连",
       saved: "已保存",
       saving: "保存中…",
-      saved: "已保存并重连",
       saveFailed: "保存失败",
       collapse: "收起",
       lobbyHint:
@@ -374,6 +375,9 @@ window.__ModuleLoader__.load({
       loading: "Connecting…",
       retrying: "Retrying…",
       unreachable: "Can't reach the host",
+      hostMissingShort: "Host not loaded",
+      requestFailed: "Request failed",
+      parseFailed: "Host returned unparsable data",
       hostMissing: "Host plugin not loaded. Make sure dsh-chat-plugin is enabled in this profile (retrying automatically).",
       offlineTitle: "Can't reach the host",
       offlineHint: "It recovers automatically once the plugin is enabled. You can also open Settings to check the room configuration.",
@@ -754,22 +758,22 @@ window.__ModuleLoader__.load({
       }
 
       if (response.status === 404) {
-        const missingError = new Error((data && data.error) || "Host 端未加载");
+        const missingError = new Error((data && data.error) || t("hostMissingShort"));
         missingError.code = "missing";
         throw missingError;
       }
       if (!response.ok) {
-        const httpError = new Error((data && data.error) || "请求失败（HTTP " + response.status + "）");
+        const httpError = new Error((data && data.error) || t("requestFailed") + " (HTTP " + response.status + ")");
         httpError.code = "http";
         throw httpError;
       }
       if (!data || typeof data !== "object") {
-        const parseError = new Error("Host 端返回了无法解析的数据");
+        const parseError = new Error(t("parseFailed"));
         parseError.code = "parse";
         throw parseError;
       }
       if (data.ok === false) {
-        const apiError = new Error(data.error || "请求失败");
+        const apiError = new Error(data.error || t("requestFailed"));
         apiError.code = "api";
         throw apiError;
       }

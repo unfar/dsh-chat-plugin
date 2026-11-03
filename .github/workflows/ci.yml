@@ -20,3 +20,5 @@ jobs:
         run: node test/smoke.mjs
       - name: MCP smoke test
         run: node test/mcp-smoke.mjs
+      - name: i18n parity check
+        run: node test/i18n-check.mjs

@@ -113,6 +113,22 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 
 ![日期跳转](docs/preview-datejump.png)
 
+## v3.0 完成品
+
+按五个里程碑打磨后的 dsh Chat：
+
+| 里程碑 | 内容 | 版本 |
+| --- | --- | --- |
+| 附件体验 | XHR 上传进度百分比、取消、失败重试 | v2.5.0 |
+| 群身份 | 群头像加密广播、群主/管理员 advisory 标签、群资料整合 | v2.6.0 |
+| 长历史 | 窗口化渲染（默认 120 条）+ 日期跳转，搜索/通知定位兼容 | v2.7.0 |
+| 在线与通知 | last seen、未聚焦应用内 toast、提示音开关 | v2.8.0 |
+| 质量收尾 | 中英文案 277 键全量对齐（CI 校验）、请求错误本地化、回归与文档 | v3.0.0 |
+
+| 群成员角色 | 日期跳转 | 通知设置 |
+| --- | --- | --- |
+| ![群角色](docs/preview-membersroles.png) | ![日期跳转](docs/preview-datejump.png) | ![通知设置](docs/preview-notify-settings.png) |
+
 ## 群身份（v2.6）
 
 - **群头像**：群资料里上传，走和附件同一套加密上传通道，以 `kind:group-avatar` 广播；成员按需通过 `/chats/avatar` 下载解密并缓存，会话列表 / 聊天头部同步显示
