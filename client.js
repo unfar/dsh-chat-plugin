@@ -255,6 +255,9 @@ window.__ModuleLoader__.load({
       loadOlder: "加载更早消息",
       loadingOlder: "正在加载更早消息…",
       noMoreHistory: "没有更早的消息了",
+      jumpToDate: "跳转到日期",
+      expandEarlier: "展开更早的已加载消息",
+      dateJumpTitle: "跳转到日期",
       uploadCancel: "取消上传",
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
@@ -567,6 +570,9 @@ window.__ModuleLoader__.load({
       loadOlder: "Load earlier messages",
       loadingOlder: "Loading earlier messages…",
       noMoreHistory: "No earlier messages",
+      jumpToDate: "Jump to date",
+      expandEarlier: "Show earlier loaded messages",
+      dateJumpTitle: "Jump to date",
       uploadCancel: "Cancel upload",
       uploadProgress: "Upload progress",
       retryUpload: "Retry upload",
@@ -4140,6 +4146,14 @@ window.__ModuleLoader__.load({
 .dchat-root .dchat-head-avatar {
   object-fit: cover;
 }
+
+.dchat-root .dchat-dayjump-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -5118,6 +5132,9 @@ window.__ModuleLoader__.load({
       const [notificationsData, setNotificationsData] = useState(null);
       const [notificationsBusy, setNotificationsBusy] = useState(false);
       const [olderMessages, setOlderMessages] = useState([]);
+      const [windowSize, setWindowSize] = useState(120);
+      const [dayJumpOpen, setDayJumpOpen] = useState(false);
+      const [pendingDay, setPendingDay] = useState("");
       const [hasMoreOlder, setHasMoreOlder] = useState(true);
       const [loadingOlder, setLoadingOlder] = useState(false);
       const [searchQuery, setSearchQuery] = useState("");
@@ -5381,6 +5398,7 @@ window.__ModuleLoader__.load({
               const seen = new Set(previous.map((message) => message.id));
               return older.filter((message) => message && !seen.has(message.id)).concat(previous);
             });
+            setWindowSize((size) => size + older.length);
             if (list) {
               const nextHeight = list.scrollHeight;
               list.scrollTop += nextHeight - previousHeight;
@@ -5394,6 +5412,18 @@ window.__ModuleLoader__.load({
         }
       }, [allMessages, loadingOlder, hasMoreOlder]);
 
+      /** 增加窗口内渲染的消息数（向上展开已加载历史），并保持滚动位置。 */
+      const expandWindow = useCallback((delta) => {
+        const list = listRef.current;
+        const previousHeight = list ? list.scrollHeight : 0;
+        setWindowSize((size) => size + Math.max(1, delta));
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(() => {
+            if (list) list.scrollTop += list.scrollHeight - previousHeight;
+          });
+        }
+      }, []);
+
       const handleScroll = useCallback(() => {
         const element = listRef.current;
         if (!element) return;
@@ -5401,10 +5431,15 @@ window.__ModuleLoader__.load({
         const near = distance < NEAR_BOTTOM_PX;
         nearBottomRef.current = near;
         if (near) setShowJump(false);
-        if (element.scrollTop < 80 && hasMoreOlder && !loadingOlder) {
-          void loadOlder();
+        if (element.scrollTop < 80 && !loadingOlder) {
+          const hidden = Math.max(0, allMessages.length - windowSize);
+          if (hidden > 0) {
+            expandWindow(Math.min(120, hidden));
+          } else if (hasMoreOlder) {
+            void loadOlder();
+          }
         }
-      }, [hasMoreOlder, loadingOlder, loadOlder]);
+      }, [hasMoreOlder, loadingOlder, loadOlder, allMessages.length, windowSize, expandWindow]);
 
       const jumpToBottom = useCallback(() => {
         const element = listRef.current;
@@ -6160,6 +6195,8 @@ window.__ModuleLoader__.load({
         setOlderMessages([]);
         setHasMoreOlder(true);
         setLoadingOlder(false);
+        setWindowSize(120);
+        setPendingDay("");
       }, [snapshot && snapshot.room]);
 
       // 每个会话独立的输入草稿。
@@ -6336,6 +6373,31 @@ window.__ModuleLoader__.load({
         }, 120);
         return () => clearTimeout(timer);
       }, [pendingJump, allMessages, hasMoreOlder, loadingOlder, loadOlder]);
+
+      // 日期跳转：按需扩大窗口或继续加载历史，定位到对应日期分隔。
+      useEffect(() => {
+        if (!pendingDay) return;
+        const index = allMessages.findIndex((message) => message && dayLabel(message.ts) === pendingDay);
+        if (index < 0) {
+          if (hasMoreOlder && !loadingOlder) void loadOlder();
+          return;
+        }
+        const required = allMessages.length - index + 8;
+        if (windowSize < required) {
+          setWindowSize(required);
+          return;
+        }
+        const timer = setTimeout(() => {
+          const node = [...document.querySelectorAll(".dchat-day")].find(
+            (element) => element.getAttribute("data-day") === pendingDay,
+          );
+          if (node && typeof node.scrollIntoView === "function") {
+            node.scrollIntoView({ block: "start", behavior: "smooth" });
+          }
+          setPendingDay("");
+        }, 80);
+        return () => clearTimeout(timer);
+      }, [pendingDay, allMessages, hasMoreOlder, loadingOlder, loadOlder, windowSize, setPendingDay]);
 
       // Esc 关闭所有浮层 / 取消回复。
       useEffect(() => {
@@ -7791,6 +7853,14 @@ window.__ModuleLoader__.load({
                 },
               },
               {
+                key: "jumpdate",
+                label: t("jumpToDate"),
+                onClick: () => {
+                  setMenuOpen(false);
+                  setDayJumpOpen(true);
+                },
+              },
+              {
                 key: "select",
                 label: selectMode ? t("cancelSelect") : t("selectMessages"),
                 onClick: () => {
@@ -7960,6 +8030,9 @@ window.__ModuleLoader__.load({
             return haystack.includes(searchLower);
           })
         : allMessages;
+      const windowStart = searchActive ? 0 : Math.max(0, listMessages.length - windowSize);
+      const displayMessages = searchActive ? listMessages : listMessages.slice(windowStart);
+      const hiddenAbove = !searchActive && windowStart > 0;
 
       // 消息列表 + 日期分隔 + 未读分隔线。
       const messageChildren = [];
@@ -7970,12 +8043,16 @@ window.__ModuleLoader__.load({
       if (snapshot) {
         let lastDay = "";
         let dividerInserted = false;
-        listMessages.forEach((message, index) => {
+        displayMessages.forEach((message, index) => {
           if (!message || typeof message !== "object") return;
           const day = dayLabel(message.ts);
           if (!searchActive && day && day !== lastDay) {
             messageChildren.push(
-              h("div", { key: "day-" + day + "-" + index, className: "dchat-day" }, day),
+              h(
+                "div",
+                { key: "day-" + day + "-" + index, className: "dchat-day", "data-day": day },
+                day,
+              ),
             );
             lastDay = day;
           }
@@ -7986,7 +8063,7 @@ window.__ModuleLoader__.load({
             seq == null
               ? "msg-i-" + index
               : "msg-s-" + String(seq) + (message.id ? "-" + String(message.id) : "");
-          const previous = index > 0 ? listMessages[index - 1] : null;
+          const previous = index > 0 ? displayMessages[index - 1] : null;
           const grouped =
             Boolean(previous) &&
             (previous.mine === true) === (message.mine === true) &&
@@ -7994,7 +8071,7 @@ window.__ModuleLoader__.load({
             new Date(Number(previous.ts) || 0).toDateString() ===
               new Date(Number(message.ts) || 0).toDateString() &&
             Math.abs((Number(message.ts) || 0) - (Number(previous.ts) || 0)) < 5 * 60 * 1000;
-          const next = index + 1 < listMessages.length ? listMessages[index + 1] : null;
+          const next = index + 1 < displayMessages.length ? displayMessages[index + 1] : null;
           const nextGrouped =
             Boolean(next) &&
             (next.mine === true) === (message.mine === true) &&
@@ -8115,7 +8192,17 @@ window.__ModuleLoader__.load({
                         },
                         t("loadOlder"),
                       )
-                    : h("span", { className: "dchat-history-end" }, t("noMoreHistory")),
+                    : hiddenAbove
+                      ? h(
+                          "button",
+                          {
+                            type: "button",
+                            className: "dchat-history-btn",
+                            onClick: () => expandWindow(120),
+                          },
+                          t("expandEarlier"),
+                        )
+                      : h("span", { className: "dchat-history-end" }, t("noMoreHistory")),
               ),
               messages.length === 0
                 ? h(ChatEmpty, {
@@ -8676,6 +8763,74 @@ window.__ModuleLoader__.load({
                     { key, className: "dchat-shortcut-row" },
                     h("kbd", { className: "dchat-kbd" }, key),
                     h("span", null, label),
+                  ),
+                ),
+              ),
+            ),
+          )
+        : null;
+
+      const dayGroups = (() => {
+        const map = new Map();
+        for (const message of allMessages) {
+          if (!message || message.deleted) continue;
+          const label = dayLabel(message.ts);
+          if (!label) continue;
+          const current = map.get(label) || { label, count: 0, ts: Number(message.ts) || 0 };
+          current.count += 1;
+          current.ts = Math.min(current.ts || Infinity, Number(message.ts) || 0);
+          map.set(label, current);
+        }
+        return [...map.values()].sort((left, right) => right.ts - left.ts);
+      })();
+
+      const dayJumpView = dayJumpOpen
+        ? h(
+            "div",
+            {
+              className: "dchat-invite",
+              role: "dialog",
+              "aria-label": t("dateJumpTitle"),
+              onMouseDown: (event) => {
+                if (event.target === event.currentTarget) setDayJumpOpen(false);
+              },
+            },
+            h(
+              "div",
+              { className: "dchat-invite-card" },
+              h(
+                "div",
+                { className: "dchat-invite-head" },
+                h("span", { className: "dchat-invite-title" }, t("dateJumpTitle")),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-icon-btn",
+                    "aria-label": t("close"),
+                    title: t("close"),
+                    onClick: () => setDayJumpOpen(false),
+                  },
+                  CLOSE_ICON,
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-dayjump-list" },
+                ...dayGroups.map((group) =>
+                  h(
+                    "button",
+                    {
+                      key: "dj-" + group.label,
+                      type: "button",
+                      className: "dchat-forward-item",
+                      onClick: () => {
+                        setDayJumpOpen(false);
+                        setPendingDay(group.label);
+                      },
+                    },
+                    h("span", { className: "dchat-forward-name" }, group.label),
+                    h("span", { className: "dchat-forward-current" }, String(group.count)),
                   ),
                 ),
               ),
@@ -9457,6 +9612,7 @@ window.__ModuleLoader__.load({
         forwardView,
         chatSettingsView,
         groupEditView,
+        dayJumpView,
         shortcutsView,
         profileView,
         globalSearchView,
