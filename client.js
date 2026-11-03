@@ -245,6 +245,11 @@ window.__ModuleLoader__.load({
       unreadChats: "未读会话",
       viewAll: "查看全部",
       markAllRead: "全部已读",
+      loadOlder: "加载更早消息",
+      loadingOlder: "正在加载更早消息…",
+      noMoreHistory: "没有更早的消息了",
+      uploadCancel: "取消上传",
+      uploadCancelled: "已取消上传",
       aboutVersion: "dsh Chat v2.1",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
@@ -543,6 +548,11 @@ window.__ModuleLoader__.load({
       unreadChats: "Unread chats",
       viewAll: "View all",
       markAllRead: "Mark all read",
+      loadOlder: "Load earlier messages",
+      loadingOlder: "Loading earlier messages…",
+      noMoreHistory: "No earlier messages",
+      uploadCancel: "Cancel upload",
+      uploadCancelled: "Upload cancelled",
     };
 
     /** 取中文文案；未知 key 原样返回，永不抛错。 */
@@ -4018,6 +4028,36 @@ window.__ModuleLoader__.load({
   white-space: nowrap;
   border: 0;
 }
+
+/* 历史分页 */
+.dchat-root .dchat-history {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+.dchat-root .dchat-history-btn {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-layer-1);
+  color: var(--dchat-label-2);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.dchat-root .dchat-history-btn:hover {
+  background: var(--dchat-layer-2);
+  color: var(--dchat-label);
+}
+.dchat-root .dchat-history-loading,
+.dchat-root .dchat-history-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--dchat-label-2);
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4981,6 +5021,9 @@ window.__ModuleLoader__.load({
       const [notificationsOpen, setNotificationsOpen] = useState(false);
       const [notificationsData, setNotificationsData] = useState(null);
       const [notificationsBusy, setNotificationsBusy] = useState(false);
+      const [olderMessages, setOlderMessages] = useState([]);
+      const [hasMoreOlder, setHasMoreOlder] = useState(true);
+      const [loadingOlder, setLoadingOlder] = useState(false);
       const [searchQuery, setSearchQuery] = useState("");
       const [dragActive, setDragActive] = useState(false);
       const [uploading, setUploading] = useState(null);
@@ -5005,11 +5048,14 @@ window.__ModuleLoader__.load({
       const anchorRoomRef = useRef(null);
       const fileInputRef = useRef(null);
       const avatarInputRef = useRef(null);
+      const uploadAbortRef = useRef(null);
       const saveNoticeTimerRef = useRef(null);
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
 
       const messages = snapshot ? safeArray(snapshot.messages) : [];
+      const allMessages =
+        olderMessages.length > 0 ? olderMessages.concat(messages) : messages;
       const peers = snapshot ? safeArray(snapshot.peers) : [];
       const me = snapshot ? snapshot.me : null;
       const relay = snapshot ? snapshot.relay : null;
@@ -5213,6 +5259,43 @@ window.__ModuleLoader__.load({
         }
       }, []);
 
+      /** 加载更早历史：读取当前窗口之前的 50 条并保持滚动位置。 */
+      const loadOlder = useCallback(async () => {
+        if (loadingOlder || !hasMoreOlder) return;
+        const first = allMessages[0];
+        const before = first ? Number(first.seq) || 0 : 0;
+        if (!before || before <= 1) {
+          setHasMoreOlder(false);
+          return;
+        }
+        setLoadingOlder(true);
+        const list = listRef.current;
+        const previousHeight = list ? list.scrollHeight : 0;
+        try {
+          const data = await request("/messages?before=" + before + "&limit=50", {
+            method: "GET",
+            headers: { accept: "application/json" },
+            cache: "no-store",
+          });
+          const older = data && Array.isArray(data.messages) ? data.messages : [];
+          if (older.length > 0) {
+            setOlderMessages((previous) => {
+              const seen = new Set(previous.map((message) => message.id));
+              return older.filter((message) => message && !seen.has(message.id)).concat(previous);
+            });
+            if (list) {
+              const nextHeight = list.scrollHeight;
+              list.scrollTop += nextHeight - previousHeight;
+            }
+          }
+          setHasMoreOlder(older.length > 0 && data.hasMore !== false);
+        } catch {
+          setHasMoreOlder(false);
+        } finally {
+          if (mountedRef.current) setLoadingOlder(false);
+        }
+      }, [allMessages, loadingOlder, hasMoreOlder]);
+
       const handleScroll = useCallback(() => {
         const element = listRef.current;
         if (!element) return;
@@ -5220,7 +5303,10 @@ window.__ModuleLoader__.load({
         const near = distance < NEAR_BOTTOM_PX;
         nearBottomRef.current = near;
         if (near) setShowJump(false);
-      }, []);
+        if (element.scrollTop < 80 && hasMoreOlder && !loadingOlder) {
+          void loadOlder();
+        }
+      }, [hasMoreOlder, loadingOlder, loadOlder]);
 
       const jumpToBottom = useCallback(() => {
         const element = listRef.current;
@@ -5606,9 +5692,12 @@ window.__ModuleLoader__.load({
           }
           setUploading({ name: file.name, size: file.size });
           setSendError("");
+          const controller = typeof AbortController === "function" ? new AbortController() : null;
+          uploadAbortRef.current = controller;
           try {
             const response = await fetch("/dsh-chat-plugin/api/upload", {
               method: "POST",
+              signal: controller ? controller.signal : undefined,
               headers: {
                 "x-file-name": encodeURIComponent(file.name),
                 "x-file-type": file.type || "application/octet-stream",
@@ -5626,10 +5715,13 @@ window.__ModuleLoader__.load({
             }
             void refresh();
           } catch (error) {
-            if (mountedRef.current) {
+            if (error && error.name === "AbortError") {
+              if (mountedRef.current) setSendError(t("uploadCancelled"));
+            } else if (mountedRef.current) {
               setSendError((error && error.message) || t("uploadFailed"));
             }
           } finally {
+            uploadAbortRef.current = null;
             if (mountedRef.current) setUploading(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
           }
@@ -5931,6 +6023,12 @@ window.__ModuleLoader__.load({
       }, [diagnosticBusy]);
 
 
+      useEffect(() => {
+        setOlderMessages([]);
+        setHasMoreOlder(true);
+        setLoadingOlder(false);
+      }, [snapshot && snapshot.room]);
+
       // 每个会话独立的输入草稿。
       useEffect(() => {
         if (!snapshot || typeof window === "undefined") return;
@@ -6087,8 +6185,11 @@ window.__ModuleLoader__.load({
       // 跳转到搜索结果消息并短暂高亮。
       useEffect(() => {
         if (!pendingJump || typeof document === "undefined") return;
-        const found = (messages || []).some((message) => message && message.id === pendingJump.id);
-        if (!found) return;
+        const found = (allMessages || []).some((message) => message && message.id === pendingJump.id);
+        if (!found) {
+          if (hasMoreOlder && !loadingOlder) void loadOlder();
+          return;
+        }
         const timer = setTimeout(() => {
           const element = document.querySelector(
             '[data-message-id="' + String(pendingJump.id).replace(/"/g, "") + '"]',
@@ -6101,7 +6202,7 @@ window.__ModuleLoader__.load({
           setTimeout(() => setHighlightId(""), 1800);
         }, 120);
         return () => clearTimeout(timer);
-      }, [pendingJump, messages]);
+      }, [pendingJump, allMessages, hasMoreOlder, loadingOlder, loadOlder]);
 
       // Esc 关闭所有浮层 / 取消回复。
       useEffect(() => {
@@ -7623,7 +7724,7 @@ window.__ModuleLoader__.load({
       const searchActive = searchOpen && searchQuery.trim().length > 0;
       const searchLower = searchQuery.trim().toLowerCase();
       const listMessages = searchActive
-        ? messages.filter((message) => {
+        ? allMessages.filter((message) => {
             if (!message || typeof message !== "object") return false;
             const haystack = [
               message.text,
@@ -7635,12 +7736,12 @@ window.__ModuleLoader__.load({
               .toLowerCase();
             return haystack.includes(searchLower);
           })
-        : messages;
+        : allMessages;
 
       // 消息列表 + 日期分隔 + 未读分隔线。
       const messageChildren = [];
       const msgMap = new Map();
-      for (const message of messages) {
+      for (const message of allMessages) {
         if (message && message.id) msgMap.set(message.id, message);
       }
       if (snapshot) {
@@ -7776,6 +7877,23 @@ window.__ModuleLoader__.load({
                 role: "log",
                 "aria-label": t("messagesAria"),
               },
+              h(
+                "div",
+                { className: "dchat-history" },
+                loadingOlder
+                  ? h("span", { className: "dchat-history-loading" }, h("span", { className: "dchat-spinner" }), t("loadingOlder"))
+                  : hasMoreOlder
+                    ? h(
+                        "button",
+                        {
+                          type: "button",
+                          className: "dchat-history-btn",
+                          onClick: () => void loadOlder(),
+                        },
+                        t("loadOlder"),
+                      )
+                    : h("span", { className: "dchat-history-end" }, t("noMoreHistory")),
+              ),
               messages.length === 0
                 ? h(ChatEmpty, {
                     onInvite: openInvite,
@@ -8999,6 +9117,17 @@ window.__ModuleLoader__.load({
                   { className: "dchat-uploading" },
                   h("span", { className: "dchat-spinner", "aria-hidden": "true" }),
                   t("uploading") + " " + uploading.name,
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "dchat-small-btn ghost",
+                      onClick: () => {
+                        if (uploadAbortRef.current) uploadAbortRef.current.abort();
+                      },
+                    },
+                    t("uploadCancel"),
+                  ),
                 )
               : null,
             editBar,
