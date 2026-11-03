@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.2 — 2026-11-03
+- Logo 第 3 版：DeepSeek 风格负空间鲸鱼（白色鲸身 + 蓝色腹部弧线/眼睛 + 右上尾鳍）
+- 备选 A/B/C 图见 docs/logo-options.png；同步 icon.svg / LogoMark / docs/logo.png / 截图
+
 ## 3.0.1 — 2026-11-03
 - 重新设计 Logo：白色极简鲸鱼（圆头 + 眼睛 + 分叉尾鳍）替换原「气泡 + 鲸尾 + 波浪」复合图形
 - 同步更新 icon.svg、侧栏/面板 LogoMark、docs/logo.png、README 与截图

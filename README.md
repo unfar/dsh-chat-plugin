@@ -281,7 +281,7 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 <img src="docs/logo.png" width="96" alt="logo" />
 
 - 设计语言参考 DeepSeek：深蓝渐变圆角方块 + 极简白色字形，去掉多余描边与文字
-- 新字形是一头极简白色鲸鱼：圆润的头部 + 眼睛 + 右侧分叉尾鳍，直接呼应 DeepSeek 的鲸鱼意象，去掉了之前气泡/波浪的复合结构
+- 字形改为 DeepSeek 风格的负空间鲸鱼：深蓝渐变圆角底 + 白色鲸身、蓝色腹部弧线与眼睛、右上分叉尾鳍；比纯白剪影更有层次，也更接近 DeepSeek 的鲸鱼语言
 - 同一套图形用于：插件图标（`icon.svg`）、侧边栏入口与面板头部（内联 SVG，任意尺寸清晰）
 - 源文件：`docs/logo.png`（512px）、`icon.svg`（矢量）
 
