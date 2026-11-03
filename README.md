@@ -281,7 +281,7 @@ plugin_manager action=install_bundle target=<本仓库绝对路径>
 <img src="docs/logo.png" width="96" alt="logo" />
 
 - 设计语言参考 DeepSeek：深蓝渐变圆角方块 + 极简白色字形，去掉多余描边与文字
-- 字形是白色对话气泡 + 右下角鲸尾划水 + 气泡内一道波浪，把"聊天 / 鲸鱼 / 深海"三个意象压进一个极小图形里
+- 新字形是一头极简白色鲸鱼：圆润的头部 + 眼睛 + 右侧分叉尾鳍，直接呼应 DeepSeek 的鲸鱼意象，去掉了之前气泡/波浪的复合结构
 - 同一套图形用于：插件图标（`icon.svg`）、侧边栏入口与面板头部（内联 SVG，任意尺寸清晰）
 - 源文件：`docs/logo.png`（512px）、`icon.svg`（矢量）
 

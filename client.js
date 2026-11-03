@@ -4658,7 +4658,7 @@ window.__ModuleLoader__.load({
       h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
     );
 
-    /** 产品 Logo（深蓝圆角底 + 白色对话气泡/鲸尾 + 波浪，参考 DeepSeek 的鲸鱼意象）。 */
+    /** 产品 Logo（深蓝渐变圆角底 + 白色鲸鱼，参考 DeepSeek 的鲸鱼意象）。 */
     function LogoMark(props) {
       const size = Number(props && props.size) || 18;
       return h(
@@ -4683,20 +4683,12 @@ window.__ModuleLoader__.load({
           ),
         ),
         h("rect", { key: "bg", x: 2, y: 2, width: 60, height: 60, rx: 16, fill: "url(#dshchat-logo-grad)" }),
-        h("rect", { key: "bubble", x: 14, y: 14, width: 36, height: 30, rx: 10, fill: "#FFFFFF" }),
         h("path", {
-          key: "fin",
-          d: "M44 41c3 5 8 8 14 9-2-3-2-6 0-9-5 1-10-1-14-5z",
+          key: "whale",
+          d: "M13 39C13 27 22 18 34 18C43 18 50 23 54 30L61 25C58 31 58 34 61 40L54 39C50 46 43 51 34 51C22 51 13 47 13 39Z",
           fill: "#FFFFFF",
         }),
-        h("path", {
-          key: "wave",
-          d: "M22 26c2-2 4-2 6 0s4 2 6 0 4-2 6 0",
-          stroke: "url(#dshchat-logo-grad)",
-          strokeWidth: 3.4,
-          fill: "none",
-          strokeLinecap: "round",
-        }),
+        h("circle", { key: "eye", cx: 24, cy: 30, r: 2.5, fill: "url(#dshchat-logo-grad)" }),
       );
     }
 
