@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.3.1 — 2026-11-11
+- 修复 v4.3.0 中 filterAll 文案 key 重复（i18n CI 失败），移除重复项
+- i18n 308 键中英一致；smoke 130 + jsdom 全绿
+
 ## 4.3.0 — 2026-11-11
 - 搜索过滤器：全局/会话内搜索按文本/图片/文件/语音/链接筛选 + 仅当前会话
 - Host /search 支持 kind、chatId；导出 messageSearchKind 并加 smoke 覆盖
