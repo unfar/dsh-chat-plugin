@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.2.1 — 2026-11-11
+- 修复：语音/视频附件以 attachment 返回导致无法内联播放，改为 audio/video 也 inline
+- 本机验证 audio/webm 上传与 /file 头：Content-Type audio/webm + Content-Disposition inline
+
 ## 4.2.0 — 2026-11-11
 - 语音消息：MediaRecorder 录音、计时/取消/发送、加密附件、原生播放器气泡与时长
 - 通知模式：每会话「全部 / 仅 @我 / 静音」，Host /chats/notify-mode 持久化，提醒层联动
