@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v4.3.1",
+      aboutVersion: "dsh Chat v4.4",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -513,7 +513,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v4.3.1",
+      aboutVersion: "dsh Chat v4.4",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -4622,6 +4622,59 @@ window.__ModuleLoader__.load({
   flex-basis: 100%;
   padding: 6px 0 0;
 }
+
+/* 链接预览 */
+.dchat-root .dchat-preview {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--dchat-label-2) 8%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+.dchat-root .dchat-preview:hover {
+  background: color-mix(in srgb, var(--dchat-label-2) 13%, transparent);
+}
+.dchat-root .dchat-preview-img {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 9px;
+}
+.dchat-root .dchat-preview-site {
+  font-size: 10px;
+  font-weight: 640;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.dchat-root .dchat-preview-title {
+  font-size: 12.5px;
+  font-weight: 640;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dchat-root .dchat-preview-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  opacity: 0.72;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -5425,6 +5478,40 @@ window.__ModuleLoader__.load({
                     { className: "dchat-text" },
                     renderMentions(text, meNick),
                     edited ? h("span", { className: "dchat-edited" }, " · " + t("editedTag")) : null,
+                  )
+                : null,
+              !deleted && message.preview && typeof message.preview === "object" && message.preview.url
+                ? h(
+                    "a",
+                    {
+                      className: "dchat-preview",
+                      href: String(message.preview.url),
+                      target: "_blank",
+                      rel: "noopener noreferrer",
+                      onClick: (event) => event.stopPropagation(),
+                    },
+                    message.preview.image
+                      ? h("img", {
+                          className: "dchat-preview-img",
+                          src: String(message.preview.image),
+                          alt: "",
+                          loading: "lazy",
+                          referrerPolicy: "no-referrer",
+                        })
+                      : null,
+                    h(
+                      "span",
+                      { className: "dchat-preview-body" },
+                      message.preview.site
+                        ? h("span", { className: "dchat-preview-site" }, String(message.preview.site))
+                        : null,
+                      message.preview.title
+                        ? h("span", { className: "dchat-preview-title" }, String(message.preview.title))
+                        : null,
+                      message.preview.description
+                        ? h("span", { className: "dchat-preview-desc" }, String(message.preview.description))
+                        : null,
+                    ),
                   )
                 : null,
               showTime

@@ -18,6 +18,7 @@ const { PeerChat } = await import('../lib/peerchat.js')
 const { Chats } = await import('../lib/chats.js')
 const { registerTools } = await import('../lib/tools.js')
 const { messageSearchKind, registerRoutes, searchMessages } = await import('../lib/routes.js')
+const { extractFirstUrl, fetchLinkPreview, isSafePreviewUrl, parseLinkPreview } = await import('../lib/linkpreview.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
 const { seal, open, deriveTopic, sealBuffer, openBuffer } = await import('../lib/crypto.js')
 const { generateAgentId, normalizeAgentId, formatAgentId } = await import('../lib/agentid.js')
@@ -157,6 +158,32 @@ check(searchMessages({ list: searchList, store, query: 'pic', kind: 'image' }).m
 check(searchMessages({ list: searchList, store, query: 'search', kind: 'text' }).messages.length === 1, 'global search filters by text kind')
 check(searchMessages({ list: searchList, store, query: 'e', kind: 'all', chatId: 'room:room-a' }).messages.length >= 3, 'global search filters by chatId scope')
 check(searchMessages({ list: searchList, store, query: 'e', kind: 'all', chatId: 'room:other' }).messages.length === 0, 'global search chatId scope excludes other chats')
+
+// ---------- 链接预览 ----------
+check(extractFirstUrl('看这个 https://example.com/a?b=1，很好') === 'https://example.com/a?b=1', 'extractFirstUrl strips trailing punctuation')
+check(extractFirstUrl('没有链接') === '', 'extractFirstUrl returns empty without url')
+check(isSafePreviewUrl('https://example.com/x') === true, 'public https url is allowed')
+check(isSafePreviewUrl('http://127.0.0.1/x') === false, 'loopback preview url is rejected')
+check(isSafePreviewUrl('http://192.168.1.2/x') === false, 'private ip preview url is rejected')
+check(isSafePreviewUrl('file:///etc/passwd') === false, 'file preview url is rejected')
+const parsed = parseLinkPreview(
+  '<html><head><title>Fallback</title><meta property="og:title" content="Hello &amp; World"><meta property="og:description" content="Desc"><meta property="og:image" content="/img.png"><meta property="og:site_name" content="Example"></head></html>',
+  'https://example.com/page',
+)
+check(parsed.title === 'Hello & World' && parsed.description === 'Desc' && parsed.site === 'Example', 'parseLinkPreview reads og tags and decodes entities')
+check(parsed.image === 'https://example.com/img.png', 'parseLinkPreview resolves relative images')
+{
+  const fakeFetch = async () => ({
+    status: 200,
+    ok: true,
+    headers: { get: (name) => (name === 'content-type' ? 'text/html; charset=utf-8' : '') },
+    arrayBuffer: async () => Buffer.from('<meta property="og:title" content="Fetched"><meta property="og:image" content="https://cdn.example.com/i.png">'),
+  })
+  const fetched = await fetchLinkPreview('https://example.com/a', { fetchImpl: fakeFetch, timeoutMs: 1000 })
+  check(fetched && fetched.title === 'Fetched' && fetched.image === 'https://cdn.example.com/i.png', 'fetchLinkPreview parses fetched html')
+  const blocked = await fetchLinkPreview('http://127.0.0.1/secret', { fetchImpl: fakeFetch, timeoutMs: 1000 })
+  check(blocked === null, 'fetchLinkPreview refuses private urls before fetching')
+}
 
 // ---------- chats ----------
 const chatsApp = {
