@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.3.0 — 2026-11-11
+- 搜索过滤器：全局/会话内搜索按文本/图片/文件/语音/链接筛选 + 仅当前会话
+- Host /search 支持 kind、chatId；导出 messageSearchKind 并加 smoke 覆盖
+- 修复全局搜索防抖被 unstable 依赖反复重置、请求发不出的问题
+- smoke 130 + jsdom 搜索过滤 + i18n 302
+
 ## 4.2.1 — 2026-11-11
 - 修复：语音/视频附件以 attachment 返回导致无法内联播放，改为 audio/video 也 inline
 - 本机验证 audio/webm 上传与 /file 头：Content-Type audio/webm + Content-Disposition inline

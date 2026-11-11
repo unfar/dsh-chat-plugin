@@ -17,7 +17,7 @@ process.env.DSH_HOME = mkdtempSync(join(tmpdir(), 'dsh-chat-plugin-smoke-'))
 const { PeerChat } = await import('../lib/peerchat.js')
 const { Chats } = await import('../lib/chats.js')
 const { registerTools } = await import('../lib/tools.js')
-const { registerRoutes, searchMessages } = await import('../lib/routes.js')
+const { messageSearchKind, registerRoutes, searchMessages } = await import('../lib/routes.js')
 const { AgentReplier } = await import('../lib/agent-reply.js')
 const { seal, open, deriveTopic, sealBuffer, openBuffer } = await import('../lib/crypto.js')
 const { generateAgentId, normalizeAgentId, formatAgentId } = await import('../lib/agentid.js')
@@ -137,6 +137,8 @@ check(rewritten.length === 400 && rewritten[0].id === 'cap-50', 'saveMessages ke
 store.saveMessages(deriveTopic('room-a', 'pw'), [
   { id: 's1', seq: 1, ts: 1000, nick: 'Alice', text: 'Hello SEARCH world' },
   { id: 's2', seq: 2, ts: 2000, nick: 'Bob', text: '附件', file: { id: 'f1', name: 'Quarterly-Report.pdf', url: 'https://example.com/x' } },
+  { id: 's3', seq: 3, ts: 3000, nick: 'Alice', text: 'see https://example.com/page' },
+  { id: 's4', seq: 4, ts: 4000, nick: 'Alice', text: '', file: { id: 'f2', name: 'pic.png', mime: 'image/png', url: 'https://example.com/y' } },
 ])
 const searchList = [{ id: 'room:room-a', title: 'Room A', room: 'room-a', passphrase: 'pw' }]
 const textHits = searchMessages({ list: searchList, store, query: 'search' })
@@ -148,6 +150,13 @@ const titleHits = searchMessages({ list: searchList, store, query: 'room a' })
 check(titleHits.chats.length === 1 && titleHits.chats[0].id === 'room:room-a', 'global search returns matching chat titles')
 const emptyHits = searchMessages({ list: [], store, query: 'x' })
 check(emptyHits.messages.length === 0 && emptyHits.chats.length === 0, 'global search survives an empty chat list')
+check(messageSearchKind({ text: 'see https://example.com' }) === 'link', 'search kind detects link messages')
+check(messageSearchKind({ text: '', file: { mime: 'image/png' } }) === 'image', 'search kind detects image attachments')
+check(searchMessages({ list: searchList, store, query: 'example', kind: 'link' }).messages.length === 1, 'global search filters by link kind')
+check(searchMessages({ list: searchList, store, query: 'pic', kind: 'image' }).messages.length === 1, 'global search filters by image kind')
+check(searchMessages({ list: searchList, store, query: 'search', kind: 'text' }).messages.length === 1, 'global search filters by text kind')
+check(searchMessages({ list: searchList, store, query: 'e', kind: 'all', chatId: 'room:room-a' }).messages.length >= 3, 'global search filters by chatId scope')
+check(searchMessages({ list: searchList, store, query: 'e', kind: 'all', chatId: 'room:other' }).messages.length === 0, 'global search chatId scope excludes other chats')
 
 // ---------- chats ----------
 const chatsApp = {

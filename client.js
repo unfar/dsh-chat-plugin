@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v4.2.1",
+      aboutVersion: "dsh Chat v4.3",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -326,6 +326,13 @@ window.__ModuleLoader__.load({
       micUnsupported: "当前浏览器不支持录音",
       micDenied: "无法访问麦克风，请检查权限",
       voiceMessage: "语音",
+      filterAll: "全部",
+      filterText: "文本",
+      filterImages: "图片",
+      filterFiles: "文件",
+      filterAudio: "语音",
+      filterLinks: "链接",
+      currentChatOnly: "仅当前会话",
       privacyTitle: "隐私",
       privacyReadReceipts: "发送已读回执",
       privacyReadReceiptsHint: "关闭后对方看不到你的 ✓✓ 已读状态",
@@ -507,7 +514,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v4.2.1",
+      aboutVersion: "dsh Chat v4.3",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -570,6 +577,13 @@ window.__ModuleLoader__.load({
       micUnsupported: "Recording is not supported in this browser",
       micDenied: "Microphone permission denied",
       voiceMessage: "Voice",
+      filterAll: "All",
+      filterText: "Text",
+      filterImages: "Images",
+      filterFiles: "Files",
+      filterAudio: "Audio",
+      filterLinks: "Links",
+      currentChatOnly: "This chat",
       privacyTitle: "Privacy",
       privacyReadReceipts: "Send read receipts",
       privacyReadReceiptsHint: "When off, others won't see your ✓✓ read status",
@@ -4573,6 +4587,43 @@ window.__ModuleLoader__.load({
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* 搜索过滤器 */
+.dchat-root .dchat-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 8px 12px 2px;
+}
+.dchat-root .dchat-filter-chip {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-pill);
+  background: transparent;
+  color: var(--dchat-label-2);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dchat-root .dchat-filter-chip:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-filter-chip.active {
+  border-color: color-mix(in srgb, var(--dchat-brand) 45%, transparent);
+  background: color-mix(in srgb, var(--dchat-brand) 10%, transparent);
+  color: var(--dchat-brand);
+  font-weight: 620;
+}
+.dchat-root .dchat-searchbar {
+  flex-wrap: wrap;
+}
+.dchat-root .dchat-searchbar-chips {
+  flex-basis: 100%;
+  padding: 6px 0 0;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4778,6 +4829,28 @@ window.__ModuleLoader__.load({
     function audioDurationLabel(name) {
       const match = String(name || "").match(/voice-(\d+)s\./);
       return match ? formatDuration(Number(match[1])) : "";
+    }
+
+    function localMessageKind(message) {
+      const file = message && message.file;
+      if (file && typeof file === "object") {
+        const mime = String(file.mime || "").toLowerCase();
+        if (mime.startsWith("image/")) return "image";
+        if (mime.startsWith("audio/")) return "audio";
+        return "file";
+      }
+      const text = String((message && message.text) || "");
+      return /\bhttps?:\/\/[^\s]+/i.test(text) ? "link" : "text";
+    }
+
+    const SEARCH_KIND_KEYS = ["all", "text", "image", "file", "audio", "link"];
+    function searchKindLabel(kind, t) {
+      if (kind === "text") return t("filterText");
+      if (kind === "image") return t("filterImages");
+      if (kind === "file") return t("filterFiles");
+      if (kind === "audio") return t("filterAudio");
+      if (kind === "link") return t("filterLinks");
+      return t("filterAll");
     }
 
     function humanSize(bytes) {
@@ -5638,6 +5711,9 @@ window.__ModuleLoader__.load({
       const [globalOpen, setGlobalOpen] = useState(false);
       const [globalQuery, setGlobalQuery] = useState("");
       const [globalBusy, setGlobalBusy] = useState(false);
+      const [globalKind, setGlobalKind] = useState("all");
+      const [globalScopeCurrent, setGlobalScopeCurrent] = useState(false);
+      const [chatKind, setChatKind] = useState("all");
       const [globalResults, setGlobalResults] = useState({ messages: [], chats: [] });
       const [pendingJump, setPendingJump] = useState(null);
       const [highlightId, setHighlightId] = useState("");
@@ -6989,6 +7065,7 @@ window.__ModuleLoader__.load({
       }, []);
 
       // 全局搜索：请求 Host /search（失败时在本机范围内兜底）。
+      const globalActiveChatId = ((chats || []).find((chat) => chat.active) || {}).id || "";
       useEffect(() => {
         if (!globalOpen) return undefined;
         const query = globalQuery.trim();
@@ -6997,10 +7074,14 @@ window.__ModuleLoader__.load({
           return undefined;
         }
         let cancelled = false;
+        const activeId = globalScopeCurrent ? globalActiveChatId : "";
         const timer = setTimeout(async () => {
           setGlobalBusy(true);
           try {
-            const data = await request("/search?q=" + encodeURIComponent(query), {
+            let params = "?q=" + encodeURIComponent(query);
+            if (globalKind !== "all") params += "&kind=" + encodeURIComponent(globalKind);
+            if (activeId) params += "&chatId=" + encodeURIComponent(activeId);
+            const data = await request("/search" + params, {
               method: "GET",
               headers: { accept: "application/json" },
               cache: "no-store",
@@ -7018,8 +7099,9 @@ window.__ModuleLoader__.load({
               .map((chat) => ({ id: chat.id, title: chat.title, room: chat.room }));
             const localMessages = (messages || [])
               .filter((message) =>
-                String(message.text || "").toLowerCase().includes(lower) ||
-                String((message.file && message.file.name) || "").toLowerCase().includes(lower),
+                (globalKind === "all" || localMessageKind(message) === globalKind) &&
+                (String(message.text || "").toLowerCase().includes(lower) ||
+                  String((message.file && message.file.name) || "").toLowerCase().includes(lower)),
               )
               .slice(-30)
               .reverse()
@@ -7042,7 +7124,7 @@ window.__ModuleLoader__.load({
           cancelled = true;
           clearTimeout(timer);
         };
-      }, [globalOpen, globalQuery, chats, messages, snapshot]);
+      }, [globalOpen, globalQuery, globalKind, globalScopeCurrent, globalActiveChatId]);
 
       // 跳转到搜索结果消息并短暂高亮。
       useEffect(() => {
@@ -8924,6 +9006,7 @@ window.__ModuleLoader__.load({
       const listMessages = searchActive
         ? allMessages.filter((message) => {
             if (!message || typeof message !== "object") return false;
+            if (chatKind !== "all" && localMessageKind(message) !== chatKind) return false;
             const haystack = [
               message.text,
               message.nick,
@@ -9083,9 +9166,26 @@ window.__ModuleLoader__.load({
                 onClick: () => {
                   setSearchOpen(false);
                   setSearchQuery("");
+                  setChatKind("all");
                 },
               },
               CLOSE_ICON,
+            ),
+            h(
+              "div",
+              { className: "dchat-filter-chips dchat-searchbar-chips" },
+              ...SEARCH_KIND_KEYS.map((kind) =>
+                h(
+                  "button",
+                  {
+                    key: "ck-" + kind,
+                    type: "button",
+                    className: "dchat-filter-chip" + (chatKind === kind ? " active" : ""),
+                    onClick: () => setChatKind(kind),
+                  },
+                  searchKindLabel(kind, t),
+                ),
+              ),
             ),
           )
         : null;
@@ -10579,6 +10679,34 @@ window.__ModuleLoader__.load({
               ),
               h(
                 "div",
+                { className: "dchat-filter-chips", role: "group", "aria-label": t("search") },
+                ...SEARCH_KIND_KEYS.map((kind) =>
+                  h(
+                    "button",
+                    {
+                      key: "gk-" + kind,
+                      type: "button",
+                      className: "dchat-filter-chip" + (globalKind === kind ? " active" : ""),
+                      onClick: () => setGlobalKind(kind),
+                    },
+                    searchKindLabel(kind, t),
+                  ),
+                ),
+                h("span", { className: "dchat-page-spacer" }),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-filter-chip" + (globalScopeCurrent ? " active" : ""),
+                    disabled: !currentChat,
+                    title: currentChat ? t("currentChatOnly") : "",
+                    onClick: () => setGlobalScopeCurrent((value) => !value),
+                  },
+                  t("currentChatOnly"),
+                ),
+              ),
+              h(
+                "div",
                 { className: "dchat-searchmodal-results" },
                 !globalQuery.trim()
                   ? h("div", { className: "dchat-search-empty" }, t("searchHint"))
@@ -10587,10 +10715,10 @@ window.__ModuleLoader__.load({
                     : globalResults.chats.length === 0 && globalResults.messages.length === 0
                       ? h("div", { className: "dchat-search-empty" }, t("searchNoResults"))
                       : [
-                          globalResults.chats.length > 0
+                          globalKind === "all" && globalResults.chats.length > 0
                             ? h("div", { key: "sec-chats", className: "dchat-search-section" }, t("searchConversations"))
                             : null,
-                          ...globalResults.chats.map((chat) =>
+                          ...(globalKind === "all" ? globalResults.chats : []).map((chat) =>
                             h(
                               "button",
                               {
