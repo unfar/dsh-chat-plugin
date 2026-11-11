@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v4.0",
+      aboutVersion: "dsh Chat v4.1",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -496,7 +496,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v4.0",
+      aboutVersion: "dsh Chat v4.1",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -4452,6 +4452,37 @@ window.__ModuleLoader__.load({
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* 待发送 / 失败消息 */
+.dchat-root .dchat-row.sending .dchat-bubble {
+  opacity: 0.72;
+}
+.dchat-root .dchat-row.failed .dchat-bubble {
+  border: 1px dashed var(--dchat-err) !important;
+  box-shadow: none !important;
+}
+.dchat-root .dchat-pending-mark {
+  letter-spacing: 0;
+  animation: dchat-pending-pulse 1.2s ease infinite;
+}
+@keyframes dchat-pending-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.dchat-root .dchat-msg-retry {
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--dchat-err) 55%, transparent);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--dchat-err);
+  font-family: inherit;
+  font-size: 9.5px;
+  cursor: pointer;
+}
+.dchat-root .dchat-msg-retry:hover {
+  background: color-mix(in srgb, var(--dchat-err) 12%, transparent);
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4994,6 +5025,7 @@ window.__ModuleLoader__.load({
       const file = message.file && message.file.id ? message.file : null;
       const isImage = Boolean(file && /^image\//i.test(String(file.mime || "")));
       const deleted = message.deleted === true;
+      const pending = props.pending || "";
       const edited = message.edited === true;
       const forwardedFrom = message.forwardedFrom ? String(message.forwardedFrom) : "";
       return h(
@@ -5003,7 +5035,8 @@ window.__ModuleLoader__.load({
             "dchat-row " +
             (mine ? "mine" : "theirs") +
             (grouped ? " grouped" : "") +
-            (props.highlighted ? " highlighted" : ""),
+            (props.highlighted ? " highlighted" : "") +
+            (pending ? " " + pending : ""),
           "data-message-id": message.id,
           "data-seq": message.seq,
           onClick: props.selectMode ? () => props.onToggleSelect && props.onToggleSelect(message) : undefined,
@@ -5044,7 +5077,7 @@ window.__ModuleLoader__.load({
           h(
             "div",
             { className: "dchat-bubble-wrap" },
-            deleted || props.selectMode
+            deleted || props.selectMode || pending
               ? null
               : h(
               "div",
@@ -5202,13 +5235,25 @@ window.__ModuleLoader__.load({
                     "span",
                     { className: "dchat-bubble-meta" },
                     h("span", { className: "dchat-bubble-time" }, formatTime(message.ts)),
-                    mine
-                      ? h(
-                          "span",
-                          { className: "dchat-ticks" + (props.readByPeer === true ? " read" : "") },
-                          props.readByPeer === true ? "✓✓" : "✓",
-                        )
-                      : null,
+                    pending === "sending"
+                      ? h("span", { className: "dchat-ticks dchat-pending-mark" }, "…")
+                      : pending === "failed"
+                        ? h(
+                            "button",
+                            {
+                              type: "button",
+                              className: "dchat-msg-retry",
+                              onClick: () => props.onRetry && props.onRetry(message),
+                            },
+                            t("retry"),
+                          )
+                        : mine
+                          ? h(
+                              "span",
+                              { className: "dchat-ticks" + (props.readByPeer === true ? " read" : "") },
+                              props.readByPeer === true ? "✓✓" : "✓",
+                            )
+                          : null,
                   )
                 : null,
             ),
@@ -5381,6 +5426,7 @@ window.__ModuleLoader__.load({
       const [loadError, setLoadError] = useState("");
       const [hostMissing, setHostMissing] = useState(false);
       const [draft, setDraft] = useState("");
+      const [outbox, setOutbox] = useState([]);
       const [sending, setSending] = useState(false);
       const [sendError, setSendError] = useState("");
       const [settingsOpen, setSettingsOpen] = useState(inSettings);
@@ -5496,6 +5542,7 @@ window.__ModuleLoader__.load({
       const pollingRef = useRef(false);
       const pollAbortRef = useRef(null);
       const sendingRef = useRef(false);
+      const prevConnectedRef = useRef(true);
       const savingRef = useRef(false);
       const listRef = useRef(null);
       const textareaRef = useRef(null);
@@ -6303,34 +6350,71 @@ window.__ModuleLoader__.load({
       );
 
       /** 发送消息：Enter 或按钮触发；失败保留输入并显示服务端错误。 */
+      /** 发送单条待发消息（失败保留在 outbox 中可重试）。 */
+      const deliverEntry = useCallback(
+        async (entry) => {
+          if (!entry) return false;
+          setOutbox((previous) =>
+            previous.map((item) =>
+              item.id === entry.id ? { ...item, status: "sending", error: "" } : item,
+            ),
+          );
+          try {
+            const data = await request("/send", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ text: entry.text, replyTo: entry.replyTo }),
+            });
+            if (!mountedRef.current) return true;
+            setHostMissing(false);
+            setOutbox((previous) => previous.filter((item) => item.id !== entry.id));
+            if (data && data.message && typeof data.message === "object") {
+              setSnapshot((previous) => appendMessage(previous, data.message));
+            }
+            forceScrollRef.current = true;
+            void refresh();
+            return true;
+          } catch (error) {
+            if (!mountedRef.current) return false;
+            if (error && error.code === "missing") setHostMissing(true);
+            setOutbox((previous) =>
+              previous.map((item) =>
+                item.id === entry.id
+                  ? { ...item, status: "failed", error: (error && error.message) || t("sendingFailed") }
+                  : item,
+              ),
+            );
+            return false;
+          }
+        },
+        [refresh],
+      );
+
       const submit = useCallback(async () => {
         if (sendingRef.current) return;
         const text = draft;
         if (!text || !text.trim()) return;
         const quotedId = replyTo && replyTo.id ? replyTo.id : undefined;
+        const entry = {
+          id: "local-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+          text,
+          replyTo: quotedId,
+          ts: Date.now(),
+          status: "sending",
+          room: snapshot ? snapshot.room : "",
+        };
+        setOutbox((previous) => [...previous, entry]);
+        setDraft("");
+        setReplyTo(null);
+        setSendError("");
+        forceScrollRef.current = true;
         sendingRef.current = true;
         setSending(true);
-        setSendError("");
         try {
-          let data;
-          try {
-            data = await request("/send", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ text, replyTo: quotedId }),
-            });
-          } catch (error) {
-            if (error && error.code === "missing") setHostMissing(true);
-            throw error;
-          }
-          if (!mountedRef.current) return;
-          setHostMissing(false);
-          setDraft("");
-          setReplyTo(null);
-          forceScrollRef.current = true;
-          if (data && data.message && typeof data.message === "object") {
-            setSnapshot((previous) => appendMessage(previous, data.message));
-          }
+          await deliverEntry(entry);
+        } finally {
+          sendingRef.current = false;
+          if (mountedRef.current) setSending(false);
           if (textareaRef.current && typeof textareaRef.current.focus === "function") {
             try {
               textareaRef.current.focus();
@@ -6338,21 +6422,26 @@ window.__ModuleLoader__.load({
               /* jsdom 等环境里 focus 可能不可用 */
             }
           }
-          void refresh();
-        } catch (error) {
-          if (!mountedRef.current) return;
-          const missing = error && error.code === "missing";
-          const message = missing
-            ? t("hostMissingSend")
-            : error && error.message
-              ? error.message
-              : t("sendingFailed");
-          setSendError(message);
-        } finally {
-          sendingRef.current = false;
-          if (mountedRef.current) setSending(false);
         }
-      }, [draft, refresh]);
+      }, [draft, replyTo, snapshot, deliverEntry]);
+
+      // 断线恢复后自动重试当前会话的失败消息。
+      useEffect(() => {
+        const connected = Boolean(snapshot && snapshot.connected);
+        if (!connected) {
+          prevConnectedRef.current = false;
+          return;
+        }
+        const wasOffline = prevConnectedRef.current === false;
+        prevConnectedRef.current = true;
+        if (!wasOffline) return;
+        const room = snapshot ? snapshot.room : "";
+        const failed = outbox.filter((item) => item.status === "failed" && (!item.room || item.room === room));
+        if (failed.length === 0) return;
+        void (async () => {
+          for (const entry of failed) await deliverEntry(entry);
+        })();
+      }, [snapshot && snapshot.connected, snapshot && snapshot.room, outbox, deliverEntry]);
 
       const handleKeyDown = useCallback(
         (event) => {
@@ -8684,6 +8773,27 @@ window.__ModuleLoader__.load({
             }),
           );
         });
+        for (const entry of outbox) {
+          if (!snapshot || (entry.room && entry.room !== snapshot.room)) continue;
+          messageChildren.push(
+            h(MessageRow, {
+              key: "out-" + entry.id,
+              message: {
+                id: entry.id,
+                ts: entry.ts,
+                text: entry.text,
+                mine: true,
+                nick: me ? me.nick : "",
+              },
+              mine: true,
+              grouped: false,
+              showTime: true,
+              pending: entry.status,
+              meNick: me ? me.nick : "",
+              onRetry: () => void deliverEntry(entry),
+            }),
+          );
+        }
       }
 
       const searchView = searchOpen
