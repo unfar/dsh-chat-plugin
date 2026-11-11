@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.5.0 — 2026-11-11
+- 免打扰时段：quietHours（enable/start/end），提醒层统一抑制通知/toast/提示音，支持跨午夜
+- 本地屏蔽：blocked peer id 列表写入 config；客户端过滤消息/成员/输入状态/提醒；资料卡屏蔽，设置里取消
+- 导出聊天记录：会话设置导出 JSON
+- 配置校验：非法时间回退默认值；blocked 去重
+- 测试：smoke 143 + jsdom（免打扰/屏蔽/导出 UI）+ i18n 308
+
 ## 4.4.0 — 2026-11-11
 - 链接预览：Host 异步抓取第一个链接的 Open Graph，消息内渲染卡片；不阻塞发送
 - 安全：仅 http(s)、拒绝 localhost/私网、限 3 次跳转/2.5s 超时/96KB HTML

@@ -25,7 +25,7 @@ const { generateAgentId, normalizeAgentId, formatAgentId } = await import('../li
 const { encodeInvite, decodeInvite } = await import('../lib/invite.js')
 const { externalPeerId } = await import('../lib/bridge.js')
 const { directoryTopic, inboxTopic, sealPresence, openPresence, sealConnect, openConnect } = await import('../lib/social.js')
-const { ChatStore, DEFAULT_CONFIG } = await import('../lib/store.js')
+const { ChatStore, DEFAULT_CONFIG, normalizeBlocked, normalizeQuietHours } = await import('../lib/store.js')
 
 const logger = { info() {}, warn() {}, error() {}, debug() {} }
 let passed = 0
@@ -217,6 +217,17 @@ check(chats.get('dm:peer-x')?.notifyMode === 'mentions' && chats.get('dm:peer-x'
 check(chats.snapshot().chats.find((chat) => chat.id === 'dm:peer-x')?.notifyMode === 'mentions', 'notifyMode is exposed in snapshot')
 chats.setNotifyMode('dm:peer-x', 'mute')
 check(chats.get('dm:peer-x')?.muted === true, 'notifyMode mute also mutes chat')
+check(
+  JSON.stringify(normalizeQuietHours({ enabled: true, start: '23:30', end: '07:00' })) ===
+    JSON.stringify({ enabled: true, start: '23:30', end: '07:00' }),
+  'normalizeQuietHours accepts valid window',
+)
+check(
+  JSON.stringify(normalizeQuietHours({ enabled: 'yes', start: '99:99', end: '7:00' })) ===
+    JSON.stringify({ enabled: false, start: '22:00', end: '08:00' }),
+  'normalizeQuietHours falls back on invalid values',
+)
+check(JSON.stringify(normalizeBlocked(['a', 'a', '', ' b '])) === JSON.stringify(['a', 'b']), 'normalizeBlocked dedupes and trims')
 const pinnedSnap = chats.setPinned('dm:peer-x', true)
 check(pinnedSnap.chats.find((chat) => chat.id === 'dm:peer-x')?.pinned === true, 'pin is exposed in snapshot')
 check(store.loadChats().find((chat) => chat.id === 'dm:peer-x')?.pinned === true, 'pin is persisted on the chats entry')

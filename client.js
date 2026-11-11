@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v4.4",
+      aboutVersion: "dsh Chat v4.5",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -339,6 +339,17 @@ window.__ModuleLoader__.load({
       privacyTypingHint: "关闭后对方看不到你在输入",
       privacyLastSeen: "显示最后在线",
       privacyLastSeenHint: "关闭后成员列表/资料卡不显示你的最后活跃时间",
+      quietHoursTitle: "免打扰时段",
+      quietHoursEnable: "在时段内不提醒",
+      quietHoursHint: "启用后，该时间窗口内不弹系统通知/应用内 toast/提示音；未读仍保留",
+      quietStart: "开始",
+      quietEnd: "结束",
+      blockedTitle: "已屏蔽成员",
+      blockedEmpty: "没有屏蔽任何人",
+      block: "屏蔽",
+      unblock: "取消屏蔽",
+      exportChat: "导出聊天记录",
+      exported: "已导出",
       soundHint: "窗口在后台或未聚焦时播放一声轻提示",
       justNow: "刚刚",
       minutesShort: "分钟前",
@@ -513,7 +524,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v4.4",
+      aboutVersion: "dsh Chat v4.5",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -589,6 +600,17 @@ window.__ModuleLoader__.load({
       privacyTypingHint: "When off, others won't see you typing",
       privacyLastSeen: "Show last seen",
       privacyLastSeenHint: "When off, member list/profile won't show your last active time",
+      quietHoursTitle: "Quiet hours",
+      quietHoursEnable: "Silence notifications during this window",
+      quietHoursHint: "System notifications, in-app toasts and sounds are suppressed in this window; unread stays.",
+      quietStart: "From",
+      quietEnd: "To",
+      blockedTitle: "Blocked members",
+      blockedEmpty: "No blocked members",
+      block: "Block",
+      unblock: "Unblock",
+      exportChat: "Export chat",
+      exported: "Exported",
       soundHint: "Play a soft chime when the window is in the background or unfocused",
       justNow: "just now",
       minutesShort: "min ago",
@@ -922,6 +944,15 @@ window.__ModuleLoader__.load({
             : String(relay.url || ""),
         agentAutoReply: settings.agentAutoReply === true,
         status: typeof settings.status === "string" ? settings.status : String(me.status || ""),
+        quietHours: {
+          enabled: Boolean(settings.quietHours && settings.quietHours.enabled === true),
+          start: (settings.quietHours && /^([01]\d|2[0-3]):[0-5]\d$/.test(settings.quietHours.start)
+            ? settings.quietHours.start
+            : "22:00"),
+          end: (settings.quietHours && /^([01]\d|2[0-3]):[0-5]\d$/.test(settings.quietHours.end)
+            ? settings.quietHours.end
+            : "08:00"),
+        },
         privacy: {
           readReceipts: !(settings.privacy && settings.privacy.readReceipts === false),
           typingIndicator: !(settings.privacy && settings.privacy.typingIndicator === false),
@@ -947,6 +978,13 @@ window.__ModuleLoader__.load({
       if (relayUrl) payload.relayUrl = relayUrl;
       payload.agentAutoReply = form.agentAutoReply === true;
       if (typeof form.status === "string") payload.status = form.status.trim();
+      if (form.quietHours && typeof form.quietHours === "object") {
+        payload.quietHours = {
+          enabled: form.quietHours.enabled === true,
+          start: form.quietHours.start,
+          end: form.quietHours.end,
+        };
+      }
       if (form.privacy && typeof form.privacy === "object") {
         payload.privacy = {
           readReceipts: form.privacy.readReceipts !== false,
@@ -4675,6 +4713,30 @@ window.__ModuleLoader__.load({
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* 免打扰与屏蔽列表 */
+.dchat-root .dchat-settings-inline {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+.dchat-root .dchat-settings-inline .dchat-field {
+  flex: 0 0 120px;
+}
+.dchat-root .dchat-blocked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.dchat-root .dchat-blocked-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4892,6 +4954,20 @@ window.__ModuleLoader__.load({
       }
       const text = String((message && message.text) || "");
       return /\bhttps?:\/\/[^\s]+/i.test(text) ? "link" : "text";
+    }
+
+    function quietHoursActive(quiet, date = new Date()) {
+      if (!quiet || quiet.enabled !== true) return false;
+      const parse = (value) => {
+        const match = String(value || "").match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+        return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+      };
+      const start = parse(quiet.start);
+      const end = parse(quiet.end);
+      if (start == null || end == null) return false;
+      const minutes = date.getHours() * 60 + date.getMinutes();
+      if (start === end) return true;
+      return start < end ? minutes >= start && minutes < end : minutes >= start || minutes < end;
     }
 
     const SEARCH_KIND_KEYS = ["all", "text", "image", "file", "audio", "link"];
@@ -5863,10 +5939,18 @@ window.__ModuleLoader__.load({
       const forceScrollRef = useRef(false);
       const toastTimerRef = useRef(null);
 
-      const messages = snapshot ? safeArray(snapshot.messages) : [];
+      const blockedIds =
+        snapshot && snapshot.settings && Array.isArray(snapshot.settings.blocked)
+          ? snapshot.settings.blocked.map(String)
+          : [];
+      const messages = snapshot
+        ? safeArray(snapshot.messages).filter((message) => !blockedIds.includes(String(message.from || "")))
+        : [];
       const allMessages =
         olderMessages.length > 0 ? olderMessages.concat(messages) : messages;
-      const peers = snapshot ? safeArray(snapshot.peers) : [];
+      const peers = snapshot
+        ? safeArray(snapshot.peers).filter((peer) => !blockedIds.includes(String(peer.id || "")))
+        : [];
       const me = snapshot ? snapshot.me : null;
       const relay = snapshot ? snapshot.relay : null;
       const peersOnline = peers.filter((peer) => peer && peer.online === true).length;
@@ -6910,8 +6994,15 @@ window.__ModuleLoader__.load({
           (nick && textValue.toLowerCase().includes("@" + nick)) ||
           textValue.includes("@all") ||
           textValue.includes("@everyone");
+        const quietActive = quietHoursActive(
+          snapshot && snapshot.settings && snapshot.settings.quietHours,
+        );
+        const blockedSender = Boolean(last && blockedIds.includes(String(last.from || "")));
         const mutedActive =
-          notifyMode === "mute" || (notifyMode === "mentions" && !mentioned);
+          notifyMode === "mute" ||
+          (notifyMode === "mentions" && !mentioned) ||
+          quietActive ||
+          blockedSender;
         const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
         const unfocused =
           typeof document !== "undefined" &&
@@ -7727,6 +7818,58 @@ window.__ModuleLoader__.load({
         [loadChats],
       );
 
+      const setBlockedPeer = useCallback(
+        async (peerId, blocked) => {
+          const id = String(peerId || "");
+          if (!id) return;
+          const current =
+            snapshot && snapshot.settings && Array.isArray(snapshot.settings.blocked)
+              ? snapshot.settings.blocked.map(String)
+              : [];
+          const next = blocked
+            ? Array.from(new Set([...current, id]))
+            : current.filter((value) => value !== id);
+          try {
+            await request("/config", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ blocked: next }),
+            });
+            await refresh();
+          } catch (error) {
+            if (mountedRef.current) setSendError((error && error.message) || t("unreachable"));
+          }
+        },
+        [snapshot, refresh],
+      );
+
+      const exportChat = useCallback(() => {
+        if (!snapshot) return;
+        try {
+          const chat = (chats || []).find((item) => item.active) || {};
+          const payload = {
+            chat: {
+              id: chat.id || "",
+              title: chat.title || snapshot.room || "",
+              room: snapshot.room || "",
+            },
+            exportedAt: new Date().toISOString(),
+            messages: allMessages,
+          };
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "dsh-chat-" + String(snapshot.room || "export").replace(/[^\w.-]+/g, "_") + ".json";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+        } catch (error) {
+          if (mountedRef.current) setSendError((error && error.message) || t("unreachable"));
+        }
+      }, [allMessages, chats, snapshot]);
+
       const toggleChatMute = useCallback(
         (chat) => void chatAction("/chats/mute", { id: chat.id, muted: !(chat && chat.muted) }),
         [chatAction],
@@ -8273,6 +8416,84 @@ window.__ModuleLoader__.load({
                                   t("privacyLastSeen"),
                                 ),
                                 h("div", { className: "dchat-hint" }, t("privacyLastSeenHint")),
+                              ]),
+                              settingsSection(t("quietHoursTitle"), [
+                                h(
+                                  "label",
+                                  { className: "dchat-check" },
+                                  h("input", {
+                                    type: "checkbox",
+                                    checked: Boolean(form.quietHours && form.quietHours.enabled),
+                                    onChange: (event) =>
+                                      updateForm({
+                                        quietHours: {
+                                          ...(form.quietHours || {}),
+                                          enabled: event.target.checked,
+                                        },
+                                      }),
+                                  }),
+                                  t("quietHoursEnable"),
+                                ),
+                                h("div", { className: "dchat-hint" }, t("quietHoursHint")),
+                                h(
+                                  "div",
+                                  { className: "dchat-settings-inline" },
+                                  settingsField(
+                                    t("quietStart"),
+                                    h("input", {
+                                      className: "dchat-input",
+                                      type: "time",
+                                      value:
+                                        (form.quietHours && form.quietHours.start) || "22:00",
+                                      onChange: (event) =>
+                                        updateForm({
+                                          quietHours: {
+                                            ...(form.quietHours || {}),
+                                            start: event.target.value,
+                                          },
+                                        }),
+                                    }),
+                                  ),
+                                  settingsField(
+                                    t("quietEnd"),
+                                    h("input", {
+                                      className: "dchat-input",
+                                      type: "time",
+                                      value: (form.quietHours && form.quietHours.end) || "08:00",
+                                      onChange: (event) =>
+                                        updateForm({
+                                          quietHours: {
+                                            ...(form.quietHours || {}),
+                                            end: event.target.value,
+                                          },
+                                        }),
+                                    }),
+                                  ),
+                                ),
+                              ]),
+                              settingsSection(t("blockedTitle"), [
+                                blockedIds.length === 0
+                                  ? h("div", { className: "dchat-hint" }, t("blockedEmpty"))
+                                  : h(
+                                      "div",
+                                      { className: "dchat-blocked-list" },
+                                      ...blockedIds.map((blockedId) =>
+                                        h(
+                                          "div",
+                                          { key: "blocked-" + blockedId, className: "dchat-blocked-row" },
+                                          h("code", { className: "dchat-agentid" }, shortId(blockedId)),
+                                          h(
+                                            "button",
+                                            {
+                                              type: "button",
+                                              className: "dchat-small-btn ghost",
+                                              onClick: () => void setBlockedPeer(blockedId, false),
+                                            },
+                                            t("unblock"),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                               ]),
                             ]
                           : settingsTab === "connection"
@@ -9637,6 +9858,18 @@ window.__ModuleLoader__.load({
                 ),
                 h(
                   "button",
+                  {
+                    type: "button",
+                    className: "dchat-small-btn",
+                    onClick: () => {
+                      exportChat();
+                      setChatMenuFor(null);
+                    },
+                  },
+                  t("exportChat"),
+                ),
+                h(
+                  "button",
                   { type: "button", className: "dchat-small-btn ghost", onClick: () => clearChatHistory(chatMenuFor) },
                   t("clearHistory"),
                 ),
@@ -9755,6 +9988,22 @@ window.__ModuleLoader__.load({
                         },
                       },
                       t("removeContact"),
+                    )
+                  : null,
+                profileCard.id && profileCard.kind !== "directory"
+                  ? h(
+                      "button",
+                      {
+                        type: "button",
+                        className: "dchat-small-btn ghost",
+                        onClick: () => {
+                          const id = String(profileCard.id);
+                          const isBlocked = blockedIds.includes(id);
+                          setProfileCard(null);
+                          void setBlockedPeer(id, !isBlocked);
+                        },
+                      },
+                      blockedIds.includes(String(profileCard.id)) ? t("unblock") : t("block"),
                     )
                   : null,
               ),
@@ -10287,6 +10536,7 @@ window.__ModuleLoader__.load({
       const typingLabel =
         snapshot && Array.isArray(snapshot.typing) && snapshot.typing.length > 0
           ? snapshot.typing
+              .filter((peer) => !blockedIds.includes(String((peer && peer.id) || "")))
               .slice(0, 2)
               .map((peer) => (peer && peer.nick ? peer.nick : t("anonymous")))
               .join("、") + " " + t("typing")
