@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.6.0 — 2026-11-11
+- 搜索发送人 + 日期范围过滤（可叠加类型/当前会话），一键清除
+- Host /search 支持 from/since/until
+- 测试：smoke 147 + jsdom（发送人过滤）+ i18n 319
+
 ## 4.5.0 — 2026-11-11
 - 免打扰时段：quietHours（enable/start/end），提醒层统一抑制通知/toast/提示音，支持跨午夜
 - 本地屏蔽：blocked peer id 列表写入 config；客户端过滤消息/成员/输入状态/提醒；资料卡屏蔽，设置里取消

@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v4.5",
+      aboutVersion: "dsh Chat v4.6",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -332,6 +332,10 @@ window.__ModuleLoader__.load({
       filterAudio: "语音",
       filterLinks: "链接",
       currentChatOnly: "仅当前会话",
+      searchSender: "发送人",
+      searchDateFrom: "起始日期",
+      searchDateTo: "结束日期",
+      clearFilters: "清除筛选",
       privacyTitle: "隐私",
       privacyReadReceipts: "发送已读回执",
       privacyReadReceiptsHint: "关闭后对方看不到你的 ✓✓ 已读状态",
@@ -524,7 +528,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v4.5",
+      aboutVersion: "dsh Chat v4.6",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -593,6 +597,10 @@ window.__ModuleLoader__.load({
       filterAudio: "Audio",
       filterLinks: "Links",
       currentChatOnly: "This chat",
+      searchSender: "Sender",
+      searchDateFrom: "From date",
+      searchDateTo: "To date",
+      clearFilters: "Clear filters",
       privacyTitle: "Privacy",
       privacyReadReceipts: "Send read receipts",
       privacyReadReceiptsHint: "When off, others won't see your ✓✓ read status",
@@ -4737,6 +4745,27 @@ window.__ModuleLoader__.load({
   gap: 8px;
   padding: 4px 0;
 }
+
+/* 搜索高级过滤 */
+.dchat-root .dchat-filter-advanced {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 4px;
+  flex-wrap: wrap;
+}
+.dchat-root .dchat-filter-sender {
+  width: 150px;
+  height: 28px;
+}
+.dchat-root .dchat-filter-date {
+  width: 132px;
+  height: 28px;
+}
+.dchat-root .dchat-filter-dash {
+  font-size: 11px;
+  color: var(--dchat-label-2);
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -5875,6 +5904,9 @@ window.__ModuleLoader__.load({
       const [globalKind, setGlobalKind] = useState("all");
       const [globalScopeCurrent, setGlobalScopeCurrent] = useState(false);
       const [chatKind, setChatKind] = useState("all");
+      const [globalSender, setGlobalSender] = useState("");
+      const [globalSince, setGlobalSince] = useState("");
+      const [globalUntil, setGlobalUntil] = useState("");
       const [globalResults, setGlobalResults] = useState({ messages: [], chats: [] });
       const [pendingJump, setPendingJump] = useState(null);
       const [highlightId, setHighlightId] = useState("");
@@ -7257,6 +7289,15 @@ window.__ModuleLoader__.load({
             let params = "?q=" + encodeURIComponent(query);
             if (globalKind !== "all") params += "&kind=" + encodeURIComponent(globalKind);
             if (activeId) params += "&chatId=" + encodeURIComponent(activeId);
+            if (globalSender.trim()) params += "&from=" + encodeURIComponent(globalSender.trim());
+            if (globalSince) {
+              const sinceMs = new Date(globalSince + "T00:00:00").getTime();
+              if (Number.isFinite(sinceMs)) params += "&since=" + sinceMs;
+            }
+            if (globalUntil) {
+              const untilMs = new Date(globalUntil + "T23:59:59.999").getTime();
+              if (Number.isFinite(untilMs)) params += "&until=" + untilMs;
+            }
             const data = await request("/search" + params, {
               method: "GET",
               headers: { accept: "application/json" },
@@ -7273,9 +7314,17 @@ window.__ModuleLoader__.load({
             const localChats = (chats || [])
               .filter((chat) => String(chat.title || "").toLowerCase().includes(lower))
               .map((chat) => ({ id: chat.id, title: chat.title, room: chat.room }));
+            const senderLower = globalSender.trim().toLowerCase();
+            const sinceMs = globalSince ? new Date(globalSince + "T00:00:00").getTime() : 0;
+            const untilMs = globalUntil ? new Date(globalUntil + "T23:59:59.999").getTime() : 0;
             const localMessages = (messages || [])
               .filter((message) =>
                 (globalKind === "all" || localMessageKind(message) === globalKind) &&
+                (!senderLower ||
+                  String(message.nick || "").toLowerCase().includes(senderLower) ||
+                  String(message.from || "").toLowerCase().includes(senderLower)) &&
+                (!sinceMs || Number(message.ts) >= sinceMs) &&
+                (!untilMs || Number(message.ts) <= untilMs) &&
                 (String(message.text || "").toLowerCase().includes(lower) ||
                   String((message.file && message.file.name) || "").toLowerCase().includes(lower)),
               )
@@ -7300,7 +7349,16 @@ window.__ModuleLoader__.load({
           cancelled = true;
           clearTimeout(timer);
         };
-      }, [globalOpen, globalQuery, globalKind, globalScopeCurrent, globalActiveChatId]);
+      }, [
+        globalOpen,
+        globalQuery,
+        globalKind,
+        globalScopeCurrent,
+        globalActiveChatId,
+        globalSender,
+        globalSince,
+        globalUntil,
+      ]);
 
       // 跳转到搜索结果消息并短暂高亮。
       useEffect(() => {
@@ -11038,6 +11096,50 @@ window.__ModuleLoader__.load({
                     onClick: () => setGlobalScopeCurrent((value) => !value),
                   },
                   t("currentChatOnly"),
+                ),
+              ),
+              h(
+                "div",
+                { className: "dchat-filter-advanced" },
+                h("input", {
+                  className: "dchat-input dchat-filter-sender",
+                  type: "text",
+                  value: globalSender,
+                  placeholder: t("searchSender"),
+                  "aria-label": t("searchSender"),
+                  onChange: (event) => setGlobalSender(event.target.value),
+                }),
+                h("input", {
+                  className: "dchat-input dchat-filter-date",
+                  type: "date",
+                  value: globalSince,
+                  title: t("searchDateFrom"),
+                  "aria-label": t("searchDateFrom"),
+                  onChange: (event) => setGlobalSince(event.target.value),
+                }),
+                h("span", { className: "dchat-filter-dash" }, "–"),
+                h("input", {
+                  className: "dchat-input dchat-filter-date",
+                  type: "date",
+                  value: globalUntil,
+                  title: t("searchDateTo"),
+                  "aria-label": t("searchDateTo"),
+                  onChange: (event) => setGlobalUntil(event.target.value),
+                }),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "dchat-filter-chip",
+                    onClick: () => {
+                      setGlobalSender("");
+                      setGlobalSince("");
+                      setGlobalUntil("");
+                      setGlobalKind("all");
+                      setGlobalScopeCurrent(false);
+                    },
+                  },
+                  t("clearFilters"),
                 ),
               ),
               h(

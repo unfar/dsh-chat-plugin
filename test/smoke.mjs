@@ -158,6 +158,10 @@ check(searchMessages({ list: searchList, store, query: 'pic', kind: 'image' }).m
 check(searchMessages({ list: searchList, store, query: 'search', kind: 'text' }).messages.length === 1, 'global search filters by text kind')
 check(searchMessages({ list: searchList, store, query: 'e', kind: 'all', chatId: 'room:room-a' }).messages.length >= 3, 'global search filters by chatId scope')
 check(searchMessages({ list: searchList, store, query: 'e', kind: 'all', chatId: 'room:other' }).messages.length === 0, 'global search chatId scope excludes other chats')
+check(searchMessages({ list: searchList, store, query: 'e', from: 'alice' }).messages.every((m) => m.nick === 'Alice'), 'global search filters by sender nick')
+check(searchMessages({ list: searchList, store, query: 'e', from: 'nobody' }).messages.length === 0, 'unknown sender returns no hits')
+check(searchMessages({ list: searchList, store, query: 'e', since: 2500 }).messages.every((m) => Number(m.ts) >= 2500), 'global search filters by since timestamp')
+check(searchMessages({ list: searchList, store, query: 'e', until: 2500 }).messages.every((m) => Number(m.ts) <= 2500), 'global search filters by until timestamp')
 
 // ---------- 链接预览 ----------
 check(extractFirstUrl('看这个 https://example.com/a?b=1，很好') === 'https://example.com/a?b=1', 'extractFirstUrl strips trailing punctuation')
