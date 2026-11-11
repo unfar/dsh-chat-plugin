@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v4.1",
+      aboutVersion: "dsh Chat v4.2",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -315,6 +315,17 @@ window.__ModuleLoader__.load({
       unpinMessage: "取消置顶",
       noPinnedMessages: "没有置顶消息",
       pinnedHint: "点击跳转到原消息",
+      notificationMode: "通知",
+      notifyAll: "全部",
+      notifyMentions: "仅 @我",
+      notifyMute: "静音",
+      recordVoice: "语音消息",
+      recording: "正在录音…",
+      cancelRecording: "取消录音",
+      sendRecording: "发送语音",
+      micUnsupported: "当前浏览器不支持录音",
+      micDenied: "无法访问麦克风，请检查权限",
+      voiceMessage: "语音",
       privacyTitle: "隐私",
       privacyReadReceipts: "发送已读回执",
       privacyReadReceiptsHint: "关闭后对方看不到你的 ✓✓ 已读状态",
@@ -496,7 +507,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v4.1",
+      aboutVersion: "dsh Chat v4.2",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -548,6 +559,17 @@ window.__ModuleLoader__.load({
       unpinMessage: "Unpin",
       noPinnedMessages: "No pinned messages",
       pinnedHint: "Click to jump to the message",
+      notificationMode: "Notifications",
+      notifyAll: "All",
+      notifyMentions: "Mentions",
+      notifyMute: "Mute",
+      recordVoice: "Voice message",
+      recording: "Recording…",
+      cancelRecording: "Cancel recording",
+      sendRecording: "Send voice",
+      micUnsupported: "Recording is not supported in this browser",
+      micDenied: "Microphone permission denied",
+      voiceMessage: "Voice",
       privacyTitle: "Privacy",
       privacyReadReceipts: "Send read receipts",
       privacyReadReceiptsHint: "When off, others won't see your ✓✓ read status",
@@ -4483,6 +4505,74 @@ window.__ModuleLoader__.load({
 .dchat-root .dchat-msg-retry:hover {
   background: color-mix(in srgb, var(--dchat-err) 12%, transparent);
 }
+
+/* 语音消息 */
+.dchat-root .dchat-mic-toggle {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  align-self: center;
+  margin-bottom: 1px;
+  border-radius: 50%;
+}
+.dchat-root .dchat-recording-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 14px 12px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--dchat-err) 35%, var(--dchat-border-l1));
+  border-radius: var(--dchat-radius-lg);
+  background: color-mix(in srgb, var(--dchat-err) 6%, var(--dchat-bg));
+}
+.dchat-root .dchat-recording-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--dchat-err);
+  animation: dchat-rec-pulse 1s ease infinite;
+}
+@keyframes dchat-rec-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.dchat-root .dchat-recording-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  font-weight: 620;
+  color: var(--dchat-err);
+  font-variant-numeric: tabular-nums;
+}
+.dchat-root .dchat-recording-hint {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+}
+.dchat-root .dchat-audio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.dchat-root .dchat-audio audio {
+  width: 240px;
+  max-width: 100%;
+  height: 34px;
+}
+.dchat-root .dchat-audio-label {
+  font-size: 11px;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+/* 移动端安全区 */
+.dchat-root .dchat-composer {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 720px) {
+  .dchat-root .dchat-side-foot {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4678,6 +4768,18 @@ window.__ModuleLoader__.load({
       return parts.length === 1 && typeof parts[0] === "string" ? parts[0] : parts;
     }
 
+    function formatDuration(seconds) {
+      const total = Math.max(0, Number(seconds) || 0);
+      const minutes = Math.floor(total / 60);
+      const rest = total % 60;
+      return minutes + ":" + (rest < 10 ? "0" + rest : String(rest));
+    }
+
+    function audioDurationLabel(name) {
+      const match = String(name || "").match(/voice-(\d+)s\./);
+      return match ? formatDuration(Number(match[1])) : "";
+    }
+
     function humanSize(bytes) {
       const size = Number(bytes) || 0;
       if (size < 1024) return size + " B";
@@ -4864,6 +4966,14 @@ window.__ModuleLoader__.load({
       },
     ];
 
+    const MIC_ICON = h(
+      "svg",
+      { viewBox: "0 0 24 24", width: 16, height: 16, fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", focusable: "false", style: { display: "block" } },
+      h("rect", { key: "a", x: 9, y: 3, width: 6, height: 11, rx: 3 }),
+      h("path", { key: "b", d: "M5 11a7 7 0 0 0 14 0" }),
+      h("path", { key: "c", d: "M12 18v3" }),
+    );
+
     const SEND_ICON = h(
       "svg",
       {
@@ -5024,6 +5134,7 @@ window.__ModuleLoader__.load({
       const meNick = props.meNick || "";
       const file = message.file && message.file.id ? message.file : null;
       const isImage = Boolean(file && /^image\//i.test(String(file.mime || "")));
+      const isAudio = Boolean(file && /^audio\//i.test(String(file.mime || "")));
       const deleted = message.deleted === true;
       const pending = props.pending || "";
       const edited = message.edited === true;
@@ -5207,7 +5318,22 @@ window.__ModuleLoader__.load({
                         props.onOpenImage && props.onOpenImage({ url: fileUrlOf(file), name: file.name });
                       },
                     })
-                  : h(
+                  : isAudio
+                    ? h(
+                        "div",
+                        { className: "dchat-audio" },
+                        h("audio", {
+                          controls: true,
+                          preload: "metadata",
+                          src: fileUrlOf(file),
+                        }),
+                        h(
+                          "span",
+                          { className: "dchat-audio-label" },
+                          audioDurationLabel(file.name),
+                        ),
+                      )
+                    : h(
                       "a",
                       { className: "dchat-file-card", href: fileUrlOf(file), download: file.name },
                       h("span", { className: "dchat-file-icon", "aria-hidden": "true" }, FILE_ICON),
@@ -5456,6 +5582,9 @@ window.__ModuleLoader__.load({
       const [emojiOpen, setEmojiOpen] = useState(false);
       const [pinnedMessages, setPinnedMessages] = useState([]);
       const [pinnedOpen, setPinnedOpen] = useState(false);
+      const [recording, setRecording] = useState(false);
+      const [recordSeconds, setRecordSeconds] = useState(0);
+      const [canRecord, setCanRecord] = useState(false);
       const [emojiRecent, setEmojiRecent] = useState(() => {
         try {
           const stored = typeof window !== "undefined" && window.localStorage.getItem("dshchat.emoji");
@@ -5543,6 +5672,12 @@ window.__ModuleLoader__.load({
       const pollAbortRef = useRef(null);
       const sendingRef = useRef(false);
       const prevConnectedRef = useRef(true);
+      const recorderRef = useRef(null);
+      const recordStreamRef = useRef(null);
+      const recordChunksRef = useRef([]);
+      const recordTimerRef = useRef(null);
+      const recordSecondsRef = useRef(0);
+      const recordCancelledRef = useRef(false);
       const savingRef = useRef(false);
       const listRef = useRef(null);
       const textareaRef = useRef(null);
@@ -6425,6 +6560,29 @@ window.__ModuleLoader__.load({
         }
       }, [draft, replyTo, snapshot, deliverEntry]);
 
+      // 浏览器是否支持录音。
+      useEffect(() => {
+        const supported =
+          typeof window !== "undefined" &&
+          typeof window.MediaRecorder === "function" &&
+          Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        setCanRecord(supported);
+      }, []);
+
+      // 录音状态清理。
+      useEffect(() => () => {
+        if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+        recordTimerRef.current = null;
+        if (recordStreamRef.current) {
+          try {
+            recordStreamRef.current.getTracks().forEach((track) => track.stop());
+          } catch {
+            /* ignore */
+          }
+          recordStreamRef.current = null;
+        }
+      }, []);
+
       // 断线恢复后自动重试当前会话的失败消息。
       useEffect(() => {
         const connected = Boolean(snapshot && snapshot.connected);
@@ -6582,7 +6740,17 @@ window.__ModuleLoader__.load({
         lastNotifiedSeqRef.current = latest;
         const last = messages.length > 0 ? messages[messages.length - 1] : null;
         if (!last || last.mine) return;
-        const mutedActive = Boolean(currentChat && currentChat.muted);
+        const notifyMode = currentChat
+          ? currentChat.notifyMode || (currentChat.muted ? "mute" : "all")
+          : "all";
+        const textValue = String(last.text || "");
+        const nick = String((me && me.nick) || "").toLowerCase();
+        const mentioned =
+          (nick && textValue.toLowerCase().includes("@" + nick)) ||
+          textValue.includes("@all") ||
+          textValue.includes("@everyone");
+        const mutedActive =
+          notifyMode === "mute" || (notifyMode === "mentions" && !mentioned);
         const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
         const unfocused =
           typeof document !== "undefined" &&
@@ -6984,6 +7152,68 @@ window.__ModuleLoader__.load({
         [draft],
       );
 
+      /** 开始录音（MediaRecorder → 加密附件上传）。 */
+      const startRecording = useCallback(async () => {
+        if (recording) return;
+        if (!canRecord) {
+          setSendError(t("micUnsupported"));
+          return;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const recorder = new MediaRecorder(stream);
+          recordStreamRef.current = stream;
+          recordChunksRef.current = [];
+          recordCancelledRef.current = false;
+          recordSecondsRef.current = 0;
+          setRecordSeconds(0);
+          recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) recordChunksRef.current.push(event.data);
+          };
+          recorder.onstop = async () => {
+            if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+            recordTimerRef.current = null;
+            try {
+              recordStreamRef.current?.getTracks().forEach((track) => track.stop());
+            } catch {
+              /* ignore */
+            }
+            recordStreamRef.current = null;
+            recorderRef.current = null;
+            setRecording(false);
+            if (recordCancelledRef.current) return;
+            const chunks = recordChunksRef.current;
+            if (!chunks.length) return;
+            const type = recorder.mimeType || "audio/webm";
+            const blob = new Blob(chunks, { type });
+            const extension = type.includes("mp4") ? "m4a" : "webm";
+            const seconds = Math.max(1, recordSecondsRef.current);
+            const file = new File([blob], "voice-" + seconds + "s." + extension, { type });
+            await uploadFile(file);
+          };
+          recorder.start(250);
+          recorderRef.current = recorder;
+          setRecording(true);
+          recordTimerRef.current = setInterval(() => {
+            recordSecondsRef.current += 1;
+            setRecordSeconds((value) => value + 1);
+          }, 1000);
+        } catch (error) {
+          setSendError((error && error.message) || t("micDenied"));
+        }
+      }, [canRecord, recording, uploadFile]);
+
+      const stopRecording = useCallback((send = true) => {
+        const recorder = recorderRef.current;
+        if (!recorder) return;
+        recordCancelledRef.current = !send;
+        try {
+          recorder.stop();
+        } catch {
+          /* ignore */
+        }
+      }, []);
+
       // Esc 关闭所有浮层 / 取消回复。
       useEffect(() => {
         if (typeof window === "undefined") return;
@@ -7313,6 +7543,23 @@ window.__ModuleLoader__.load({
         }
         void chatAction("/chats/clear", { id: chat.id });
       }, [chatAction]);
+      const setChatNotifyMode = useCallback(
+        async (chat, mode) => {
+          if (!chat) return;
+          try {
+            await request("/chats/notify-mode", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: chat.id, mode }),
+            });
+            await loadChats();
+          } catch (error) {
+            if (mountedRef.current) setSendError((error && error.message) || t("unreachable"));
+          }
+        },
+        [loadChats],
+      );
+
       const toggleChatMute = useCallback(
         (chat) => void chatAction("/chats/mute", { id: chat.id, muted: !(chat && chat.muted) }),
         [chatAction],
@@ -9175,9 +9422,28 @@ window.__ModuleLoader__.load({
                   chatMenuFor.pinned ? t("unpin") : t("pin"),
                 ),
                 h(
-                  "button",
-                  { type: "button", className: "dchat-small-btn", onClick: () => toggleChatMute(chatMenuFor) },
-                  chatMenuFor.muted ? t("unmute") : t("mute"),
+                  "div",
+                  { className: "dchat-notify-modes", role: "group", "aria-label": t("notificationMode") },
+                  ...[
+                    ["all", t("notifyAll")],
+                    ["mentions", t("notifyMentions")],
+                    ["mute", t("notifyMute")],
+                  ].map(([mode, label]) =>
+                    h(
+                      "button",
+                      {
+                        key: mode,
+                        type: "button",
+                        className:
+                          "dchat-small-btn" +
+                          ((chatMenuFor.notifyMode || (chatMenuFor.muted ? "mute" : "all")) === mode
+                            ? " active"
+                            : ""),
+                        onClick: () => void setChatNotifyMode(chatMenuFor, mode),
+                      },
+                      label,
+                    ),
+                  ),
                 ),
                 h(
                   "button",
@@ -9659,6 +9925,31 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const recordingBar = recording
+        ? h(
+            "div",
+            { className: "dchat-recording-bar" },
+            h("span", { className: "dchat-recording-dot", "aria-hidden": "true" }),
+            h("span", { className: "dchat-recording-time" }, formatDuration(recordSeconds)),
+            h("span", { className: "dchat-recording-hint" }, t("recording")),
+            h("span", { className: "dchat-page-spacer" }),
+            h(
+              "button",
+              {
+                type: "button",
+                className: "dchat-small-btn ghost",
+                onClick: () => stopRecording(false),
+              },
+              t("cancelRecording"),
+            ),
+            h(
+              "button",
+              { type: "button", className: "dchat-btn", onClick: () => stopRecording(true) },
+              t("sendRecording"),
+            ),
+          )
+        : null;
+
       const emojiPopover = emojiOpen
         ? h(
             "div",
@@ -9759,6 +10050,19 @@ window.__ModuleLoader__.load({
             },
             SMILE_ICON,
           ),
+          canRecord
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-icon-btn dchat-mic-toggle",
+                  "aria-label": t("recordVoice"),
+                  title: t("recordVoice"),
+                  onClick: () => void startRecording(),
+                },
+                MIC_ICON,
+              )
+            : null,
           h("textarea", {
           ref: textareaRef,
           className: "dchat-input",
@@ -10453,7 +10757,7 @@ window.__ModuleLoader__.load({
               : null,
             editBar,
             replyBar,
-            composer,
+            recording ? recordingBar : composer,
           ),
         ),
         dragActive
