@@ -94,11 +94,31 @@ check(store.loadConfig().peerId === 'abc', 'config persists')
 
 // 个人资料默认值 + 头像落盘
 check(DEFAULT_CONFIG.avatar === '' && DEFAULT_CONFIG.status === '', 'profile config defaults avatar/status to empty strings')
+const defaultPrivacy = DEFAULT_CONFIG.privacy || {}
+check(
+  defaultPrivacy.readReceipts === true && defaultPrivacy.typingIndicator === true && defaultPrivacy.lastSeen === true,
+  'privacy default switches are all enabled',
+)
 const avatarFile = store.saveAvatar(Buffer.from('fake-png-bytes'), 'image/png')
 check(/^avatar-[0-9a-f]{8}\.png$/.test(avatarFile), 'saveAvatar names the file avatar-<8hex>.<ext>')
 check(existsSync(store.avatarPath(avatarFile)), 'avatarPath resolves the saved avatar file')
 assert.throws(() => store.saveAvatar(Buffer.from('x'), 'text/plain'), /头像格式/)
 check(true, 'saveAvatar rejects unsupported mime types')
+
+// 旧 config 没有 privacy：构造时补默认并落盘，不需要调用方迁移（用独立状态目录隔离）。
+const previousHome = process.env.DSH_HOME
+process.env.DSH_HOME = mkdtempSync(join(tmpdir(), 'dsh-chat-legacy-'))
+const legacyStore = new ChatStore()
+legacyStore.saveConfig({ peerId: 'legacy', room: 'legacy-room' })
+const legacyApp = new PeerChat({ ctx: { logger }, config: { enabled: false } })
+const legacyPrivacy = legacyApp.getState().settings.privacy
+check(
+  legacyPrivacy.readReceipts === true && legacyPrivacy.typingIndicator === true && legacyPrivacy.lastSeen === true,
+  'legacy config without privacy is normalized to defaults',
+)
+check(new ChatStore().loadConfig().privacy?.readReceipts === true, 'normalized privacy is persisted back to config')
+legacyApp.dispose()
+process.env.DSH_HOME = previousHome
 
 // 编辑/撤回依赖的「整文件原子重写」
 const rewriteTopic = deriveTopic('rewrite-room', 'pw')
@@ -184,6 +204,33 @@ check(chats.get(ownerGroup.id).ownerId === 'owner-9' && chats.get(ownerGroup.id)
 assert.throws(() => chats.setMuted('nope', true), /会话不存在/)
 check(true, 'setMuted rejects unknown chats')
 chats.setMuted('dm:peer-x', false)
+
+// 消息置顶：去重 / 顺序 / 可逆 / cap 20 / 持久化
+const pinSnap = chats.pinMessage('dm:peer-x', 'msg-a', true)
+check(
+  pinSnap.chats.find((chat) => chat.id === 'dm:peer-x')?.pinnedMessageIds.join(',') === 'msg-a',
+  'pinMessage exposes pinnedMessageIds in snapshot',
+)
+chats.pinMessage('dm:peer-x', 'msg-a', true)
+check(chats.getPinnedIds('dm:peer-x').join(',') === 'msg-a', 'pinMessage dedupes repeated pins')
+chats.pinMessage('dm:peer-x', 'msg-b', true)
+check(chats.getPinnedIds('dm:peer-x').join(',') === 'msg-a,msg-b', 'pinMessage keeps pin order')
+chats.pinMessage('dm:peer-x', 'msg-a', false)
+check(chats.getPinnedIds('dm:peer-x').join(',') === 'msg-b', 'pinMessage is reversible (unpin)')
+check(
+  store.loadChats().find((chat) => chat.id === 'dm:peer-x')?.pinnedMessageIds.includes('msg-b'),
+  'pinned message ids persist on the chats entry',
+)
+for (let i = 0; i < 25; i += 1) chats.pinMessage('dm:peer-x', 'cap-' + i, true)
+const cappedPins = chats.getPinnedIds('dm:peer-x')
+check(
+  cappedPins.length === 20 && cappedPins[0] === 'cap-5' && cappedPins[19] === 'cap-24',
+  'pinMessage caps at 20 and drops the oldest',
+)
+assert.throws(() => chats.pinMessage('nope', 'x'), /会话不存在/)
+check(true, 'pinMessage rejects unknown chats')
+chats.get('dm:peer-x').pinnedMessageIds = []
+chats.save()
 
 
 // ---------- room state machine ----------
@@ -289,6 +336,40 @@ app.onInbound({ body: inboundForwarded })
 check(app.messages.find((message) => message.id === 'inbound-forward-1')?.forwardedFrom === 'Peer A', 'inbound forwardedFrom is stored on the message')
 const managementState = app.getState()
 check(managementState.messages.find((message) => message.id === 'own-1')?.deleted === true, 'getState exposes deleted/edited flags as stored')
+app.relay = null
+
+// ---------- privacy switches ----------
+const published = []
+app.relay = { publish: async (body) => { published.push(open(body, app.key)) } }
+const defaultStatePrivacy = app.getState().settings.privacy
+check(
+  defaultStatePrivacy.readReceipts === true && defaultStatePrivacy.typingIndicator === true
+    && defaultStatePrivacy.lastSeen === true,
+  'getState settings.privacy defaults to all enabled',
+)
+await app.publishReadReceipt(3)
+await app.publishTyping()
+await app.publishTypingAs('Hermes')
+check(
+  published.map((item) => item.kind).join(',') === 'read,typing,typing',
+  'privacy enabled: read receipt + typing are published',
+)
+published.length = 0
+await app.updateConfig({ privacy: { readReceipts: false, typingIndicator: false } })
+app.relay = { publish: async (body) => { published.push(open(body, app.key)) } }
+app.lastReceiptAt = 0
+await app.publishReadReceipt(4)
+await app.publishTyping()
+await app.publishTypingAs('Hermes')
+check(published.length === 0, 'privacy disabled: read receipt + typing are suppressed')
+check(
+  app.getState().settings.privacy.readReceipts === false
+    && app.getState().settings.privacy.typingIndicator === false
+    && app.getState().settings.privacy.lastSeen === true,
+  'partial privacy patch keeps the untouched switches',
+)
+check(store.loadConfig().privacy?.readReceipts === false, 'privacy switches persist to config')
+await app.updateConfig({ privacy: { readReceipts: true, typingIndicator: true } })
 app.relay = null
 
 // 邀请码来自当前房间
@@ -399,6 +480,37 @@ check(
   'POST /chats/mute returns { ok, ...snapshot } with muted',
 )
 await callApi('POST', '/chats/mute', { json: { id: 'dm:peer-x', muted: false } })
+
+// 消息置顶路由：POST /chats/pin-message + GET /chats/pinned
+const pinMessageRoute = await callApi('POST', '/chats/pin-message', { json: { id: 'room:room-a', messageId: 's2' } })
+check(
+  pinMessageRoute.status === 200
+    && pinMessageRoute.data?.chats?.find((chat) => chat.id === 'room:room-a')?.pinnedMessageIds.join(',') === 's2',
+  'POST /chats/pin-message returns { ok, ...snapshot } with pinnedMessageIds',
+)
+await callApi('POST', '/chats/pin-message', { json: { id: 'room:room-a', messageId: 's1' } })
+const pinnedRoute = await callApi('GET', '/chats/pinned?id=room:room-a')
+check(
+  pinnedRoute.status === 200 && pinnedRoute.data?.pinned?.length === 2
+    && pinnedRoute.data.pinned[0].id === 's2' && pinnedRoute.data.pinned[1].id === 's1',
+  'GET /chats/pinned returns pinned messages in pin order',
+)
+store.saveMessages(deriveTopic('room-a', 'pw'), [
+  { id: 's1', seq: 1, ts: 1000, nick: 'Alice', text: 'Hello SEARCH world' },
+  { id: 's2', seq: 2, ts: 2000, nick: 'Bob', text: '', deleted: true },
+])
+const pinnedAfterDelete = await callApi('GET', '/chats/pinned?id=room:room-a')
+check(
+  pinnedAfterDelete.data?.pinned?.length === 1 && pinnedAfterDelete.data.pinned[0].id === 's1',
+  'GET /chats/pinned skips deleted messages',
+)
+const unpinRoute = await callApi('POST', '/chats/pin-message', { json: { id: 'room:room-a', messageId: 's1', pinned: false } })
+check(
+  unpinRoute.data?.chats?.find((chat) => chat.id === 'room:room-a')?.pinnedMessageIds.join(',') === 's2',
+  'POST /chats/pin-message supports pinned:false',
+)
+const pinnedUnknown = await callApi('GET', '/chats/pinned?id=nope')
+check(pinnedUnknown.status === 400 && pinnedUnknown.data?.ok === false, 'GET /chats/pinned rejects unknown chats')
 
 // ---------- agent auto-reply gating ----------
 const fakeApp = {

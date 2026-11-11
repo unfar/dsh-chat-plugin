@@ -263,7 +263,7 @@ window.__ModuleLoader__.load({
       uploadProgress: "上传进度",
       retryUpload: "重试上传",
       uploadCancelled: "已取消上传",
-      aboutVersion: "dsh Chat v2.1",
+      aboutVersion: "dsh Chat v4.0",
       globalSearchPlaceholder: "搜索会话或消息…",
       searchHint: "输入关键词搜索所有会话与消息；⌘K 打开 / Esc 关闭",
       searchConversations: "会话",
@@ -308,6 +308,20 @@ window.__ModuleLoader__.load({
       notificationsDenied: "通知权限被拒绝",
       notificationsEnabled: "通知已开启",
       soundLabel: "新消息提示音",
+      emojiPicker: "表情",
+      emojiRecent: "最近使用",
+      pinnedMessages: "置顶消息",
+      pinMessage: "置顶",
+      unpinMessage: "取消置顶",
+      noPinnedMessages: "没有置顶消息",
+      pinnedHint: "点击跳转到原消息",
+      privacyTitle: "隐私",
+      privacyReadReceipts: "发送已读回执",
+      privacyReadReceiptsHint: "关闭后对方看不到你的 ✓✓ 已读状态",
+      privacyTyping: "显示正在输入",
+      privacyTypingHint: "关闭后对方看不到你在输入",
+      privacyLastSeen: "显示最后在线",
+      privacyLastSeenHint: "关闭后成员列表/资料卡不显示你的最后活跃时间",
       soundHint: "窗口在后台或未聚焦时播放一声轻提示",
       justNow: "刚刚",
       minutesShort: "分钟前",
@@ -482,7 +496,7 @@ window.__ModuleLoader__.load({
       statusLabel: "Status",
       statusHint: "One line about you, shown on your profile",
       settingsAbout: "About",
-      aboutVersion: "dsh Chat v2.1",
+      aboutVersion: "dsh Chat v4.0",
       globalSearchPlaceholder: "Search chats and messages…",
       searchHint: "Type to search all chats and messages. ⌘K to open, Esc to close.",
       searchConversations: "Chats",
@@ -527,6 +541,20 @@ window.__ModuleLoader__.load({
       notificationsDenied: "Notification permission denied",
       notificationsEnabled: "Notifications enabled",
       soundLabel: "Notification sound",
+      emojiPicker: "Emoji",
+      emojiRecent: "Recent",
+      pinnedMessages: "Pinned messages",
+      pinMessage: "Pin",
+      unpinMessage: "Unpin",
+      noPinnedMessages: "No pinned messages",
+      pinnedHint: "Click to jump to the message",
+      privacyTitle: "Privacy",
+      privacyReadReceipts: "Send read receipts",
+      privacyReadReceiptsHint: "When off, others won't see your ✓✓ read status",
+      privacyTyping: "Show typing indicator",
+      privacyTypingHint: "When off, others won't see you typing",
+      privacyLastSeen: "Show last seen",
+      privacyLastSeenHint: "When off, member list/profile won't show your last active time",
       soundHint: "Play a soft chime when the window is in the background or unfocused",
       justNow: "just now",
       minutesShort: "min ago",
@@ -860,6 +888,11 @@ window.__ModuleLoader__.load({
             : String(relay.url || ""),
         agentAutoReply: settings.agentAutoReply === true,
         status: typeof settings.status === "string" ? settings.status : String(me.status || ""),
+        privacy: {
+          readReceipts: !(settings.privacy && settings.privacy.readReceipts === false),
+          typingIndicator: !(settings.privacy && settings.privacy.typingIndicator === false),
+          lastSeen: !(settings.privacy && settings.privacy.lastSeen === false),
+        },
         avatar: typeof settings.avatar === "string" ? settings.avatar : String(me.avatar || ""),
       };
     }
@@ -880,6 +913,13 @@ window.__ModuleLoader__.load({
       if (relayUrl) payload.relayUrl = relayUrl;
       payload.agentAutoReply = form.agentAutoReply === true;
       if (typeof form.status === "string") payload.status = form.status.trim();
+      if (form.privacy && typeof form.privacy === "object") {
+        payload.privacy = {
+          readReceipts: form.privacy.readReceipts !== false,
+          typingIndicator: form.privacy.typingIndicator !== false,
+          lastSeen: form.privacy.lastSeen !== false,
+        };
+      }
       return payload;
     }
 
@@ -4260,6 +4300,158 @@ window.__ModuleLoader__.load({
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 表情选择器 */
+.dchat-root .dchat-composer {
+  position: relative;
+}
+.dchat-root .dchat-emoji-toggle {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  align-self: center;
+  margin-bottom: 1px;
+  border-radius: 50%;
+}
+.dchat-root .dchat-emoji-toggle[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--dchat-brand) 12%, transparent);
+  color: var(--dchat-brand);
+}
+.dchat-root .dchat-emoji-popover {
+  position: absolute;
+  left: 10px;
+  bottom: calc(100% + 6px);
+  z-index: 27;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px 10px 6px;
+  border: 1px solid var(--dchat-border-l1);
+  border-radius: var(--dchat-radius-lg);
+  background: var(--dchat-overlay);
+  box-shadow: var(--dchat-shadow-3);
+  animation: dchat-pop var(--dchat-dur-2) var(--dchat-ease);
+}
+.dchat-root .dchat-emoji-section {
+  margin-bottom: 6px;
+}
+.dchat-root .dchat-emoji-label {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--dchat-label-2);
+  padding: 2px 4px 4px;
+}
+.dchat-root .dchat-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+.dchat-root .dchat-emoji-btn {
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dchat-root .dchat-emoji-btn:hover {
+  background: var(--dchat-layer-1);
+}
+
+/* 置顶消息条 */
+.dchat-root .dchat-pinned {
+  flex: none;
+  border-bottom: 1px solid var(--dchat-border-l1);
+  background: color-mix(in srgb, var(--dchat-brand) 5%, var(--dchat-bg));
+}
+.dchat-root .dchat-pinned-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-pinned-summary:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-pinned-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--dchat-brand);
+}
+.dchat-root .dchat-pinned-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dchat-root .dchat-pinned-count {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--dchat-radius-pill);
+  background: var(--dchat-brand);
+  color: var(--dchat-brand-fg);
+  font-size: 10px;
+  font-weight: 650;
+}
+.dchat-root .dchat-pinned-list {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dchat-root .dchat-pinned-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dchat-root .dchat-pinned-jump {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--dchat-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dchat-root .dchat-pinned-jump:hover {
+  background: var(--dchat-layer-1);
+}
+.dchat-root .dchat-pinned-row-nick {
+  font-size: 10.5px;
+  color: var(--dchat-brand);
+  font-weight: 620;
+}
+.dchat-root .dchat-pinned-row-text {
+  font-size: 11.5px;
+  color: var(--dchat-label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 `;
 
     // ── 图标（内联 SVG，不依赖任何 icon 包）──────────────────────────────
@@ -4618,6 +4810,29 @@ window.__ModuleLoader__.load({
       h("path", { key: "b", d: "M6 13l6 6 6-6" }),
     );
 
+    const EMOJI_CATEGORIES = [
+      {
+        id: "smileys",
+        icon: "😀",
+        emojis: ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥳","😏","😒","😞","😔","😟","😕","🙁","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕"],
+      },
+      {
+        id: "gestures",
+        icon: "🖐️",
+        emojis: ["👋","🤚","🖐️","✋","🖖","👌","🤌","🤏","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","🦾","🦵","🦶","👂","🦻","👃","🧠","🫀","🫁","🦷","🦴","👀","👁️","👅","👄"],
+      },
+      {
+        id: "hearts",
+        icon: "❤️",
+        emojis: ["❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❣️","💕","💞","💓","💗","💖","💘","💝","💟","♥️","💯","💢","💥","💫","💦","💨","🕳️","💬","💭","🗯️","💤","🔥","✨","⭐","🌟","❄️","🌈","☀️","🌤️","⛅","🌧️","⛈️","🌩️","🌊","🌪️","🌫️","🎇","🎆"],
+      },
+      {
+        id: "objects",
+        icon: "🎉",
+        emojis: ["🎉","🎊","🎈","🎁","🎀","🪄","🎂","🍰","🧁","🍭","🍬","🍫","🍿","🍩","🍪","☕","🍵","🧋","🍺","🍻","🥂","🍷","🍸","🍹","🥤","🧃","🍎","🍊","🍋","🍇","🍓","🫐","🍒","🍑","🥭","🍍","🥝","🍅","🥑","🌽","🥕","🧄","🧅","🥔","🍠","🧀","🥐","🍞","🧇"],
+      },
+    ];
+
     const SEND_ICON = h(
       "svg",
       {
@@ -4658,7 +4873,7 @@ window.__ModuleLoader__.load({
       h("path", { key: "d", d: "M17.2 14.3c2 .7 3.2 2.3 3.6 4.7" }),
     );
 
-    /** 产品 Logo（深蓝渐变圆角底 + 几何「d」字形，碗部嵌一道浪，DeepSeek 蓝）。 */
+    /** 产品 Logo（深蓝渐变圆角底 + 双对话气泡，代表端到端对等聊天）。 */
     function LogoMark(props) {
       const size = Number(props && props.size) || 18;
       return h(
@@ -4683,15 +4898,17 @@ window.__ModuleLoader__.load({
           ),
         ),
         h("rect", { key: "bg", x: 2, y: 2, width: 60, height: 60, rx: 16, fill: "url(#dshchat-logo-grad)" }),
-        h("circle", { key: "bowl", cx: 29, cy: 32, r: 17, fill: "#FFFFFF" }),
-        h("rect", { key: "stem", x: 40, y: 13, width: 9, height: 38, rx: 4.5, fill: "#FFFFFF" }),
         h("path", {
-          key: "wave",
-          d: "M19 30c4-4 8-4 12 0s8 4 12 0",
+          key: "back",
+          d: "M13 20a7 7 0 0 1 7-7h16a7 7 0 0 1 7 7v10a7 7 0 0 1-7 7H22l-6 6 1-6h-2a7 7 0 0 1-7-7V20z",
+          fill: "#FFFFFF",
+        }),
+        h("path", {
+          key: "front",
+          d: "M29 31a7 7 0 0 1 7-7h12a7 7 0 0 1 7 7v10a7 7 0 0 1-7 7h-3l1 6-6-6h-4a7 7 0 0 1-7-7V31z",
+          fill: "#FFFFFF",
           stroke: "url(#dshchat-logo-grad)",
-          strokeWidth: 3.4,
-          fill: "none",
-          strokeLinecap: "round",
+          strokeWidth: 3,
         }),
       );
     }
@@ -4901,6 +5118,17 @@ window.__ModuleLoader__.load({
                   onClick: () => props.onForward && props.onForward(message),
                 },
                 FORWARD_ICON,
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-act",
+                  title: props.pinned ? t("unpinMessage") : t("pinMessage"),
+                  "aria-label": props.pinned ? t("unpinMessage") : t("pinMessage"),
+                  onClick: () => props.onTogglePin && props.onTogglePin(message),
+                },
+                PIN_ICON,
               ),
             ),
             h(
@@ -5179,6 +5407,18 @@ window.__ModuleLoader__.load({
       const [newChatTitle, setNewChatTitle] = useState("");
       const [chatTitleDraft, setChatTitleDraft] = useState("");
       const [notifyEnabled, setNotifyEnabled] = useState(false);
+      const [emojiOpen, setEmojiOpen] = useState(false);
+      const [pinnedMessages, setPinnedMessages] = useState([]);
+      const [pinnedOpen, setPinnedOpen] = useState(false);
+      const [emojiRecent, setEmojiRecent] = useState(() => {
+        try {
+          const stored = typeof window !== "undefined" && window.localStorage.getItem("dshchat.emoji");
+          const parsed = stored ? JSON.parse(stored) : [];
+          return Array.isArray(parsed) ? parsed.slice(0, 16) : [];
+        } catch {
+          return [];
+        }
+      });
       const [soundEnabled, setSoundEnabled] = useState(() => {
         try {
           return typeof window !== "undefined" && window.localStorage.getItem("dshchat.sound") === "1";
@@ -5383,6 +5623,47 @@ window.__ModuleLoader__.load({
           if (mountedRef.current) setNotificationsBusy(false);
         }
       }, []);
+
+      const loadPinned = useCallback(async () => {
+        const active = (chats || []).find((chat) => chat.active);
+        const chatId = active ? active.id : "";
+        if (!chatId) {
+          setPinnedMessages([]);
+          return;
+        }
+        try {
+          const data = await request("/chats/pinned?id=" + encodeURIComponent(chatId), {
+            method: "GET",
+            headers: { accept: "application/json" },
+            cache: "no-store",
+          });
+          if (mountedRef.current) {
+            setPinnedMessages(Array.isArray(data && data.pinned) ? data.pinned : []);
+          }
+        } catch {
+          if (mountedRef.current) setPinnedMessages([]);
+        }
+      }, [chats]);
+
+      const togglePinMessage = useCallback(
+        async (message) => {
+          const active = (chats || []).find((chat) => chat.active);
+          if (!active || !message || !message.id) return;
+          const isPinned = pinnedMessages.some((item) => item.id === message.id);
+          try {
+            await request("/chats/pin-message", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: active.id, messageId: message.id, pinned: !isPinned }),
+            });
+            await loadPinned();
+            setPinnedOpen(false);
+          } catch (error) {
+            if (mountedRef.current) setSendError((error && error.message) || t("unreachable"));
+          }
+        },
+        [chats, pinnedMessages, loadPinned],
+      );
 
       const loadChats = useCallback(async () => {
         try {
@@ -6212,13 +6493,14 @@ window.__ModuleLoader__.load({
         lastNotifiedSeqRef.current = latest;
         const last = messages.length > 0 ? messages[messages.length - 1] : null;
         if (!last || last.mine) return;
+        const mutedActive = Boolean(currentChat && currentChat.muted);
         const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
         const unfocused =
           typeof document !== "undefined" &&
           document.visibilityState === "visible" &&
           typeof document.hasFocus === "function" &&
           !document.hasFocus();
-        if (hidden && notifyEnabledRef.current) {
+        if (hidden && notifyEnabledRef.current && !mutedActive) {
           try {
             new Notification(t("title"), {
               body: `${last.nick || t("anonymous")}: ${String(last.text || "").slice(0, 80)}`,
@@ -6228,8 +6510,8 @@ window.__ModuleLoader__.load({
             /* ignore */
           }
         }
-        if ((hidden || unfocused) && soundEnabledRef.current) playChime();
-        if (unfocused) {
+        if ((hidden || unfocused) && soundEnabledRef.current && !mutedActive) playChime();
+        if (unfocused && !mutedActive) {
           setNotifyToast({
             id: last.id,
             nick: String(last.nick || t("anonymous")),
@@ -6552,6 +6834,67 @@ window.__ModuleLoader__.load({
         return () => clearTimeout(timer);
       }, [pendingDay, allMessages, hasMoreOlder, loadingOlder, loadOlder, windowSize, setPendingDay]);
 
+      // 当前会话变化或置顶列表变化时刷新置顶消息。
+      const activeChatPinnedKey = (() => {
+        const active = (chats || []).find((chat) => chat.active);
+        return active ? active.id + ":" + (Array.isArray(active.pinnedMessageIds) ? active.pinnedMessageIds.join(",") : "") : "";
+      })();
+      useEffect(() => {
+        void loadPinned();
+      }, [activeChatPinnedKey, loadPinned]);
+
+      // 历史从 seq=1 开始时没有更早消息，不必显示「加载更早」。
+      useEffect(() => {
+        const earliest = allMessages.length > 0 ? Number(allMessages[0].seq) || 0 : 0;
+        if (earliest > 0 && earliest <= 1) setHasMoreOlder(false);
+      }, [allMessages]);
+
+      // 表情选择器：最近使用持久化 + 点击外部关闭。
+      useEffect(() => {
+        try {
+          window.localStorage.setItem("dshchat.emoji", JSON.stringify(emojiRecent.slice(0, 16)));
+        } catch {
+          /* ignore */
+        }
+      }, [emojiRecent]);
+
+      useEffect(() => {
+        if (!emojiOpen || typeof document === "undefined") return undefined;
+        const onPointerDown = (event) => {
+          const target = event.target;
+          if (target && target.closest && target.closest(".dchat-emoji-popover")) return;
+          if (target && target.closest && target.closest(".dchat-emoji-toggle")) return;
+          setEmojiOpen(false);
+        };
+        document.addEventListener("mousedown", onPointerDown);
+        return () => document.removeEventListener("mousedown", onPointerDown);
+      }, [emojiOpen]);
+
+      /** 在光标处插入 emoji，并记入最近使用。 */
+      const insertEmoji = useCallback(
+        (emoji) => {
+          const element = textareaRef.current;
+          const value = String(draft || "");
+          const start = element && typeof element.selectionStart === "number" ? element.selectionStart : value.length;
+          const end = element && typeof element.selectionEnd === "number" ? element.selectionEnd : value.length;
+          const next = value.slice(0, start) + emoji + value.slice(end);
+          setDraft(next);
+          setEmojiRecent((previous) => [emoji, ...previous.filter((item) => item !== emoji)].slice(0, 16));
+          if (element) {
+            requestAnimationFrame(() => {
+              try {
+                element.focus();
+                const caret = start + emoji.length;
+                element.setSelectionRange(caret, caret);
+              } catch {
+                /* ignore */
+              }
+            });
+          }
+        },
+        [draft],
+      );
+
       // Esc 关闭所有浮层 / 取消回复。
       useEffect(() => {
         if (typeof window === "undefined") return;
@@ -6569,6 +6912,7 @@ window.__ModuleLoader__.load({
           setSearchOpen(false);
           setSearchQuery("");
           setGlobalOpen(false);
+          setEmojiOpen(false);
           setNotificationsOpen(false);
           if (settingsOpen) setSettingsOpen(false);
         };
@@ -7374,6 +7718,59 @@ window.__ModuleLoader__.load({
                                 h("div", { className: "dchat-hint" }, t("discoverHint")),
                                 h("div", { className: "dchat-hint" }, t("agentIdHint")),
                               ]),
+                              settingsSection(t("privacyTitle"), [
+                                h(
+                                  "label",
+                                  { className: "dchat-check" },
+                                  h("input", {
+                                    type: "checkbox",
+                                    checked: form.privacy ? form.privacy.readReceipts !== false : true,
+                                    onChange: (event) =>
+                                      updateForm({
+                                        privacy: {
+                                          ...(form.privacy || {}),
+                                          readReceipts: event.target.checked,
+                                        },
+                                      }),
+                                  }),
+                                  t("privacyReadReceipts"),
+                                ),
+                                h("div", { className: "dchat-hint" }, t("privacyReadReceiptsHint")),
+                                h(
+                                  "label",
+                                  { className: "dchat-check" },
+                                  h("input", {
+                                    type: "checkbox",
+                                    checked: form.privacy ? form.privacy.typingIndicator !== false : true,
+                                    onChange: (event) =>
+                                      updateForm({
+                                        privacy: {
+                                          ...(form.privacy || {}),
+                                          typingIndicator: event.target.checked,
+                                        },
+                                      }),
+                                  }),
+                                  t("privacyTyping"),
+                                ),
+                                h("div", { className: "dchat-hint" }, t("privacyTypingHint")),
+                                h(
+                                  "label",
+                                  { className: "dchat-check" },
+                                  h("input", {
+                                    type: "checkbox",
+                                    checked: form.privacy ? form.privacy.lastSeen !== false : true,
+                                    onChange: (event) =>
+                                      updateForm({
+                                        privacy: {
+                                          ...(form.privacy || {}),
+                                          lastSeen: event.target.checked,
+                                        },
+                                      }),
+                                  }),
+                                  t("privacyLastSeen"),
+                                ),
+                                h("div", { className: "dchat-hint" }, t("privacyLastSeenHint")),
+                              ]),
                             ]
                           : settingsTab === "connection"
                             ? [
@@ -8149,7 +8546,7 @@ window.__ModuleLoader__.load({
                     { className: "dchat-member-tag" },
                     peer.online
                       ? t("online")
-                      : peer.lastSeen
+                      : peer.lastSeen && !(snapshot && snapshot.settings && snapshot.settings.privacy && snapshot.settings.privacy.lastSeen === false)
                         ? t("lastSeen") + " " + relativeTime(peer.lastSeen)
                         : t("offline"),
                   ),
@@ -8336,6 +8733,80 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const pinnedBar =
+        pinnedMessages.length > 0
+          ? h(
+              "div",
+              { className: "dchat-pinned" },
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "dchat-pinned-summary",
+                  onClick: () => setPinnedOpen((open) => !open),
+                  title: t("pinnedHint"),
+                },
+                h("span", { className: "dchat-pinned-icon" }, PIN_ICON),
+                h(
+                  "span",
+                  { className: "dchat-pinned-text" },
+                  String(
+                    (pinnedMessages[pinnedMessages.length - 1] &&
+                      (pinnedMessages[pinnedMessages.length - 1].text ||
+                        (pinnedMessages[pinnedMessages.length - 1].file &&
+                          pinnedMessages[pinnedMessages.length - 1].file.name))) ||
+                      t("pinnedMessages"),
+                  ).slice(0, 120),
+                ),
+                h("span", { className: "dchat-pinned-count" }, pinnedMessages.length),
+              ),
+              pinnedOpen
+                ? h(
+                    "div",
+                    { className: "dchat-pinned-list" },
+                    ...pinnedMessages.map((message) =>
+                      h(
+                        "div",
+                        { key: "pin-" + message.id, className: "dchat-pinned-row" },
+                        h(
+                          "button",
+                          {
+                            type: "button",
+                            className: "dchat-pinned-jump",
+                            onClick: () => {
+                              setPinnedOpen(false);
+                              setPendingJump({ id: message.id });
+                            },
+                          },
+                          h(
+                            "span",
+                            { className: "dchat-pinned-row-nick" },
+                            String(message.nick || t("anonymous")),
+                          ),
+                          h(
+                            "span",
+                            { className: "dchat-pinned-row-text" },
+                            String(message.text || (message.file && message.file.name) || "").slice(0, 140),
+                          ),
+                        ),
+                        h(
+                          "button",
+                          {
+                            type: "button",
+                            className: "dchat-icon-btn",
+                            "aria-label": t("unpinMessage"),
+                            title: t("unpinMessage"),
+                            onClick: () => void togglePinMessage(message),
+                          },
+                          CLOSE_ICON,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+            )
+          : null;
+
       const bodyView = snapshot
         ? h(
             "div",
@@ -8349,7 +8820,8 @@ window.__ModuleLoader__.load({
                 role: "log",
                 "aria-label": t("messagesAria"),
               },
-              h(
+              loadingOlder || hasMoreOlder || hiddenAbove
+                ? h(
                 "div",
                 { className: "dchat-history" },
                 loadingOlder
@@ -8375,7 +8847,8 @@ window.__ModuleLoader__.load({
                           t("expandEarlier"),
                         )
                       : h("span", { className: "dchat-history-end" }, t("noMoreHistory")),
-              ),
+              )
+                : null,
               messages.length === 0
                 ? h(ChatEmpty, {
                     onInvite: openInvite,
@@ -8671,7 +9144,8 @@ window.__ModuleLoader__.load({
                 profileCard.status
                   ? h("div", { className: "dchat-hint" }, String(profileCard.status))
                   : null,
-                profileCard.at || profileCard.lastSeen
+                (profileCard.at || profileCard.lastSeen) &&
+                !(snapshot && snapshot.settings && snapshot.settings.privacy && snapshot.settings.privacy.lastSeen === false)
                   ? h(
                       "div",
                       { className: "dchat-hint" },
@@ -9075,6 +9549,64 @@ window.__ModuleLoader__.load({
           )
         : null;
 
+      const emojiPopover = emojiOpen
+        ? h(
+            "div",
+            {
+              className: "dchat-emoji-popover",
+              role: "dialog",
+              "aria-label": t("emojiPicker"),
+              onMouseDown: (event) => event.stopPropagation(),
+            },
+            emojiRecent.length > 0
+              ? h(
+                  "div",
+                  { className: "dchat-emoji-section" },
+                  h("div", { className: "dchat-emoji-label" }, t("emojiRecent")),
+                  h(
+                    "div",
+                    { className: "dchat-emoji-grid" },
+                    ...emojiRecent.map((emoji) =>
+                      h(
+                        "button",
+                        {
+                          key: "recent-" + emoji,
+                          type: "button",
+                          className: "dchat-emoji-btn",
+                          onClick: () => insertEmoji(emoji),
+                        },
+                        emoji,
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+            ...EMOJI_CATEGORIES.map((category) =>
+              h(
+                "div",
+                { key: category.id, className: "dchat-emoji-section" },
+                h("div", { className: "dchat-emoji-label" }, category.icon),
+                h(
+                  "div",
+                  { className: "dchat-emoji-grid" },
+                  ...category.emojis.map((emoji) =>
+                    h(
+                      "button",
+                      {
+                        key: category.id + "-" + emoji,
+                        type: "button",
+                        className: "dchat-emoji-btn",
+                        onClick: () => insertEmoji(emoji),
+                      },
+                      emoji,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        : null;
+
       const composer = h(
         "div",
         { className: "dchat-composer" },
@@ -9101,9 +9633,22 @@ window.__ModuleLoader__.load({
             if (file) void uploadFile(file);
           },
         }),
+        emojiPopover,
         h(
           "div",
           { className: "dchat-composer-pill" },
+          h(
+            "button",
+            {
+              type: "button",
+              className: "dchat-icon-btn dchat-emoji-toggle",
+              "aria-label": t("emojiPicker"),
+              title: t("emojiPicker"),
+              "aria-expanded": emojiOpen ? "true" : "false",
+              onClick: () => setEmojiOpen((open) => !open),
+            },
+            SMILE_ICON,
+          ),
           h("textarea", {
           ref: textareaRef,
           className: "dchat-input",
@@ -9138,7 +9683,8 @@ window.__ModuleLoader__.load({
         ),
       );
 
-      const displayPeer = peers.length === 1 ? peers[0] : null;
+      const displayPeer =
+        peers.length === 1 && currentChat && currentChat.kind === "dm" ? peers[0] : null;
       const typingLabel =
         snapshot && Array.isArray(snapshot.typing) && snapshot.typing.length > 0
           ? snapshot.typing
@@ -9731,6 +10277,7 @@ window.__ModuleLoader__.load({
             banner,
             requestBanner,
             snapshot && peers.length > 1 ? peersView : null,
+            pinnedBar,
             bodyView,
             sendError
               ? h(
